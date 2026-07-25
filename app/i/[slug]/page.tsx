@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import WeddingClassic from "@/components/templates/WeddingClassic";
+import WeddingScrapbook from "@/components/templates/WeddingScrapbook";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,10 @@ export default async function InvitePage({
   if (!invite) notFound();
 
   const templateSlug = invite.templates?.slug;
+
+  if (templateSlug === "wedding-scrapbook") {
+    return <WeddingScrapbook invite={invite} />;
+  }
 
   if (templateSlug === "wedding-classic") {
     return <WeddingClassic invite={invite} />;

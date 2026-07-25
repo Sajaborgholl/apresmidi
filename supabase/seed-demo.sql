@@ -15,6 +15,6 @@ select
   '#7A5C3E',
   '{}',
   null,
-  '96170795973',
+  '96170664401',
   'live'
 from templates where slug = 'wedding-classic';
