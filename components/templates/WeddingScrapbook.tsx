@@ -10,6 +10,7 @@ type Invite = {
   venue_name: string | null;
   venue_map_url: string | null;
   photo_urls: string[] | null;
+  whatsapp_number: string | null;
 };
 
 type IconKey = "heart" | "star" | "smiley" | "rings" | "flower" | "envelope" | "camera";
@@ -147,6 +148,13 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
     );
     setSubmitted(true);
   }
+
+  const waText = encodeURIComponent(
+    attending
+      ? `Hi! It's ${name.trim() || "Friend"} — we'll be there${guestCount > 1 ? ` (${guestCount} of us)` : ""}! 🎉`
+      : `Hi! It's ${name.trim() || "Friend"} — unfortunately we can't make it 💔`
+  );
+  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waText}` : null;
 
   return (
     <>
@@ -301,7 +309,20 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
                 </button>
               </form>
             ) : (
-              <div className="thank-you" style={{ display: "block" }} dangerouslySetInnerHTML={{ __html: thankYouMsg }} />
+              <div className="thank-you" style={{ display: "block" }}>
+                <p dangerouslySetInnerHTML={{ __html: thankYouMsg }} />
+                {waLink && (
+                  <a
+                    href={waLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="submit-btn"
+                    style={{ display: "inline-block", textDecoration: "none", marginTop: "18px", background: "#25D366" }}
+                  >
+                    Confirm on WhatsApp too
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>
