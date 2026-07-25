@@ -14,7 +14,7 @@ on conflict (slug) do nothing;
 insert into invites (
   slug, template_id, host_names, event_date, venue_name, venue_map_url,
   photo_urls, status
-)
+)the 
 select
   'rami-rasha',
   id,
