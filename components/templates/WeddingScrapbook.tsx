@@ -13,7 +13,7 @@ type Invite = {
   whatsapp_number: string | null;
 };
 
-type IconKey = "heart" | "star" | "smiley" | "rings" | "flower" | "envelope" | "camera";
+type IconKey = "heart" | "star" | "rings";
 
 type StickerDef = {
   icon?: IconKey;
@@ -38,60 +38,40 @@ const ICONS: Record<IconKey, string> = {
   star: `<svg viewBox="0 0 40 40" fill="none" stroke="#4A3F35" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
     <path d="M20 4 L24.7 15.2 L36.5 15.8 L27.3 23.3 L30.6 34.8 L20 28.2 L9.4 34.8 L12.7 23.3 L3.5 15.8 L15.3 15.2 Z"/>
   </svg>`,
-  smiley: `<svg viewBox="0 0 40 40" fill="none" stroke="#4A3F35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="20" cy="20" r="15"/>
-    <circle cx="14.5" cy="17" r="1.6" fill="#4A3F35" stroke="none"/>
-    <circle cx="25.5" cy="17" r="1.6" fill="#4A3F35" stroke="none"/>
-    <path d="M13 24 Q20 30.5 27 24"/>
-  </svg>`,
   rings: `<svg viewBox="0 0 40 40" fill="none" stroke="#4A3F35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="15.5" cy="23" r="9"/>
     <circle cx="25.5" cy="18.5" r="9"/>
   </svg>`,
-  flower: `<svg viewBox="0 0 40 40" fill="none" stroke="#4A3F35" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="20" cy="12" r="6.4"/>
-    <circle cx="29" cy="18" r="6.4"/>
-    <circle cx="25.5" cy="28" r="6.4"/>
-    <circle cx="14.5" cy="28" r="6.4"/>
-    <circle cx="11" cy="18" r="6.4"/>
-    <circle cx="20" cy="20" r="3.2" fill="#4A3F35" stroke="none"/>
-  </svg>`,
-  envelope: `<svg viewBox="0 0 40 40" fill="none" stroke="#4A3F35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="5" y="10" width="30" height="20" rx="2.5"/>
-    <path d="M5 11 L20 24 L35 11"/>
-  </svg>`,
-  camera: `<svg viewBox="0 0 40 40" fill="none" stroke="#4A3F35" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="5" y="14" width="30" height="18" rx="3"/>
-    <rect x="15" y="8" width="10" height="6" rx="1.5"/>
-    <circle cx="20" cy="23" r="6.2"/>
-  </svg>`,
 };
 
 const HERO_STICKERS: StickerDef[] = [
-  { icon: "heart", color: "blush", torn: "torn-a", top: "8%", left: "8%", rot: -10 },
-  { icon: "star", color: "butter", torn: "torn-b", top: "6%", left: "80%", rot: 12 },
-  { icon: "camera", color: "powder", torn: "torn-c", top: "22%", left: "85%", rot: -8 },
-  { icon: "flower", color: "butter", torn: "torn-d", top: "40%", left: "5%", rot: 8 },
-  { icon: "smiley", color: "blush", torn: "torn-a", top: "62%", left: "88%", rot: -14, hide: true },
-  { icon: "rings", color: "powder", torn: "torn-b", top: "80%", left: "10%", rot: 10 },
-  { icon: "envelope", color: "butter", torn: "torn-c", top: "88%", left: "78%", rot: -6, hide: true },
-  { washi: true, color: "blush", top: "14%", left: "40%", rot: -12 },
-  { washi: true, color: "powder", top: "74%", left: "55%", rot: 9 },
+  { icon: "heart", color: "blush", torn: "torn-a", top: "5%", left: "6%", rot: -10 },
+  { icon: "star", color: "butter", torn: "torn-b", top: "5%", left: "80%", rot: 12 },
+  { icon: "rings", color: "powder", torn: "torn-c", top: "18%", left: "88%", rot: -8, hide: true },
+  { icon: "heart", color: "butter", torn: "torn-d", top: "20%", left: "3%", rot: 8, hide: true },
+  { icon: "star", color: "blush", torn: "torn-a", top: "40%", left: "90%", rot: -14, hide: true },
+  { icon: "rings", color: "powder", torn: "torn-b", top: "42%", left: "2%", rot: 10, hide: true },
+  { icon: "heart", color: "powder", torn: "torn-c", top: "94%", left: "88%", rot: -6, hide: true },
+  { icon: "star", color: "butter", torn: "torn-d", top: "94%", left: "4%", rot: 9, hide: true },
+  { washi: true, color: "blush", top: "10%", left: "42%", rot: -12 },
+  { washi: true, color: "powder", top: "32%", left: "60%", rot: 9, hide: true },
 ];
 
 const DETAILS_STICKERS: StickerDef[] = [
-  { icon: "flower", color: "blush", torn: "torn-a", top: "10%", left: "10%", rot: -9 },
-  { icon: "star", color: "powder", torn: "torn-c", top: "12%", left: "82%", rot: 14 },
-  { icon: "envelope", color: "butter", torn: "torn-b", top: "82%", left: "12%", rot: 8, hide: true },
-  { washi: true, color: "butter", top: "86%", left: "70%", rot: -11 },
+  { icon: "heart", color: "blush", torn: "torn-a", top: "6%", left: "8%", rot: -9 },
+  { icon: "star", color: "powder", torn: "torn-c", top: "8%", left: "84%", rot: 14 },
+  { icon: "rings", color: "butter", torn: "torn-b", top: "90%", left: "10%", rot: 8, hide: true },
+  { icon: "heart", color: "powder", torn: "torn-d", top: "92%", left: "82%", rot: -10, hide: true },
+  { washi: true, color: "butter", top: "94%", left: "68%", rot: -11, hide: true },
 ];
 
 const RSVP_STICKERS: StickerDef[] = [
-  { icon: "heart", color: "powder", torn: "torn-d", top: "8%", left: "85%", rot: 11 },
-  { icon: "rings", color: "butter", torn: "torn-a", top: "14%", left: "8%", rot: -13 },
-  { icon: "smiley", color: "blush", torn: "torn-b", top: "84%", left: "82%", rot: 9, hide: true },
-  { icon: "camera", color: "powder", torn: "torn-c", top: "80%", left: "6%", rot: -7 },
-  { washi: true, color: "blush", top: "50%", left: "2%", rot: -15 },
+  { icon: "heart", color: "powder", torn: "torn-d", top: "5%", left: "88%", rot: 11 },
+  { icon: "rings", color: "butter", torn: "torn-a", top: "6%", left: "6%", rot: -13 },
+  { icon: "star", color: "blush", torn: "torn-b", top: "92%", left: "86%", rot: 9, hide: true },
+  { icon: "heart", color: "powder", torn: "torn-c", top: "90%", left: "4%", rot: -7, hide: true },
+  { icon: "star", color: "butter", torn: "torn-a", top: "46%", left: "94%", rot: 8, hide: true },
+  { washi: true, color: "blush", top: "50%", left: "1%", rot: -15, hide: true },
 ];
 
 function StickerLayer({ stickers }: { stickers: StickerDef[] }) {
