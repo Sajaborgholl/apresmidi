@@ -151,8 +151,8 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
 
   const waText = encodeURIComponent(
     attending
-      ? `Hi! It's ${name.trim() || "Friend"} — we'll be there${guestCount > 1 ? ` (${guestCount} of us)` : ""}! 🎉`
-      : `Hi! It's ${name.trim() || "Friend"} — unfortunately we can't make it 💔`
+      ? `Hi! It's ${name.trim() || "Friend"} — we are beyond excited and wouldn't miss it for the world! We'll be there${guestCount > 1 ? ` with ${guestCount} of us` : ""}, counting down the days already. Can't wait to celebrate this special day with you both! 🎉`
+      : `Hi! It's ${name.trim() || "Friend"} — I'm so sorry we won't be able to make it this time. We're truly disappointed to miss it, but we'll be thinking of you and sending all our love on your special day 💔`
   );
   const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waText}` : null;
 
