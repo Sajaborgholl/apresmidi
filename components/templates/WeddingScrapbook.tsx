@@ -57,14 +57,6 @@ const HERO_STICKERS: StickerDef[] = [
   { washi: true, color: "moss", top: "32%", left: "60%", rot: 9, hide: true },
 ];
 
-const DETAILS_STICKERS: StickerDef[] = [
-  { icon: "heart", color: "olive", torn: "torn-a", top: "6%", left: "8%", rot: -9 },
-  { icon: "star", color: "moss", torn: "torn-c", top: "8%", left: "84%", rot: 14 },
-  { icon: "rings", color: "sage", torn: "torn-b", top: "90%", left: "10%", rot: 8, hide: true },
-  { icon: "heart", color: "moss", torn: "torn-d", top: "92%", left: "82%", rot: -10, hide: true },
-  { washi: true, color: "sage", top: "94%", left: "68%", rot: -11, hide: true },
-];
-
 const RSVP_STICKERS: StickerDef[] = [
   { icon: "heart", color: "moss", torn: "torn-d", top: "5%", left: "88%", rot: 11 },
   { icon: "rings", color: "sage", torn: "torn-a", top: "6%", left: "6%", rot: -13 },
@@ -99,12 +91,6 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
   const [thankYouMsg, setThankYouMsg] = useState("");
 
   const photo = invite.photo_urls?.[0];
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
-  const dateStr = eventDate?.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const timeStr = eventDate?.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  const mapsUrl =
-    invite.venue_map_url ||
-    (invite.venue_name ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(invite.venue_name)}` : undefined);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -186,41 +172,6 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
               </svg>
               <span>scroll</span>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="details">
-        <StickerLayer stickers={DETAILS_STICKERS} />
-        <div className="section-content">
-          <div className="card">
-            <h2 className="script">Join us</h2>
-
-            {dateStr && (
-              <div className="detail-row">
-                <p className="detail-label">Date</p>
-                <p className="detail-value">{dateStr}</p>
-              </div>
-            )}
-            {timeStr && (
-              <div className="detail-row">
-                <p className="detail-label">Time</p>
-                <p className="detail-value">{timeStr}</p>
-              </div>
-            )}
-            {invite.venue_name && (
-              <div className="detail-row">
-                <p className="detail-label">Venue</p>
-                <p className="detail-value">{invite.venue_name}</p>
-              </div>
-            )}
-
-            <div className="divider" />
-            {mapsUrl && (
-              <a className="map-button" href={mapsUrl} target="_blank" rel="noopener noreferrer">
-                View on Google Maps
-              </a>
-            )}
           </div>
         </div>
       </section>
