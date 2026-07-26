@@ -17,7 +17,7 @@ type IconKey = "heart" | "star" | "rings";
 
 type StickerDef = {
   icon?: IconKey;
-  color: "butter" | "blush" | "powder";
+  color: "sage" | "olive" | "moss";
   torn?: "torn-a" | "torn-b" | "torn-c" | "torn-d";
   top: string;
   left: string;
@@ -45,33 +45,33 @@ const ICONS: Record<IconKey, string> = {
 };
 
 const HERO_STICKERS: StickerDef[] = [
-  { icon: "heart", color: "blush", torn: "torn-a", top: "5%", left: "6%", rot: -10 },
-  { icon: "star", color: "butter", torn: "torn-b", top: "5%", left: "80%", rot: 12 },
-  { icon: "rings", color: "powder", torn: "torn-c", top: "18%", left: "88%", rot: -8, hide: true },
-  { icon: "heart", color: "butter", torn: "torn-d", top: "20%", left: "3%", rot: 8, hide: true },
-  { icon: "star", color: "blush", torn: "torn-a", top: "40%", left: "90%", rot: -14, hide: true },
-  { icon: "rings", color: "powder", torn: "torn-b", top: "42%", left: "2%", rot: 10, hide: true },
-  { icon: "heart", color: "powder", torn: "torn-c", top: "94%", left: "88%", rot: -6, hide: true },
-  { icon: "star", color: "butter", torn: "torn-d", top: "94%", left: "4%", rot: 9, hide: true },
-  { washi: true, color: "blush", top: "10%", left: "42%", rot: -12 },
-  { washi: true, color: "powder", top: "32%", left: "60%", rot: 9, hide: true },
+  { icon: "heart", color: "olive", torn: "torn-a", top: "5%", left: "6%", rot: -10 },
+  { icon: "star", color: "sage", torn: "torn-b", top: "5%", left: "80%", rot: 12 },
+  { icon: "rings", color: "moss", torn: "torn-c", top: "18%", left: "88%", rot: -8, hide: true },
+  { icon: "heart", color: "sage", torn: "torn-d", top: "20%", left: "3%", rot: 8, hide: true },
+  { icon: "star", color: "olive", torn: "torn-a", top: "40%", left: "90%", rot: -14, hide: true },
+  { icon: "rings", color: "moss", torn: "torn-b", top: "42%", left: "2%", rot: 10, hide: true },
+  { icon: "heart", color: "moss", torn: "torn-c", top: "94%", left: "88%", rot: -6, hide: true },
+  { icon: "star", color: "sage", torn: "torn-d", top: "94%", left: "4%", rot: 9, hide: true },
+  { washi: true, color: "olive", top: "10%", left: "42%", rot: -12 },
+  { washi: true, color: "moss", top: "32%", left: "60%", rot: 9, hide: true },
 ];
 
 const DETAILS_STICKERS: StickerDef[] = [
-  { icon: "heart", color: "blush", torn: "torn-a", top: "6%", left: "8%", rot: -9 },
-  { icon: "star", color: "powder", torn: "torn-c", top: "8%", left: "84%", rot: 14 },
-  { icon: "rings", color: "butter", torn: "torn-b", top: "90%", left: "10%", rot: 8, hide: true },
-  { icon: "heart", color: "powder", torn: "torn-d", top: "92%", left: "82%", rot: -10, hide: true },
-  { washi: true, color: "butter", top: "94%", left: "68%", rot: -11, hide: true },
+  { icon: "heart", color: "olive", torn: "torn-a", top: "6%", left: "8%", rot: -9 },
+  { icon: "star", color: "moss", torn: "torn-c", top: "8%", left: "84%", rot: 14 },
+  { icon: "rings", color: "sage", torn: "torn-b", top: "90%", left: "10%", rot: 8, hide: true },
+  { icon: "heart", color: "moss", torn: "torn-d", top: "92%", left: "82%", rot: -10, hide: true },
+  { washi: true, color: "sage", top: "94%", left: "68%", rot: -11, hide: true },
 ];
 
 const RSVP_STICKERS: StickerDef[] = [
-  { icon: "heart", color: "powder", torn: "torn-d", top: "5%", left: "88%", rot: 11 },
-  { icon: "rings", color: "butter", torn: "torn-a", top: "6%", left: "6%", rot: -13 },
-  { icon: "star", color: "blush", torn: "torn-b", top: "92%", left: "86%", rot: 9, hide: true },
-  { icon: "heart", color: "powder", torn: "torn-c", top: "90%", left: "4%", rot: -7, hide: true },
-  { icon: "star", color: "butter", torn: "torn-a", top: "46%", left: "94%", rot: 8, hide: true },
-  { washi: true, color: "blush", top: "50%", left: "1%", rot: -15, hide: true },
+  { icon: "heart", color: "moss", torn: "torn-d", top: "5%", left: "88%", rot: 11 },
+  { icon: "rings", color: "sage", torn: "torn-a", top: "6%", left: "6%", rot: -13 },
+  { icon: "star", color: "olive", torn: "torn-b", top: "92%", left: "86%", rot: 9, hide: true },
+  { icon: "heart", color: "moss", torn: "torn-c", top: "90%", left: "4%", rot: -7, hide: true },
+  { icon: "star", color: "sage", torn: "torn-a", top: "46%", left: "94%", rot: 8, hide: true },
+  { washi: true, color: "olive", top: "50%", left: "1%", rot: -15, hide: true },
 ];
 
 function StickerLayer({ stickers }: { stickers: StickerDef[] }) {
@@ -319,9 +319,9 @@ const CSS = `
   --paper-card:   #FBF6EC;
   --ink:          #4A3F35;
   --accent:       #8B6B43;
-  --butter:       #E8D9A0;
-  --blush:        #E8C6C6;
-  --powder:       #C3D7E3;
+  --sage:         #8FA377;
+  --olive:        #5F6B42;
+  --moss:         #B7C08D;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{ box-sizing: border-box; }
@@ -349,10 +349,10 @@ section{ position: relative; width: 100%; padding: 90px 24px; display: flex; ali
 }
 #heroGroup.revealed{ filter: grayscale(0) sepia(0); }
 .polaroid{ background: #fff; padding: 8px 8px 46px; box-shadow: 0 14px 30px rgba(74,63,53,0.28); transform: rotate(-3deg); width: min(78vw, 340px); }
-.polaroid-photo{ width: 100%; aspect-ratio: 1 / 1; background: var(--powder); display: block; position: relative; overflow: hidden; }
+.polaroid-photo{ width: 100%; aspect-ratio: 1 / 1; background: var(--sage); display: block; position: relative; overflow: hidden; }
 .tap-indicator{
   position: absolute; bottom: 10px; right: 10px; width: 56px; height: 56px; border-radius: 50%;
-  background: var(--butter); display: flex; align-items: center; justify-content: center;
+  background: var(--moss); display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 16px rgba(74,63,53,0.35); z-index: 3; animation: tap-pulse 1.5s ease-in-out infinite;
 }
 .tap-indicator svg{ width: 58%; height: 58%; }
@@ -428,9 +428,10 @@ footer{ text-align: center; padding: 34px 20px 50px; font-style: italic; font-si
   mix-blend-mode: multiply; opacity: 0.5;
 }
 .sticker svg{ width: 62%; height: 62%; position: relative; z-index: 1; }
-.sticker.butter{ background-color: var(--butter); }
-.sticker.blush{ background-color: var(--blush); }
-.sticker.powder{ background-color: var(--powder); }
+.sticker.sage{ background-color: var(--sage); }
+.sticker.olive{ background-color: var(--olive); }
+.sticker.moss{ background-color: var(--moss); }
+.sticker.olive svg{ stroke: var(--paper-card); }
 .sticker.torn-a{ border-radius: 42% 58% 61% 39% / 47% 44% 56% 53%; }
 .sticker.torn-b{ border-radius: 58% 42% 47% 53% / 40% 62% 38% 60%; }
 .sticker.torn-c{ border-radius: 50% 50% 38% 62% / 60% 40% 60% 40%; }
