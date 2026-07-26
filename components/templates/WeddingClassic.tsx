@@ -2,18 +2,7 @@
 
 import { useEffect, useState } from "react";
 import RsvpForm from "@/components/RsvpForm";
-
-type Invite = {
-  id: string;
-  host_names: string;
-  event_date: string | null;
-  venue_name: string | null;
-  venue_map_url: string | null;
-  primary_color: string | null;
-  photo_urls: string[] | null;
-  music_url: string | null;
-  whatsapp_number: string | null;
-};
+import type { Invite } from "@/lib/types";
 
 function useCountdown(target: string | null) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });

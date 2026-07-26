@@ -2,16 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-
-type Invite = {
-  id: string;
-  host_names: string;
-  event_date: string | null;
-  venue_name: string | null;
-  venue_map_url: string | null;
-  photo_urls: string[] | null;
-  whatsapp_number: string | null;
-};
+import type { Invite } from "@/lib/types";
 
 type IconKey = "heart" | "star" | "rings";
 
