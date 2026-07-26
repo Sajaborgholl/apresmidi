@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import WeddingClassic from "@/components/templates/WeddingClassic";
-import WeddingScrapbook from "@/components/templates/WeddingScrapbook";
+import { getTemplateBySlug, TEMPLATE_REGISTRY } from "@/lib/templates/registry";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -23,13 +22,11 @@ export default async function InvitePage({
 
   const templateSlug = invite.templates?.slug;
 
-  if (templateSlug === "wedding-scrapbook") {
-    return <WeddingScrapbook invite={invite} />;
-  }
+  // Falls back to the first registered template if the invite's template
+  // slug doesn't match anything (mirrors the previous if/else behavior,
+  // which always defaulted to WeddingClassic).
+  const template = getTemplateBySlug(templateSlug) ?? TEMPLATE_REGISTRY[0];
 
-  if (templateSlug === "wedding-classic") {
-    return <WeddingClassic invite={invite} />;
-  }
-
-  return <WeddingClassic invite={invite} />;
+  const TemplateComponent = template.component;
+  return <TemplateComponent invite={invite} />;
 }
