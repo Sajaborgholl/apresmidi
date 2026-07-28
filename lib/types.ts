@@ -13,3 +13,21 @@ export type Invite = {
   music_url: string | null;
   whatsapp_number: string | null;
 };
+
+// A row from the `templates` table, joined with its category name.
+// This is what the gallery (TemplateCard, category pages, detail pages)
+// reads — it's metadata for BROWSING templates, separate from the
+// `TemplateEntry` in lib/templates/registry.ts (which maps a slug to
+// actual React code). A TemplateCard needs both: the DB row for
+// name/price/thumbnail, and the registry only if it needs to render a
+// live preview.
+export type TemplateMeta = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  price: number | null;
+  thumbnail_url: string | null;
+  category_slug: string;
+  category_name: string;
+};
