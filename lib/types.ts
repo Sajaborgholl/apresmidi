@@ -25,8 +25,8 @@ export type TemplateMeta = {
   id: string;
   slug: string;
   name: string;
-  description: string | null;
-  price: number | null;
+  description: string | null; // per-template, from templates.description
+  price: number | null; // per-category, from categories.price (via join)
   thumbnail_url: string | null;
   category_slug: string;
   category_name: string;
