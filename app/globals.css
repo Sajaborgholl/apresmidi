@@ -3,6 +3,43 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --cream: #FBF8F1;
+  --blue: #A9C5E3;
+  --blue-dark: #6E93BE;
+  --yellow: #F5EFA0;
+  --yellow-dark: #D8C94A;
+  --blue-light: #D9E6F3;
+  --ink: #1F2430;
+}
+
+.display {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.script {
+  font-family: "Caveat", cursive;
+}
+
+.folded-card {
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 24px 100%, 0 calc(100% - 24px));
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes floaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.float {
+  animation: floaty 4s ease-in-out infinite;
 }
 
 @theme inline {
