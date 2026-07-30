@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getTemplateBySlug, TEMPLATE_REGISTRY } from "@/lib/templates/registry";
+import { getTemplateBySlug, TEMPLATE_REGISTRY } from "./_designs/registry";
 import { notFound } from "next/navigation";
 
 export const dynamic = "force-dynamic";

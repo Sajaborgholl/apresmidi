@@ -1,7 +1,7 @@
 import type { ComponentType } from "react";
 import type { Invite } from "@/lib/types";
-import WeddingClassic from "@/components/templates/WeddingClassic";
-import WeddingScrapbook from "@/components/templates/WeddingScrapbook";
+import WeddingClassic from "./WeddingClassic";
+import WeddingScrapbook from "./WeddingScrapbook";
 
 // The single source of truth for "what templates exist." Anything that
 // needs to know about templates (routing today; the gallery, the intake

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Your Invitation Brand",
-  description: "Digital invitation websites",
+  title: "Après-midi — Digital Invitations",
+  description: "Beautiful digital invitation websites for weddings, birthdays, and baptisms.",
 };
 
 export default function RootLayout({

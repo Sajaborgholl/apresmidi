@@ -42,6 +42,26 @@
   animation: floaty 4s ease-in-out infinite;
 }
 
+/* Hover overlay for the "Browse by occasion" placeholder cards — written
+   as plain CSS (rather than relying on Tailwind's group/group-hover
+   utilities) so it doesn't depend on JIT class detection picking up the
+   pairing correctly. .occasion-card is the card itself; .occasion-overlay
+   is the dark scrim + Customize/Preview buttons shown on hover/focus. */
+.occasion-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.occasion-overlay {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.occasion-card:hover .occasion-overlay,
+.occasion-card:focus-visible .occasion-overlay {
+  opacity: 1;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

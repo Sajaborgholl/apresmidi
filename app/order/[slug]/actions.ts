@@ -1,7 +1,7 @@
 "use server";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { slugify } from "@/lib/slugify";
+import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 
 // Runs when the intake form on /order/[slug] is submitted. Creates the

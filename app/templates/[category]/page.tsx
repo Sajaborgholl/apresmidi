@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import TemplateCard from "@/components/gallery/TemplateCard";
+import TemplateCard from "./_components/TemplateCard";
 import type { TemplateMeta } from "@/lib/types";
 import { notFound } from "next/navigation";
 

@@ -1,17 +1,112 @@
-export default function Home() {
+import Link from "next/link";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import HeroPreview from "./_components/HeroPreview";
+import ExpandPreviewButton from "./_components/ExpandPreviewButton";
+import ClickableCard from "./_components/ClickableCard";
+
+export const dynamic = "force-dynamic";
+
+type CategoryRow = {
+  slug: string;
+  name: string;
+  price: number | null;
+};
+
+type RecentInviteRow = {
+  slug: string;
+  host_names: string;
+  event_date: string | null;
+  templates: { name: string } | { name: string }[] | null;
+};
+
+type TemplateRow = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  thumbnail_url: string | null;
+};
+
+// Cycles through the site's three accent colors for any number of
+// categories/cards, so this still looks right if a category is added later.
+const CARD_COLORS = ["var(--blue)", "var(--yellow)", "var(--blue-light)"];
+
+// Temporarily hides the "Recently designed" section — flip back to true to
+// restore it. Left in place (rather than deleting the section) so it's a
+// one-line change either way.
+const SHOW_RECENTLY_DESIGNED = false;
+
+function templateName(templates: RecentInviteRow["templates"]) {
+  if (!templates) return "Invitation";
+  return Array.isArray(templates) ? templates[0]?.name ?? "Invitation" : templates.name;
+}
+
+export default async function Home() {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  const { data: categoryRows } = await supabaseAdmin
+    .from("categories")
+    .select("slug, name, price")
+    .order("price", { ascending: true });
+  const categories: CategoryRow[] = categoryRows ?? [];
+
+  const { data: templateRows } = await supabaseAdmin
+    .from("templates")
+    .select("id, slug, name, category, thumbnail_url");
+
+  // Group templates by category so each occasion row can show up to 3 real
+  // templates. Categories with fewer than 3 (or zero) templates get
+  // "coming soon" filler cards for the remaining slots — no fake stand-ins.
+  const templatesByCategory: Record<string, TemplateRow[]> = {};
+  for (const t of templateRows ?? []) {
+    (templatesByCategory[t.category] ??= []).push(t);
+  }
+
+  // Same "is_demo" flag the template detail page uses to link to a live
+  // example — reused here so occasion cards can embed a real HeroPreview
+  // (like the hero section) instead of a flat thumbnail, wherever a demo
+  // invite exists for that template.
+  const { data: demoInviteRows } = await supabaseAdmin
+    .from("invites")
+    .select("template_id, slug")
+    .eq("is_demo", true);
+  const demoSlugByTemplateId: Record<string, string> = {};
+  for (const d of demoInviteRows ?? []) {
+    if (d.template_id) demoSlugByTemplateId[d.template_id] = d.slug;
+  }
+
+  const { count: liveInviteCount } = await supabaseAdmin
+    .from("invites")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "live");
+
+  const { data: recentInvitesRaw } = await supabaseAdmin
+    .from("invites")
+    .select("slug, host_names, event_date, templates(name)")
+    .eq("status", "live")
+    .order("created_at", { ascending: false })
+    .limit(3);
+  const recentInvites: RecentInviteRow[] = recentInvitesRaw ?? [];
+
   return (
     <div className="overflow-x-hidden" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
       <nav className="flex items-center justify-between px-6 md:px-12 py-5">
-        <span className="script text-3xl">yourbrand</span>
+        <span className="script text-3xl">Après-midi</span>
         <div className="hidden md:flex gap-8 text-sm font-medium">
-          <a href="#" className="hover:opacity-70">Weddings</a>
-          <a href="#" className="hover:opacity-70">Birthdays</a>
-          <a href="#" className="hover:opacity-70">Baptisms</a>
-          <a href="#" className="hover:opacity-70">How it works</a>
+          {categories.slice(0, 3).map((cat) => (
+            <a key={cat.slug} href={`#occasion-${cat.slug}`} className="hover:opacity-70">
+              {cat.name}
+            </a>
+          ))}
+          <a href="#how-it-works" className="hover:opacity-70">How it works</a>
         </div>
-        <button className="rounded-full px-5 py-2 text-sm font-medium" style={{ background: "var(--ink)", color: "var(--cream)" }}>
+        <a
+          href="#occasions"
+          className="rounded-full px-5 py-2 text-sm font-medium"
+          style={{ background: "var(--ink)", color: "var(--cream)" }}
+        >
           Browse templates
-        </button>
+        </a>
       </nav>
 
       <section className="relative px-6 md:px-12 pt-8 pb-20 overflow-hidden">
@@ -22,23 +117,45 @@ export default function Home() {
         </h1>
 
         <div className="mt-10 grid grid-cols-6 md:grid-cols-12 gap-3 relative">
-          <div className="col-span-3 md:col-span-3 rounded-3xl h-32 md:h-44" style={{ background: "var(--blue)" }} />
-          <div className="col-span-3 md:col-span-2 rounded-3xl h-32 md:h-44 relative" style={{ background: "var(--yellow)" }}>
+          {recentInvites[0] ? (
+            <div
+              className="col-span-3 md:col-span-3 rounded-3xl h-48 md:h-64 relative overflow-hidden"
+              style={{ background: "var(--blue)" }}
+            >
+              <HeroPreview slug={recentInvites[0].slug} />
+              <ExpandPreviewButton slug={recentInvites[0].slug} />
+            </div>
+          ) : (
+            <div className="col-span-3 md:col-span-3 rounded-3xl h-48 md:h-64" style={{ background: "var(--blue)" }} />
+          )}
+          <div className="col-span-3 md:col-span-2 rounded-3xl h-48 md:h-64 relative" style={{ background: "var(--yellow)" }}>
             <span className="absolute -top-3 -left-3 rounded-full px-3 py-1 text-xs font-medium" style={{ background: "var(--ink)", color: "var(--cream)" }}>
               New: Baptism
             </span>
           </div>
-          <div className="col-span-6 md:col-span-4 rounded-3xl h-32 md:h-44" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }} />
-          <div className="col-span-3 md:col-span-3 rounded-3xl h-32 md:h-44 float" style={{ background: "var(--blue-light)" }} />
+          {recentInvites[1] ? (
+            <div
+              className="col-span-6 md:col-span-4 rounded-3xl h-48 md:h-64 relative overflow-hidden"
+              style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
+            >
+              <HeroPreview slug={recentInvites[1].slug} />
+              <ExpandPreviewButton slug={recentInvites[1].slug} />
+            </div>
+          ) : (
+            <div className="col-span-6 md:col-span-4 rounded-3xl h-48 md:h-64" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }} />
+          )}
+          <div className="col-span-3 md:col-span-3 rounded-3xl h-48 md:h-64 float" style={{ background: "var(--blue-light)" }} />
 
           <div className="col-span-6 md:col-span-3 rounded-2xl p-4 md:p-5 flex flex-col justify-between float" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
             <span className="text-xs font-medium" style={{ color: "var(--blue-dark)" }}>Live now</span>
-            <span className="display font-bold text-2xl">120+ invites sent</span>
+            <span className="display font-bold text-2xl">
+              {liveInviteCount ?? 0} invite{(liveInviteCount ?? 0) === 1 ? "" : "s"} sent
+            </span>
           </div>
         </div>
       </section>
 
-      <section className="px-6 md:px-12 py-10 flex flex-wrap items-center gap-3 justify-center">
+      <section id="how-it-works" className="px-6 md:px-12 py-10 flex flex-wrap items-center gap-3 justify-center">
         <span className="rounded-full px-5 py-2 font-medium" style={{ background: "var(--blue)" }}>Pick</span>
         <span className="text-lg">a template</span>
         <span className="display">→</span>
@@ -49,46 +166,139 @@ export default function Home() {
         <span className="text-lg">the link</span>
       </section>
 
-      <section className="px-6 md:px-12 py-14">
+      <section id="occasions" className="px-6 md:px-12 py-14">
         <div className="flex items-baseline gap-3 mb-8">
           <span className="text-xs font-medium px-3 py-1 rounded-full border" style={{ borderColor: "var(--ink)" }}>01</span>
           <h2 className="display font-bold text-2xl md:text-3xl">Browse by occasion</h2>
         </div>
-        <div className="grid md:grid-cols-3 gap-5">
-          <div className="folded-card rounded-3xl p-6 h-56 flex flex-col justify-between" style={{ background: "var(--blue)" }}>
-            <span className="display font-bold text-xl">Wedding</span>
-            <span className="text-sm font-medium">From $120</span>
+        {categories.length > 0 ? (
+          <div className="flex flex-col gap-10">
+            {categories.map((cat, catIndex) => (
+              <div key={cat.slug} id={`occasion-${cat.slug}`} className="scroll-mt-24">
+                <div className="flex items-baseline justify-between mb-4">
+                  <Link href={`/templates/${cat.slug}`} className="display font-bold text-xl hover:opacity-70">
+                    {cat.name}
+                  </Link>
+                  <span className="text-sm font-medium opacity-70">
+                    {cat.price != null ? `From $${cat.price}` : "Price TBD"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  {Array.from({ length: 3 }, (_, cardIndex) => templatesByCategory[cat.slug]?.[cardIndex] ?? null).map(
+                    (template, cardIndex) =>
+                      template ? (
+                        <ClickableCard
+                          key={template.slug}
+                          href={`/templates/${cat.slug}/${template.slug}`}
+                          className="occasion-card folded-card block aspect-[4/5] rounded-3xl transition"
+                          style={{ background: CARD_COLORS[(catIndex + cardIndex) % CARD_COLORS.length] }}
+                        >
+                          {demoSlugByTemplateId[template.id] ? (
+                            <>
+                              <HeroPreview slug={demoSlugByTemplateId[template.id]} />
+                              <ExpandPreviewButton slug={demoSlugByTemplateId[template.id]} />
+                            </>
+                          ) : (
+                            template.thumbnail_url && (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={template.thumbnail_url}
+                                alt={template.name}
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                            )
+                          )}
+                          <div
+                            className="occasion-overlay absolute inset-0 flex flex-col items-center justify-center gap-3"
+                            style={{ background: "rgba(31,36,48,0.55)" }}
+                          >
+                            <span
+                              className="rounded-full px-5 py-2 text-sm font-medium"
+                              style={{ background: "var(--cream)", color: "var(--ink)" }}
+                            >
+                              Customize
+                            </span>
+                            <span
+                              className="rounded-full px-5 py-2 text-sm font-medium border"
+                              style={{ borderColor: "var(--cream)", color: "var(--cream)" }}
+                            >
+                              Preview
+                            </span>
+                          </div>
+                        </ClickableCard>
+                      ) : (
+                        <div
+                          key={`coming-soon-${cardIndex}`}
+                          className="folded-card flex aspect-[4/5] items-center justify-center rounded-3xl"
+                          style={{ background: "rgba(31,36,48,0.06)", border: "1px dashed rgba(31,36,48,0.25)" }}
+                        >
+                          <span className="text-sm font-medium opacity-50">Coming soon</span>
+                        </div>
+                      )
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="folded-card rounded-3xl p-6 h-56 flex flex-col justify-between" style={{ background: "var(--yellow)" }}>
-            <span className="display font-bold text-xl">Birthday</span>
-            <span className="text-sm font-medium">From $80</span>
-          </div>
-          <div className="folded-card rounded-3xl p-6 h-56 flex flex-col justify-between" style={{ background: "var(--blue-light)" }}>
-            <span className="display font-bold text-xl">Baptism</span>
-            <span className="text-sm font-medium">From $70</span>
-          </div>
-        </div>
+        ) : (
+          <p className="text-neutral-500">Categories coming soon.</p>
+        )}
       </section>
 
+      {SHOW_RECENTLY_DESIGNED && (
       <section className="px-6 md:px-12 py-14">
         <div className="flex items-baseline gap-3 mb-8">
           <span className="text-xs font-medium px-3 py-1 rounded-full border" style={{ borderColor: "var(--ink)" }}>02</span>
           <h2 className="display font-bold text-2xl md:text-3xl">Recently designed</h2>
         </div>
-        <div className="grid md:grid-cols-3 gap-5 mb-8">
-          <div className="md:col-span-2 rounded-3xl h-72" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }} />
-          <div className="rounded-3xl h-72 p-6 flex flex-col justify-center" style={{ background: "var(--blue)" }}>
-            <p className="script text-3xl leading-tight">&quot;the moment they said yes&quot;</p>
+        {recentInvites.length > 0 ? (
+          <div className="grid md:grid-cols-3 gap-5">
+            {recentInvites.map((invite, i) => (
+              <Link
+                key={invite.slug}
+                href={`/i/${invite.slug}`}
+                className="rounded-3xl h-56 md:h-72 p-6 flex flex-col justify-between transition hover:opacity-90"
+                style={
+                  i === 0
+                    ? { background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }
+                    : { background: CARD_COLORS[i % CARD_COLORS.length] }
+                }
+              >
+                <span className="text-xs font-medium uppercase tracking-wide opacity-60">
+                  {templateName(invite.templates)}
+                </span>
+                <div>
+                  <p className="script text-3xl leading-tight">{invite.host_names}</p>
+                  {invite.event_date && (
+                    <p className="text-sm mt-2 opacity-70">
+                      {new Date(invite.event_date).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            ))}
           </div>
-        </div>
-        <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2">
-          <div className="shrink-0 w-24 h-24 rounded-full" style={{ background: "var(--yellow)" }} />
-          <div className="shrink-0 w-24 h-24 rounded-full" style={{ background: "var(--blue)" }} />
-          <div className="shrink-0 w-24 h-24 rounded-full" style={{ background: "var(--blue-light)" }} />
-          <div className="shrink-0 w-24 h-24 rounded-full" style={{ background: "var(--yellow)" }} />
-          <div className="shrink-0 w-24 h-24 rounded-full" style={{ background: "var(--blue)" }} />
-        </div>
+        ) : (
+          <div
+            className="rounded-3xl py-14 px-6 flex flex-col items-center justify-center text-center gap-4"
+            style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
+          >
+            <p className="text-neutral-600">No live invites yet — yours could be the first.</p>
+            <a
+              href="#occasions"
+              className="rounded-full px-5 py-2 text-sm font-medium"
+              style={{ background: "var(--ink)", color: "var(--cream)" }}
+            >
+              Start one
+            </a>
+          </div>
+        )}
       </section>
+      )}
 
       <section className="px-6 md:px-12 py-16">
         <h2 className="leading-none">
@@ -142,12 +352,17 @@ export default function Home() {
           </div>
         </div>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-10 pt-6 border-t" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
-          <span className="script text-2xl">yourbrand</span>
+          <span className="script text-2xl">Après-midi</span>
           <div className="flex gap-6 text-sm">
-            <a href="#">Wedding</a><a href="#">Birthday</a><a href="#">Baptism</a>
+            {categories.slice(0, 3).map((cat) => (
+              <Link key={cat.slug} href={`/templates/${cat.slug}`}>
+                {cat.name}
+              </Link>
+            ))}
           </div>
           <div className="flex gap-4 text-sm">
-            <a href="#">Instagram</a><a href="#">WhatsApp</a>
+            <a href="#">Instagram</a>
+            <a href="#">WhatsApp</a>
           </div>
         </div>
       </footer>

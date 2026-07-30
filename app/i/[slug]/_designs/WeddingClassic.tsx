@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import RsvpForm from "@/components/RsvpForm";
+import RsvpForm from "./RsvpForm";
 import type { Invite } from "@/lib/types";
 
 function useCountdown(target: string | null) {
