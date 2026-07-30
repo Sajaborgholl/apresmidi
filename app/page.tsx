@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import HeroPreview from "./_components/HeroPreview";
 import ExpandPreviewButton from "./_components/ExpandPreviewButton";
 import ClickableCard from "./_components/ClickableCard";
+import HeroCarousel, { type CarouselTemplate } from "./_components/HeroCarousel";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +76,15 @@ export default async function Home() {
     if (d.template_id) demoSlugByTemplateId[d.template_id] = d.slug;
   }
 
+  // Flat list (all categories combined) for the hero carousel, which
+  // showcases templates generally rather than grouped by occasion.
+  const carouselTemplates: CarouselTemplate[] = (templateRows ?? []).map((t) => ({
+    id: t.id,
+    name: t.name,
+    thumbnail_url: t.thumbnail_url,
+    demoSlug: demoSlugByTemplateId[t.id] ?? null,
+  }));
+
   const { count: liveInviteCount } = await supabaseAdmin
     .from("invites")
     .select("*", { count: "exact", head: true })
@@ -116,37 +126,13 @@ export default async function Home() {
           <span className="block -mt-2 md:-mt-6">opening</span>
         </h1>
 
-        <div className="mt-10 grid grid-cols-6 md:grid-cols-12 gap-3 relative">
-          {recentInvites[0] ? (
-            <div
-              className="col-span-3 md:col-span-3 rounded-3xl h-48 md:h-64 relative overflow-hidden"
-              style={{ background: "var(--blue)" }}
-            >
-              <HeroPreview slug={recentInvites[0].slug} />
-              <ExpandPreviewButton slug={recentInvites[0].slug} />
-            </div>
-          ) : (
-            <div className="col-span-3 md:col-span-3 rounded-3xl h-48 md:h-64" style={{ background: "var(--blue)" }} />
-          )}
-          <div className="col-span-3 md:col-span-2 rounded-3xl h-48 md:h-64 relative" style={{ background: "var(--yellow)" }}>
-            <span className="absolute -top-3 -left-3 rounded-full px-3 py-1 text-xs font-medium" style={{ background: "var(--ink)", color: "var(--cream)" }}>
-              New: Baptism
-            </span>
-          </div>
-          {recentInvites[1] ? (
-            <div
-              className="col-span-6 md:col-span-4 rounded-3xl h-48 md:h-64 relative overflow-hidden"
-              style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
-            >
-              <HeroPreview slug={recentInvites[1].slug} />
-              <ExpandPreviewButton slug={recentInvites[1].slug} />
-            </div>
-          ) : (
-            <div className="col-span-6 md:col-span-4 rounded-3xl h-48 md:h-64" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }} />
-          )}
-          <div className="col-span-3 md:col-span-3 rounded-3xl h-48 md:h-64 float" style={{ background: "var(--blue-light)" }} />
+        <div className="mt-10">
+          <HeroCarousel templates={carouselTemplates} />
 
-          <div className="col-span-6 md:col-span-3 rounded-2xl p-4 md:p-5 flex flex-col justify-between float" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
+          <div
+            className="mt-4 flex max-w-xs flex-col justify-between rounded-2xl p-4 md:p-5"
+            style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
+          >
             <span className="text-xs font-medium" style={{ color: "var(--blue-dark)" }}>Live now</span>
             <span className="display font-bold text-2xl">
               {liveInviteCount ?? 0} invite{(liveInviteCount ?? 0) === 1 ? "" : "s"} sent

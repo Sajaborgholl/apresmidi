@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import type { Invite } from "@/lib/types";
 import WeddingClassic from "./WeddingClassic";
 import WeddingScrapbook from "./WeddingScrapbook";
+import WeddingBlushBow from "./WeddingBlushBow";
 
 // The single source of truth for "what templates exist." Anything that
 // needs to know about templates (routing today; the gallery, the intake
@@ -26,6 +27,12 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     name: "Scrapbook Wedding",
     category: "wedding",
     component: WeddingScrapbook,
+  },
+  {
+    slug: "wedding-blush-bow",
+    name: "Blush Bow Wedding",
+    category: "wedding",
+    component: WeddingBlushBow,
   },
 ];
 
