@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Emma's Bachelorette — Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Herr+Von+Muellerhoff&family=Caveat:wght@500;600&family=Playfair+Display:wght@700;800&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --pink: #A8BFE0;
+    --pink-light: #D8E4F5;
+    --green: #A8BFE0;
+    --green-dark: #6F87B8;
+    --cream: #FAF3E6;
+    --ink: #1c1c1c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #EDE7DD;
+    font-family: "Quicksand", sans-serif;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+
+  /* ---------- Book / page-turn mechanics ---------- */
+  .book {
+    position: relative;
+    width: 400px;
+    max-width: 92vw;
+    height: 564px;
+    max-height: 88vh;
+    perspective: 1800px;
+  }
+
+  .page-back {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+  }
+
+  .page-front {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+  }
+
+  .page-front.hidden-page {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .invite-face {
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--cream);
+    box-shadow: 0 24px 60px rgba(0,0,0,0.28);
+    transition: opacity 0.4s ease;
+  }
+
+  /* The curling corner. Clipped to a triangle grown/shrunk via JS,
+     shaded to look like the rolled underside of the paper. */
+  .peel-flap {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    pointer-events: none;
+    clip-path: polygon(400px 0px, 400px 0px, 400px 0px);
+    background: linear-gradient(55deg,
+      rgba(0,0,0,0.28) 0%,
+      #f4f1ea 16%,
+      #ffffff 34%,
+      #d8d3c8 58%,
+      #948e80 80%,
+      #55504a 100%
+    );
+    filter: drop-shadow(-7px 7px 10px rgba(0,0,0,0.35));
+    border-radius: 6px;
+  }
+
+  .stripes-svg, .doily {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .content {
+    position: absolute;
+    left: 50%;
+    top: 40%;
+    transform: translate(-50%, -50%);
+    width: 258px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .arc-wrap { width: 220px; height: 60px; }
+  .arc-wrap text {
+    font-family: "Caveat", cursive;
+    font-weight: 600;
+    font-size: 27px;
+    fill: var(--ink);
+  }
+
+  .illustration { margin: 2px 0 4px; }
+
+  .script {
+    font-family: "Herr Von Muellerhoff", cursive;
+    font-size: 64px;
+    color: var(--ink);
+    line-height: 1;
+    margin-top: 2px;
+  }
+  .script.small { font-size: 40px; }
+
+  .title {
+    font-family: "Playfair Display", serif;
+    font-weight: 800;
+    font-size: 32px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    margin-top: 2px;
+  }
+  .title.small { font-size: 19px; letter-spacing: 1.5px; }
+
+  .date {
+    margin-top: 12px;
+    font-weight: 600;
+    font-size: 15.5px;
+    color: var(--green-dark);
+  }
+
+  .lead {
+    margin-top: 12px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .lead b { font-weight: 700; }
+
+  .body {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #333;
+    max-width: 225px;
+  }
+
+  .address {
+    margin-top: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--ink);
+  }
+
+  .rsvp-btn {
+    margin-top: 14px;
+    padding: 8px 26px;
+    border: 1.5px solid var(--green-dark);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--green-dark);
+    font-family: "Quicksand", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+  }
+  .rsvp-btn:hover { background: var(--green-dark); color: #fff; }
+
+  /* --- RSVP form (on the static back page) --- */
+  #rsvpForm {
+    width: 100%;
+    max-width: 230px;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #rsvpForm label {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    color: var(--green-dark);
+    text-align: left;
+  }
+  #rsvpForm input {
+    font-family: "Quicksand", sans-serif;
+    font-size: 13.5px;
+    padding: 8px 11px;
+    border-radius: 8px;
+    border: 1.5px solid var(--pink);
+    background: #fff;
+    color: var(--ink);
+    outline: none;
+  }
+  #rsvpForm input:focus { border-color: var(--green-dark); }
+
+  .toggle-group { display: flex; gap: 8px; }
+  .toggle-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border-radius: 8px;
+    border: 1.5px solid var(--pink);
+    background: #fff;
+    font-family: "Quicksand", sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .toggle-btn.active { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+
+  #guestLabel.hidden { display: none; }
+
+  .submit-btn {
+    margin-top: 2px;
+    padding: 10px;
+    border: none;
+    border-radius: 999px;
+    background: var(--green-dark);
+    color: #fff;
+    font-family: "Quicksand", sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .submit-btn:hover { opacity: 0.92; }
+
+  .thank-you { margin-top: 18px; }
+  .thank-you p {
+    font-size: 12.5px;
+    color: #333;
+    max-width: 210px;
+    margin: 6px auto 0;
+    line-height: 1.55;
+  }
+  .hidden { display: none !important; }
+
+  .back-btn {
+    margin-top: 14px;
+    background: none;
+    border: none;
+    color: var(--green-dark);
+    font-family: "Quicksand", sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    padding: 6px;
+  }
+
+  .hint {
+    margin-top: 20px;
+    font-size: 12.5px;
+    color: #8a7c70;
+    letter-spacing: 0.5px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+  <div class="book" id="book">
+
+    <!-- STATIC BACK PAGE: RSVP form (sits underneath, revealed once the front page turns) -->
+    <div class="page-back" id="pageBack">
+      <svg class="stripes-svg" id="stripes-back" viewBox="0 0 400 564" preserveAspectRatio="none"></svg>
+      <svg class="doily" id="doily-back" viewBox="0 0 400 564" preserveAspectRatio="none"></svg>
+      <div class="content">
+        <div class="script small">We can't wait</div>
+        <div class="title small">TO CELEBRATE WITH YOU</div>
+
+        <form id="rsvpForm">
+          <label>Full Name
+            <input type="text" id="guestName" required placeholder="Your name" />
+          </label>
+
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn active" data-value="accept">Joyfully Accept</button>
+            <button type="button" class="toggle-btn" data-value="decline">Regretfully Decline</button>
+          </div>
+
+          <label id="guestLabel">Number of Guests
+            <input type="number" id="guestCount" min="1" max="6" value="1" />
+          </label>
+
+          <button type="submit" class="submit-btn">Send RSVP</button>
+        </form>
+
+        <div id="thankYou" class="thank-you hidden">
+          <div class="script small">Yay!</div>
+          <p>Your RSVP has been received — see you at the party!</p>
+        </div>
+
+        <button class="back-btn" id="backBtn" type="button">← Back</button>
+      </div>
+    </div>
+
+    <!-- TURNING FRONT PAGE: the invitation, hinged at the right edge -->
+    <div class="page-front" id="pageFront">
+      <div class="invite-face" id="inviteFace">
+        <svg class="stripes-svg" id="stripes-front" viewBox="0 0 400 564" preserveAspectRatio="none"></svg>
+        <svg class="doily" id="doily-front" viewBox="0 0 400 564" preserveAspectRatio="none"></svg>
+        <div class="content">
+          <svg class="arc-wrap" viewBox="0 0 220 60">
+            <path id="arcPathFront" d="M 14 52 A 96 96 0 0 1 206 52" fill="transparent" />
+            <text><textPath href="#arcPathFront" startOffset="50%" text-anchor="middle">Join us for</textPath></text>
+          </svg>
+
+          <div class="illustration">
+            <svg width="150" height="110" viewBox="0 0 150 110" id="shellFront"></svg>
+          </div>
+
+          <div class="script">Emma's</div>
+          <div class="title">BACHELORETTE</div>
+          <div class="date">Saturday,&nbsp;&nbsp;&nbsp;July 5, 2030&nbsp;&nbsp; — 3:00 PM</div>
+
+          <div class="lead">She said yes — <b>now</b> we celebrate.</div>
+          <div class="body">
+            An intimate coastal gathering for the ones who matter most.
+            Expect good wine, better company, and memories made to last
+            longer than a summer tan. Dress light, arrive ready.
+          </div>
+          <div class="address">123 Anywhere St.,<br />Any City</div>
+
+          <button class="rsvp-btn" id="rsvpBtn" type="button">RSVP</button>
+        </div>
+      </div>
+
+      <div class="peel-flap" id="peelFlap"></div>
+    </div>
+
+  </div>
+
+  <p class="hint">Tap RSVP or swipe left/right to turn the page</p>
+
+<script>
+  // ---------- Watercolor-style vertical stripes ----------
+  function renderStripes(svgId) {
+    const svg = document.getElementById(svgId);
+    const ns = "http://www.w3.org/2000/svg";
+    const filterId = svgId + "-rough";
+
+    const defs = document.createElementNS(ns, "defs");
+    const filter = document.createElementNS(ns, "filter");
+    filter.setAttribute("id", filterId);
+    filter.setAttribute("x", "-20%");
+    filter.setAttribute("y", "-20%");
+    filter.setAttribute("width", "140%");
+    filter.setAttribute("height", "140%");
+    const turb = document.createElementNS(ns, "feTurbulence");
+    turb.setAttribute("type", "fractalNoise");
+    turb.setAttribute("baseFrequency", "0.012 0.05");
+    turb.setAttribute("numOctaves", "2");
+    turb.setAttribute("seed", "7");
+    turb.setAttribute("result", "noise");
+    const disp = document.createElementNS(ns, "feDisplacementMap");
+    disp.setAttribute("in", "SourceGraphic");
+    disp.setAttribute("in2", "noise");
+    disp.setAttribute("scale", "16");
+    filter.appendChild(turb);
+    filter.appendChild(disp);
+    defs.appendChild(filter);
+    svg.appendChild(defs);
+
+    const bg = document.createElementNS(ns, "rect");
+    bg.setAttribute("x", "0"); bg.setAttribute("y", "0");
+    bg.setAttribute("width", "400"); bg.setAttribute("height", "564");
+    bg.setAttribute("fill", "var(--cream)");
+    svg.appendChild(bg);
+
+    const g = document.createElementNS(ns, "g");
+    g.setAttribute("filter", `url(#${filterId})`);
+    const colors = ["var(--pink)", "var(--green)", "var(--pink)", "var(--green)", "var(--pink)"];
+    const xs = [-20, 78, 178, 278, 378];
+    xs.forEach((x, i) => {
+      const rect = document.createElementNS(ns, "rect");
+      rect.setAttribute("x", x);
+      rect.setAttribute("y", "-10");
+      rect.setAttribute("width", "58");
+      rect.setAttribute("height", "584");
+      rect.setAttribute("fill", colors[i]);
+      g.appendChild(rect);
+    });
+    svg.appendChild(g);
+  }
+
+  // ---------- Scalloped fan-lace oval frame ----------
+  function ellipsePoint(cx, cy, rx, ry, angle) {
+    return [cx + rx * Math.cos(angle), cy + ry * Math.sin(angle)];
+  }
+
+  function renderDoily(svgId) {
+    const svg = document.getElementById(svgId);
+    const ns = "http://www.w3.org/2000/svg";
+    const cx = 200, cy = 262, rx = 172, ry = 232;
+
+    const fanCount = 34;
+    for (let i = 0; i < fanCount; i++) {
+      const angle = (i / fanCount) * Math.PI * 2 - Math.PI / 2;
+      const [x, y] = ellipsePoint(cx, cy, rx, ry, angle);
+      const deg = (angle * 180) / Math.PI + 90;
+
+      const g = document.createElementNS(ns, "g");
+      g.setAttribute("transform", `translate(${x} ${y}) rotate(${deg})`);
+
+      const fan = document.createElementNS(ns, "path");
+      fan.setAttribute("d", "M -13 0 A 13 13 0 0 1 13 0 Z");
+      fan.setAttribute("fill", "#fff");
+      fan.setAttribute("stroke", "var(--pink-light)");
+      fan.setAttribute("stroke-width", "0.6");
+      g.appendChild(fan);
+
+      for (let r = -10; r <= 10; r += 5) {
+        const line = document.createElementNS(ns, "line");
+        const rad = (r / 13) * (Math.PI / 2);
+        line.setAttribute("x1", "0"); line.setAttribute("y1", "0");
+        line.setAttribute("x2", 13 * Math.sin(rad));
+        line.setAttribute("y2", -13 * Math.cos(rad));
+        line.setAttribute("stroke", "var(--pink-light)");
+        line.setAttribute("stroke-width", "0.6");
+        g.appendChild(line);
+      }
+      svg.appendChild(g);
+    }
+
+    const dotCount = 60;
+    for (let i = 0; i < dotCount; i++) {
+      const angle = (i / dotCount) * Math.PI * 2;
+      const [x, y] = ellipsePoint(cx, cy, rx - 20, ry - 20, angle);
+      const dot = document.createElementNS(ns, "circle");
+      dot.setAttribute("cx", x); dot.setAttribute("cy", y);
+      dot.setAttribute("r", "2.6");
+      dot.setAttribute("fill", "var(--pink)");
+      svg.appendChild(dot);
+    }
+
+    const oval = document.createElementNS(ns, "ellipse");
+    oval.setAttribute("cx", cx); oval.setAttribute("cy", cy);
+    oval.setAttribute("rx", rx - 28); oval.setAttribute("ry", ry - 28);
+    oval.setAttribute("fill", "#fff");
+    svg.appendChild(oval);
+  }
+
+  // ---------- Shell + bow illustration ----------
+  function renderShell(svgId) {
+    const svg = document.getElementById(svgId);
+    const ns = "http://www.w3.org/2000/svg";
+    const cx = 62, cy = 78;
+
+    let d = "";
+    const turns = 2.4;
+    const steps = 80;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const angle = t * turns * Math.PI * 2 - Math.PI * 0.6;
+      const r = 4 + t * 46;
+      const x = cx + r * Math.cos(angle) * 0.9 - t * 30;
+      const y = cy - t * 68 + r * Math.sin(angle) * 0.5;
+      d += (i === 0 ? "M " : "L ") + x.toFixed(1) + " " + y.toFixed(1) + " ";
+    }
+    const spiral = document.createElementNS(ns, "path");
+    spiral.setAttribute("d", d);
+    spiral.setAttribute("fill", "none");
+    spiral.setAttribute("stroke", "var(--green-dark)");
+    spiral.setAttribute("stroke-width", "2");
+    spiral.setAttribute("stroke-linecap", "round");
+    svg.appendChild(spiral);
+
+    for (let i = 10; i < steps; i += 6) {
+      const t = i / steps;
+      const angle = t * turns * Math.PI * 2 - Math.PI * 0.6;
+      const r = 4 + t * 46;
+      const x = cx + r * Math.cos(angle) * 0.9 - t * 30;
+      const y = cy - t * 68 + r * Math.sin(angle) * 0.5;
+      const tick = document.createElementNS(ns, "line");
+      tick.setAttribute("x1", x); tick.setAttribute("y1", y);
+      tick.setAttribute("x2", x + 6 * Math.cos(angle + 1));
+      tick.setAttribute("y2", y + 6 * Math.sin(angle + 1));
+      tick.setAttribute("stroke", "var(--green)");
+      tick.setAttribute("stroke-width", "1.4");
+      svg.appendChild(tick);
+    }
+
+    const bow = document.createElementNS(ns, "g");
+    bow.setAttribute("transform", "translate(96,52) rotate(8)");
+    bow.innerHTML = `
+      <path d="M0 0 C -16 -15 -25 6 -8 7 C -18 12 -11 24 0 9 C 11 24 18 12 8 7 C 25 6 16 -15 0 0 Z" fill="var(--pink)" stroke="var(--pink-light)" stroke-width="1"/>
+      <circle cx="0" cy="4" r="4.5" fill="var(--green-dark)" />
+      <path d="M -4 8 C -8 22 -6 34 -12 42" stroke="var(--pink)" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M 4 8 C 8 22 4 34 10 44" stroke="var(--pink)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    `;
+    svg.appendChild(bow);
+  }
+
+  renderStripes("stripes-front");
+  renderStripes("stripes-back");
+  renderDoily("doily-front");
+  renderDoily("doily-back");
+  renderShell("shellFront");
+
+  // ---------- Corner-peel logic ----------
+  // The flap is clipped to the triangle (A, corner, B), where A slides
+  // along the top edge and B slides down the right edge in lockstep, so
+  // the fold line stays parallel to the page's true diagonal the whole
+  // time (400x564 page).
+  const pageFront = document.getElementById("pageFront");
+  const inviteFace = document.getElementById("inviteFace");
+  const peelFlap = document.getElementById("peelFlap");
+  const rsvpBtn = document.getElementById("rsvpBtn");
+  const backBtn = document.getElementById("backBtn");
+  const book = document.getElementById("book");
+
+  const W = 400, H = 564;
+  let side = "front";
+  let animating = false;
+
+  function easeInOut(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+
+  function setPeel(p) {
+    const ax = W - p * W;
+    const by = p * H;
+    peelFlap.style.clipPath = `polygon(${ax}px 0px, ${W}px 0px, ${W}px ${by}px)`;
+  }
+
+  function animatePeel(from, to, duration, onDone) {
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - start) / duration);
+      setPeel(from + (to - from) * easeInOut(t));
+      if (t < 1) requestAnimationFrame(step);
+      else onDone && onDone();
+    }
+    requestAnimationFrame(step);
+  }
+
+  function turnForward() {
+    if (animating || side === "back") return;
+    animating = true;
+    pageFront.classList.remove("hidden-page");
+    setPeel(0);
+    // 1) corner lifts and curls, growing across the diagonal
+    animatePeel(0, 1, 700, () => {
+      // 2) the rest of the page follows / fades away
+      inviteFace.style.opacity = "0";
+      setTimeout(() => {
+        side = "back";
+        pageFront.classList.add("hidden-page");
+        animating = false;
+      }, 420);
+    });
+  }
+
+  function turnBackward() {
+    if (animating || side === "front") return;
+    animating = true;
+    pageFront.classList.remove("hidden-page");
+    setPeel(1);
+    inviteFace.style.opacity = "0";
+    // 1) the page fades back in
+    requestAnimationFrame(() => { inviteFace.style.opacity = "1"; });
+    setTimeout(() => {
+      // 2) the curled corner unrolls back down flat
+      animatePeel(1, 0, 700, () => {
+        side = "front";
+        animating = false;
+      });
+    }, 420);
+  }
+
+  rsvpBtn.addEventListener("click", turnForward);
+  backBtn.addEventListener("click", turnBackward);
+
+  let touchStartX = 0;
+  book.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  book.addEventListener("touchend", (e) => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    const threshold = 40;
+    if (dx < -threshold && side === "front") turnForward();
+    else if (dx > threshold && side === "back") turnBackward();
+  }, { passive: true });
+
+  // ---------- RSVP form behavior ----------
+  const toggleBtns = document.querySelectorAll(".toggle-btn");
+  const guestLabel = document.getElementById("guestLabel");
+  let rsvpChoice = "accept";
+  toggleBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      toggleBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      rsvpChoice = btn.dataset.value;
+      guestLabel.classList.toggle("hidden", rsvpChoice === "decline");
+    });
+  });
+  document.getElementById("rsvpForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    document.getElementById("rsvpForm").classList.add("hidden");
+    document.getElementById("thankYou").classList.remove("hidden");
+  });
+</script>
+
+</body>
+</html>

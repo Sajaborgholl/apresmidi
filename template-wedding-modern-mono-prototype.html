@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>We're Getting Married — Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* This is the exact script font from your Canva design ("BD Script"),
+     loaded straight from Canva's own font CDN so the preview matches
+     precisely. See the note at the end of this file about licensing
+     before using this in the live, paid product. */
+  @font-face {
+    font-family: 'BD Script';
+    src: url('https://font-public.canva.com/YAD86m_J1ck/0/BDScript-Regular.9bc4e99ca8c91fc5ed9359f.6d38386130de9b083388f4aaeb5682c7.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'BD Script';
+    src: url('https://font-public.canva.com/YAD86m_J1ck/0/BDScript-Bold.64787c65dc22a724c6c5b827bb.e7bf80ed58fcbcaff8fd10355c84a04f.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #fff;
+    color: #111;
+    font-family: 'Cinzel', serif;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 46px 5vw 6px;
+    gap: 20px;
+  }
+
+  .script {
+    font-family: 'BD Script', cursive;
+    font-weight: 400;
+    font-size: clamp(48px, 8vw, 108px);
+    line-height: 0.85;
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .date {
+    font-family: 'Cinzel', serif;
+    font-weight: 400;
+    font-size: clamp(22px, 3vw, 40px);
+    letter-spacing: 3px;
+    white-space: nowrap;
+    padding-bottom: 8px;
+  }
+
+  .photo-row {
+    display: flex;
+    width: 100%;
+  }
+
+  .photo {
+    height: 46vw;
+    min-height: 300px;
+    max-height: 620px;
+    position: relative;
+    background: #d9d9d9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(100%);
+    display: block;
+  }
+  .photo-placeholder-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(17,17,17,0.35);
+  }
+
+  .photo-1 { flex: 1.05; margin-right: 22px; }
+  .photo-2 { flex: 1; }
+  .photo-3 { flex: 1.08; }
+
+  @media (max-width: 720px) {
+    .header { flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 32px; }
+    .photo-row { flex-direction: column; }
+    .photo { height: 260px; }
+    .photo-1 { margin-right: 0; margin-bottom: 10px; }
+  }
+
+  /* ---------- Page 2: Where & When ---------- */
+  .details-section {
+    padding: 100px 8vw;
+    border-top: 1px solid rgba(17,17,17,0.12);
+  }
+  .details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 60px;
+    max-width: 920px;
+    margin: 0 auto;
+  }
+  .details-rule { background: rgba(17,17,17,0.12); }
+  .detail-col { text-align: center; }
+  .detail-script {
+    font-family: 'BD Script', cursive;
+    font-weight: 400;
+    font-size: clamp(40px, 5.5vw, 60px);
+    margin: 0 0 22px;
+  }
+  .detail-heading {
+    font-family: 'Cinzel', serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+  }
+  .detail-body {
+    font-family: 'Cinzel', serif;
+    font-weight: 400;
+    font-size: 15.5px;
+    line-height: 1.9;
+    color: #333;
+  }
+  .detail-link {
+    display: inline-block;
+    margin-top: 16px;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #111;
+    text-decoration: none;
+    border-bottom: 1px solid #111;
+    padding-bottom: 2px;
+  }
+
+  @media (max-width: 720px) {
+    .details-grid { grid-template-columns: 1fr; gap: 46px; }
+    .details-rule { display: none; }
+    .details-section { padding: 70px 8vw; }
+  }
+
+  /* ---------- Page 3: RSVP ---------- */
+  .rsvp-section {
+    padding: 100px 8vw 120px;
+    border-top: 1px solid rgba(17,17,17,0.12);
+    text-align: center;
+  }
+  .rsvp-script {
+    font-family: 'BD Script', cursive;
+    font-weight: 400;
+    font-size: clamp(52px, 8vw, 92px);
+    margin: 0 0 12px;
+  }
+  .rsvp-sub {
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(17,17,17,0.6);
+    margin-bottom: 46px;
+  }
+  #rsvpForm {
+    max-width: 380px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+    text-align: left;
+  }
+  #rsvpForm label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(17,17,17,0.55);
+    margin-bottom: 8px;
+  }
+  #rsvpForm input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid rgba(17,17,17,0.35);
+    background: transparent;
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    padding: 6px 2px 10px;
+    color: #111;
+    outline: none;
+  }
+  #rsvpForm input:focus { border-bottom-color: #111; }
+  .attend-row {
+    display: flex;
+    gap: 10px;
+  }
+  .attend-btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: 1px solid rgba(17,17,17,0.35);
+    background: transparent;
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #111;
+    cursor: pointer;
+  }
+  .attend-btn.active { background: #111; color: #fff; border-color: #111; }
+  #guestField.hidden { display: none; }
+  .submit-btn {
+    margin-top: 6px;
+    padding: 15px;
+    border: none;
+    background: #111;
+    color: #fff;
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .submit-btn:hover { opacity: 0.85; }
+  .thank-you {
+    max-width: 380px;
+    margin: 0 auto;
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #333;
+  }
+  .thank-you .rsvp-script { margin-bottom: 10px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <h1 class="script">we're getting married</h1>
+    <div class="date">10.22.22</div>
+  </div>
+
+  <div class="photo-row">
+    <div class="photo photo-1">
+      <img src="https://media-public.canva.com/JL8nE/MAFANUJL8nE/1/s3.jpg" alt="Couple photo 1" />
+    </div>
+    <div class="photo photo-2">
+      <img src="https://media-public.canva.com/NhPhk/MAFANTNhPhk/1/s3.jpg" alt="Couple photo 2" />
+    </div>
+    <div class="photo photo-3">
+      <img src="https://media-public.canva.com/iFEsg/MAFANQiFEsg/1/s3.jpg" alt="Couple photo 3" />
+    </div>
+  </div>
+
+  <!-- PAGE 2: Where & When -->
+  <section class="details-section">
+    <div class="details-grid">
+      <div class="detail-col">
+        <div class="detail-script">Where</div>
+        <div class="detail-heading">Venue</div>
+        <div class="detail-body">
+          The Old Boathouse<br />
+          14 Harbor Lane<br />
+          Beirut, Lebanon
+        </div>
+        <a href="#" class="detail-link">View map</a>
+      </div>
+
+      <div class="details-rule"></div>
+
+      <div class="detail-col">
+        <div class="detail-script">When</div>
+        <div class="detail-heading">Date &amp; Time</div>
+        <div class="detail-body">
+          Saturday, October 22, 2022<br />
+          Ceremony at 4:00 PM<br />
+          Reception to follow
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 3: RSVP -->
+  <section class="rsvp-section">
+    <h2 class="rsvp-script">RSVP</h2>
+    <p class="rsvp-sub">Kindly respond by October 1st</p>
+
+    <form id="rsvpForm">
+      <label>
+        Full name
+        <input type="text" id="guestName" required placeholder="Your name" />
+      </label>
+
+      <div class="attend-row">
+        <button type="button" class="attend-btn active" data-value="accept">Joyfully accept</button>
+        <button type="button" class="attend-btn" data-value="decline">Regretfully decline</button>
+      </div>
+
+      <label id="guestField">
+        Number of guests
+        <input type="number" id="guestCount" min="1" max="10" value="1" />
+      </label>
+
+      <button type="submit" class="submit-btn">Send RSVP</button>
+    </form>
+
+    <div id="thankYou" class="thank-you hidden">
+      <div class="rsvp-script" id="thankYouHeading">Thank you</div>
+      <p id="thankYouMessage"></p>
+    </div>
+  </section>
+
+<script>
+  const attendBtns = document.querySelectorAll(".attend-btn");
+  const guestField = document.getElementById("guestField");
+  let attending = "accept";
+
+  attendBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      attendBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      attending = btn.dataset.value;
+      guestField.classList.toggle("hidden", attending === "decline");
+    });
+  });
+
+  document.getElementById("rsvpForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("guestName").value.trim() || "friend";
+    const heading = document.getElementById("thankYouHeading");
+    const message = document.getElementById("thankYouMessage");
+
+    if (attending === "accept") {
+      heading.textContent = "Yay!";
+      message.textContent = `We can't wait to celebrate with you, ${name}.`;
+    } else {
+      heading.textContent = "We'll miss you";
+      message.textContent = `Thank you for letting us know, ${name}.`;
+    }
+
+    document.getElementById("rsvpForm").classList.add("hidden");
+    document.getElementById("thankYou").classList.remove("hidden");
+  });
+</script>
+
+</body>
+</html>

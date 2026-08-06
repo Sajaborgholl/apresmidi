@@ -3,6 +3,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import HeroPreview from "./_components/HeroPreview";
 import ExpandPreviewButton from "./_components/ExpandPreviewButton";
 import ClickableCard from "./_components/ClickableCard";
+import PreviewPill from "./_components/PreviewPill";
 import HeroCarousel, { type CarouselTemplate } from "./_components/HeroCarousel";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,7 @@ type CategoryRow = {
   slug: string;
   name: string;
   price: number | null;
+  sort_order: number | null;
 };
 
 type RecentInviteRow = {
@@ -26,6 +28,7 @@ type TemplateRow = {
   name: string;
   category: string;
   thumbnail_url: string | null;
+  video_url: string | null;
 };
 
 // Cycles through the site's three accent colors for any number of
@@ -47,13 +50,13 @@ export default async function Home() {
 
   const { data: categoryRows } = await supabaseAdmin
     .from("categories")
-    .select("slug, name, price")
-    .order("price", { ascending: true });
+    .select("slug, name, price, sort_order")
+    .order("sort_order", { ascending: true });
   const categories: CategoryRow[] = categoryRows ?? [];
 
   const { data: templateRows } = await supabaseAdmin
     .from("templates")
-    .select("id, slug, name, category, thumbnail_url");
+    .select("id, slug, name, category, thumbnail_url, video_url");
 
   // Group templates by category so each occasion row can show up to 3 real
   // templates. Categories with fewer than 3 (or zero) templates get
@@ -82,6 +85,7 @@ export default async function Home() {
     id: t.id,
     name: t.name,
     thumbnail_url: t.thumbnail_url,
+    video_url: t.video_url,
     demoSlug: demoSlugByTemplateId[t.id] ?? null,
   }));
 
@@ -175,7 +179,7 @@ export default async function Home() {
                       template ? (
                         <ClickableCard
                           key={template.slug}
-                          href={`/templates/${cat.slug}/${template.slug}`}
+                          href={`/order/${template.slug}`}
                           className="occasion-card folded-card block aspect-[4/5] rounded-3xl transition"
                           style={{ background: CARD_COLORS[(catIndex + cardIndex) % CARD_COLORS.length] }}
                         >
@@ -204,12 +208,9 @@ export default async function Home() {
                             >
                               Customize
                             </span>
-                            <span
-                              className="rounded-full px-5 py-2 text-sm font-medium border"
-                              style={{ borderColor: "var(--cream)", color: "var(--cream)" }}
-                            >
-                              Preview
-                            </span>
+                            {demoSlugByTemplateId[template.id] && (
+                              <PreviewPill slug={demoSlugByTemplateId[template.id]} />
+                            )}
                           </div>
                         </ClickableCard>
                       ) : (

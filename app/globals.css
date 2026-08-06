@@ -20,6 +20,26 @@
   font-family: "Caveat", cursive;
 }
 
+/* "BD Script" — the script font used by the Wedding Classic template.
+   Hotlinked from Canva's own font CDN (it's not on Google Fonts). NOTE:
+   this font is licensed for use inside Canva; using it on a live, paid
+   site like this one likely needs its own commercial web-font license —
+   see the note where it's used in WeddingClassic.tsx before shipping. */
+@font-face {
+  font-family: "BD Script";
+  src: url("https://font-public.canva.com/YAD86m_J1ck/0/BDScript-Regular.9bc4e99ca8c91fc5ed9359f.6d38386130de9b083388f4aaeb5682c7.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+}
+@font-face {
+  font-family: "BD Script";
+  src: url("https://font-public.canva.com/YAD86m_J1ck/0/BDScript-Bold.64787c65dc22a724c6c5b827bb.e7bf80ed58fcbcaff8fd10355c84a04f.woff2")
+    format("woff2");
+  font-weight: 700;
+  font-style: normal;
+}
+
 .folded-card {
   clip-path: polygon(0 0, 100% 0, 100% 100%, 24px 100%, 0 calc(100% - 24px));
 }

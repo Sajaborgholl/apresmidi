@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import HeroPreview from "./HeroPreview";
 
 export type CarouselTemplate = {
   id: string;
   name: string;
   thumbnail_url: string | null;
-  // Reuses the same "is_demo" live invite the template detail page and the
-  // occasion cards already use — playing a carousel card embeds that real
-  // invite (via HeroPreview) instead of a pre-recorded video, since no
-  // video_url column/files exist yet. Swapping in a real <video> later only
-  // means changing what renders in the "playing" branch below.
+  // Real pre-recorded clip, e.g. "/videos/wedding-classic.mp4". Takes
+  // priority over demoSlug below when both exist.
+  video_url: string | null;
+  // Same "is_demo" live invite the template detail page and the occasion
+  // cards use — fallback for templates that don't have a real video file
+  // yet, so playing still embeds something real via HeroPreview.
   demoSlug: string | null;
 };
 
@@ -20,6 +21,7 @@ const CARD_COLORS = ["var(--blue)", "var(--yellow)", "var(--blue-light)"];
 export default function HeroCarousel({ templates }: { templates: CarouselTemplate[] }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   if (templates.length === 0) {
     return (
@@ -36,10 +38,24 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
   const prevIndex = (currentIndex - 1 + n) % n;
   const nextIndex = (currentIndex + 1) % n;
   const center = templates[currentIndex];
+  const canPlay = Boolean(center.video_url || center.demoSlug);
 
   function goTo(index: number) {
     setCurrentIndex(index);
     setPlaying(false);
+  }
+
+  function togglePlay() {
+    if (center.video_url) {
+      const el = videoRef.current;
+      if (!el) return;
+      if (playing) {
+        el.pause();
+      } else {
+        el.play();
+      }
+    }
+    setPlaying((p) => !p);
   }
 
   return (
@@ -50,10 +66,21 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
         )}
 
         <div
-          className="relative h-56 w-56 flex-shrink-0 overflow-hidden rounded-3xl md:h-72 md:w-72"
+          className="relative h-56 w-96 flex-shrink-0 overflow-hidden rounded-3xl md:h-72 md:w-[32rem]"
           style={{ background: CARD_COLORS[currentIndex % CARD_COLORS.length] }}
         >
-          {playing && center.demoSlug ? (
+          {center.video_url ? (
+            <video
+              key={center.id}
+              ref={videoRef}
+              src={center.video_url}
+              poster={center.thumbnail_url ?? undefined}
+              loop
+              playsInline
+              onEnded={() => setPlaying(false)}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          ) : playing && center.demoSlug ? (
             <HeroPreview slug={center.demoSlug} />
           ) : (
             center.thumbnail_url && (
@@ -66,10 +93,10 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
             )
           )}
 
-          {center.demoSlug && (
+          {canPlay && (
             <button
               type="button"
-              onClick={() => setPlaying((p) => !p)}
+              onClick={togglePlay}
               aria-label={playing ? "Pause preview" : "Play preview"}
               className="absolute top-1/2 left-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition hover:scale-105"
               style={{ background: "var(--ink)" }}

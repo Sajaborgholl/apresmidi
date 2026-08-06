@@ -1,6 +1,7 @@
 "use server";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { getTemplateBySlug } from "@/lib/templates/registry";
 import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 
@@ -49,6 +50,35 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     inviteSlug = `${baseSlug}-${attempt}`;
   }
 
+  // Upload any photos that came with the submission (CustomizeForm names
+  // them photo_1, photo_2, ... up to the template's manifest photoCount).
+  // Uploaded to the invite-photos bucket from setup-photo-storage.sql.
+  // Position is preserved with "" for any slot that's empty or fails to
+  // upload, since templates read photos by fixed index (photo_urls[0],
+  // [1], [2]) and skipping a slot shouldn't shift the ones after it.
+  const registryEntry = getTemplateBySlug(templateSlug);
+  const photoCount = registryEntry?.fields.photoCount ?? 0;
+  const photoUrls: string[] = [];
+
+  for (let i = 1; i <= photoCount; i++) {
+    const file = formData.get(`photo_${i}`);
+    let url = "";
+
+    if (file instanceof File && file.size > 0) {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${inviteSlug}-${i}.${ext}`;
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("invite-photos")
+        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+
+      if (!uploadError) {
+        url = supabaseAdmin.storage.from("invite-photos").getPublicUrl(path).data.publicUrl;
+      }
+    }
+
+    photoUrls.push(url);
+  }
+
   await supabaseAdmin.from("invites").insert({
     slug: inviteSlug,
     template_id: template.id,
@@ -57,6 +87,7 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     venue_name: venueName || null,
     venue_map_url: venueMapUrl || null,
     whatsapp_number: whatsappNumber || null,
+    photo_urls: photoUrls.length > 0 ? photoUrls : null,
     status: "draft",
   });
 
