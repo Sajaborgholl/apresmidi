@@ -402,6 +402,32 @@ export default function BacheloretteCoastal({ invite }: { invite: Invite }) {
             mobileScrollSupport={true}
             usePortrait={true}
             drawShadow={true}
+            /*
+              react-pageflip's own .d.ts marks every one of these as
+              required, even though the underlying library fills in the
+              exact same values itself at runtime if they're omitted (see
+              node_modules/page-flip/src/Settings.ts's _default object) —
+              this is just a mismatch in their published types, not a real
+              behavior change. Passing them explicitly (matching those same
+              defaults) satisfies the type checker without altering
+              anything. minWidth/maxWidth/minHeight/maxHeight are ignored
+              by the library anyway once size="fixed" (it overwrites them
+              with width/height internally), so their exact values here
+              don't matter.
+            */
+            className=""
+            style={{}}
+            startPage={0}
+            minWidth={size.width}
+            maxWidth={size.width}
+            minHeight={size.height}
+            maxHeight={size.height}
+            startZIndex={0}
+            clickEventForward={true}
+            useMouseEvents={true}
+            swipeDistance={30}
+            showPageCorners={true}
+            disableFlipByClick={false}
             ref={book}
           >
             <InvitePage invite={invite} onRsvp={() => book.current?.pageFlip().flipNext()} />
