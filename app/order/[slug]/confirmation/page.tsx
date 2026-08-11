@@ -63,7 +63,13 @@ export default async function OrderConfirmationPage({
             build time. Lets you exercise the paid path locally before the
             real Whish webhook exists — never a real payment trigger. */}
         {process.env.NODE_ENV !== "production" && (
-          <form action={confirmInvitePayment.bind(null, inviteSlug)} className="mt-6">
+          <form
+            action={async () => {
+              "use server";
+              await confirmInvitePayment(inviteSlug);
+            }}
+            className="mt-6"
+          >
             <button
               type="submit"
               className="w-full rounded-full px-5 py-3 text-sm font-medium transition active:scale-[0.98]"
