@@ -132,7 +132,7 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
             type="button"
             onClick={() => goTo(prevIndex)}
             aria-label="Previous template"
-            className="absolute top-1/2 left-2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition hover:scale-105"
+            className="absolute top-1/2 left-2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition hover:scale-105 active:scale-95"
             style={{ background: "var(--ink)", color: "var(--cream)" }}
           >
             &#8249;
@@ -141,7 +141,7 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
             type="button"
             onClick={() => goTo(nextIndex)}
             aria-label="Next template"
-            className="absolute top-1/2 right-2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition hover:scale-105"
+            className="absolute top-1/2 right-2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full transition hover:scale-105 active:scale-95"
             style={{ background: "var(--ink)", color: "var(--cream)" }}
           >
             &#8250;

@@ -5,6 +5,7 @@ import ExpandPreviewButton from "./_components/ExpandPreviewButton";
 import ClickableCard from "./_components/ClickableCard";
 import PreviewPill from "./_components/PreviewPill";
 import HeroCarousel, { type CarouselTemplate } from "./_components/HeroCarousel";
+import Reveal from "./_components/Reveal";
 
 export const dynamic = "force-dynamic";
 
@@ -116,7 +117,7 @@ export default async function Home() {
         </div>
         <a
           href="#occasions"
-          className="rounded-full px-5 py-2 text-sm font-medium"
+          className="rounded-full px-5 py-2 text-sm font-medium transition active:scale-[0.97]"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
           Browse templates
@@ -126,15 +127,24 @@ export default async function Home() {
       <section className="relative px-6 md:px-12 pt-8 pb-20 overflow-hidden">
         <h1 className="display font-bold leading-[0.85] tracking-tight select-none" style={{ fontSize: "clamp(3rem,10vw,9rem)" }}>
           <span className="block">Invitations</span>
-          <span className="block -mt-2 md:-mt-6" style={{ marginLeft: "8%", color: "var(--blue-dark)" }}>worth</span>
-          <span className="block -mt-2 md:-mt-6">opening</span>
+          <span className="block -mt-2 md:-mt-6" style={{ marginLeft: "8%" }}>
+            <span style={{ color: "var(--blue-dark)" }}>worth</span> opening
+          </span>
         </h1>
+
+        <a
+          href="#occasions"
+          className="mt-6 inline-flex rounded-full px-6 py-3 text-sm font-medium transition active:scale-[0.97]"
+          style={{ background: "var(--ink)", color: "var(--cream)", marginLeft: "8%" }}
+        >
+          Browse templates
+        </a>
 
         <div className="mt-10">
           <HeroCarousel templates={carouselTemplates} />
 
           <div
-            className="mt-4 flex max-w-xs flex-col justify-between rounded-2xl p-4 md:p-5"
+            className="float mt-4 flex max-w-xs flex-col justify-between rounded-2xl p-4 md:p-5"
             style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
           >
             <span className="text-xs font-medium" style={{ color: "var(--blue-dark)" }}>Live now</span>
@@ -157,14 +167,12 @@ export default async function Home() {
       </section>
 
       <section id="occasions" className="px-6 md:px-12 py-14">
-        <div className="flex items-baseline gap-3 mb-8">
-          <span className="text-xs font-medium px-3 py-1 rounded-full border" style={{ borderColor: "var(--ink)" }}>01</span>
-          <h2 className="display font-bold text-2xl md:text-3xl">Browse by occasion</h2>
-        </div>
+        <h2 className="display font-bold text-2xl md:text-3xl mb-8">Browse by occasion</h2>
         {categories.length > 0 ? (
           <div className="flex flex-col gap-10">
             {categories.map((cat, catIndex) => (
-              <div key={cat.slug} id={`occasion-${cat.slug}`} className="scroll-mt-24">
+              <Reveal key={cat.slug} delay={Math.min(catIndex, 3) * 80}>
+              <div id={`occasion-${cat.slug}`} className="scroll-mt-24">
                 <div className="flex items-baseline justify-between mb-4">
                   <Link href={`/templates/${cat.slug}`} className="display font-bold text-xl hover:opacity-70">
                     {cat.name}
@@ -225,6 +233,7 @@ export default async function Home() {
                   )}
                 </div>
               </div>
+              </Reveal>
             ))}
           </div>
         ) : (
@@ -234,10 +243,7 @@ export default async function Home() {
 
       {SHOW_RECENTLY_DESIGNED && (
       <section className="px-6 md:px-12 py-14">
-        <div className="flex items-baseline gap-3 mb-8">
-          <span className="text-xs font-medium px-3 py-1 rounded-full border" style={{ borderColor: "var(--ink)" }}>02</span>
-          <h2 className="display font-bold text-2xl md:text-3xl">Recently designed</h2>
-        </div>
+        <h2 className="display font-bold text-2xl md:text-3xl mb-8">Recently designed</h2>
         {recentInvites.length > 0 ? (
           <div className="grid md:grid-cols-3 gap-5">
             {recentInvites.map((invite, i) => (
@@ -274,7 +280,7 @@ export default async function Home() {
             className="rounded-3xl py-14 px-6 flex flex-col items-center justify-center text-center gap-4"
             style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
           >
-            <p className="text-neutral-600">No live invites yet — yours could be the first.</p>
+            <p className="text-neutral-600">No live invites yet, yours could be the first.</p>
             <a
               href="#occasions"
               className="rounded-full px-5 py-2 text-sm font-medium"
@@ -288,56 +294,118 @@ export default async function Home() {
       )}
 
       <section className="px-6 md:px-12 py-16">
+        <Reveal>
         <h2 className="leading-none">
           <span className="display font-bold block" style={{ fontSize: "clamp(2.5rem,8vw,6rem)" }}>Or find it</span>
           <span className="script block" style={{ fontSize: "clamp(3rem,10vw,7rem)", color: "var(--blue-dark)" }}>by style</span>
         </h2>
+        </Reveal>
         <div className="mt-8 divide-y" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-          <div className="flex items-center justify-between py-4">
-            <span className="text-lg font-medium">Elegant</span>
-            <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--blue)" }}>→</span>
-          </div>
-          <div className="flex items-center justify-between py-4">
-            <span className="text-lg font-medium">Playful</span>
-            <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--yellow)" }}>→</span>
-          </div>
-          <div className="flex items-center justify-between py-4">
-            <span className="text-lg font-medium">Minimal</span>
-            <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--blue)" }}>→</span>
-          </div>
-          <div className="flex items-center justify-between py-4">
-            <span className="text-lg font-medium">Rustic</span>
-            <span className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: "var(--yellow)" }}>→</span>
-          </div>
+          {[
+            { label: "Elegant", font: "'Playfair Display', serif", tracking: "normal", weight: 700, color: "var(--blue)", italic: false },
+            { label: "Playful", font: "'Quicksand', sans-serif", tracking: "normal", weight: 700, color: "var(--yellow)", italic: false },
+            { label: "Minimal", font: "'Space Grotesk', sans-serif", tracking: "0.06em", weight: 500, color: "var(--blue)", italic: false },
+            { label: "Rustic", font: "'Cormorant Garamond', serif", tracking: "normal", weight: 500, color: "var(--yellow)", italic: true },
+          ].map((style, i) => (
+            <Reveal key={style.label} delay={i * 60}>
+              <div className="group flex items-center justify-between py-4 transition cursor-default">
+                <span
+                  className="text-2xl md:text-3xl transition group-hover:opacity-70"
+                  style={{
+                    fontFamily: style.font,
+                    fontWeight: style.weight,
+                    fontStyle: style.italic ? "italic" : "normal",
+                    letterSpacing: style.tracking,
+                  }}
+                >
+                  {style.label}
+                </span>
+                <span
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition group-hover:translate-x-1"
+                  style={{ background: style.color }}
+                >
+                  →
+                </span>
+              </div>
+            </Reveal>
+          ))}
         </div>
       </section>
 
-      <section className="px-6 md:px-12 py-14 grid md:grid-cols-3 gap-6">
-        <div className="rounded-3xl p-6" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-          <div className="w-10 h-10 rounded-full mb-4" style={{ background: "var(--blue)", border: "3px solid var(--blue-dark)" }} />
-          <p className="text-sm">&quot;Guests loved the link, so easy to RSVP.&quot;</p>
-          <p className="text-xs mt-3 opacity-60">— Sarah, Wedding</p>
-        </div>
-        <div className="rounded-3xl p-6" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-          <div className="w-10 h-10 rounded-full mb-4" style={{ background: "var(--yellow)", border: "3px solid var(--yellow-dark)" }} />
-          <p className="text-sm">&quot;Set up in ten minutes, looked amazing.&quot;</p>
-          <p className="text-xs mt-3 opacity-60">— Karim, Birthday</p>
-        </div>
-        <div className="rounded-3xl p-6" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-          <div className="w-10 h-10 rounded-full mb-4" style={{ background: "var(--blue)", border: "3px solid var(--blue-dark)" }} />
-          <p className="text-sm">&quot;Exactly the vibe we wanted for the baptism.&quot;</p>
-          <p className="text-xs mt-3 opacity-60">— Layla&apos;s family</p>
+      <section className="px-6 md:px-12 py-14">
+        <Reveal>
+          <h2 className="display font-bold text-2xl md:text-3xl mb-8">What guests are saying</h2>
+        </Reveal>
+        <div className="grid md:grid-cols-3 gap-6">
+          <Reveal className="md:col-span-2">
+            <div className="rounded-3xl p-8 md:p-10 h-full flex flex-col justify-between" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
+              <p className="display font-medium text-xl md:text-2xl leading-snug max-w-lg">
+                &quot;Guests loved the link, RSVPs came in within a day and the photos made it feel like our actual wedding site.&quot;
+              </p>
+              <div className="flex items-center gap-3 mt-6">
+                <div
+                  className="display font-bold text-sm w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--blue)", border: "3px solid var(--blue-dark)", color: "var(--ink)" }}
+                >
+                  S
+                </div>
+                <p className="text-sm opacity-70">Sarah, Wedding</p>
+              </div>
+            </div>
+          </Reveal>
+          <div className="flex flex-col gap-6">
+            <Reveal delay={80}>
+              <div className="rounded-3xl p-6" style={{ background: "var(--yellow)" }}>
+                <p className="text-sm">&quot;Set up in ten minutes, looked amazing.&quot;</p>
+                <div className="flex items-center gap-2 mt-4">
+                  <div
+                    className="display font-bold text-xs w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--cream)", color: "var(--ink)" }}
+                  >
+                    K
+                  </div>
+                  <p className="text-xs opacity-80">Karim, Birthday</p>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal delay={140}>
+              <div className="rounded-3xl p-6" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
+                <p className="text-sm">&quot;Exactly the vibe we wanted for the baptism.&quot;</p>
+                <div className="flex items-center gap-2 mt-4">
+                  <div
+                    className="display font-bold text-xs w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--blue)", border: "2px solid var(--blue-dark)", color: "var(--ink)" }}
+                  >
+                    L
+                  </div>
+                  <p className="text-xs opacity-70">Layla&apos;s family</p>
+                </div>
+              </div>
+            </Reveal>
+          </div>
         </div>
       </section>
 
       <footer className="px-6 md:px-12 py-14 mt-8" style={{ background: "var(--blue)" }}>
+        <Reveal>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <h3 className="display font-bold text-2xl md:text-3xl max-w-md">Get notified when we add new templates</h3>
           <div className="flex gap-3">
-            <input type="email" placeholder="you@email.com" className="rounded-full px-5 py-3 w-64" style={{ border: "1px solid rgba(0,0,0,0.15)" }} />
-            <button className="rounded-full px-6 py-3 font-medium" style={{ background: "var(--ink)", color: "var(--cream)" }}>Subscribe</button>
+            <input
+              type="email"
+              placeholder="you@email.com"
+              className="rounded-full px-5 py-3 w-64"
+              style={{ border: "1px solid rgba(0,0,0,0.15)", background: "#fff", color: "var(--ink)" }}
+            />
+            <button
+              className="rounded-full px-6 py-3 font-medium transition active:scale-[0.97]"
+              style={{ background: "var(--ink)", color: "var(--cream)" }}
+            >
+              Subscribe
+            </button>
           </div>
         </div>
+        </Reveal>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-10 pt-6 border-t" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
           <span className="script text-2xl">Après-midi</span>
           <div className="flex gap-6 text-sm">

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { Monitor, DeviceMobile, Lock } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
 import type { Invite } from "@/lib/types";
 import { slugify } from "../_lib/slugify";
@@ -82,9 +83,12 @@ export default function CustomizePanel({
     [values, photoPreviews]
   );
 
-  // What the invite's real URL will be once submitted — updates live as
-  // the host names are typed, same slugify logic the server action uses.
-  const liveSlugPreview = slugify(values.host_names) || "your-invite";
+  // Only the predictable *base* half of the real slug — the server always
+  // appends a random suffix (so the guest link can't be guessed from the
+  // host names alone), which can't be known until the invite is actually
+  // created. Updates live as the host names are typed, same slugify logic
+  // the server action uses for the base portion.
+  const baseSlugPreview = slugify(values.host_names) || "your-invite";
 
   // Listens for the preview iframe announcing it's mounted and ready.
   useEffect(() => {
@@ -109,10 +113,13 @@ export default function CustomizePanel({
   }, [previewReady, draftInvite]);
 
   return (
-    <div className="rounded-2xl border border-black/10 overflow-hidden bg-white">
+    <div
+      className="rounded-2xl border border-black/10 overflow-hidden bg-white"
+      style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
+    >
       {/* ---------- Top chrome ---------- */}
       <div className="flex items-center justify-between gap-4 px-6 py-3.5 border-b border-black/10">
-        <Link href={`/#occasion-${category}`} className="text-sm font-semibold hover:opacity-70">
+        <Link href={`/#occasion-${category}`} className="text-sm font-semibold transition hover:opacity-70">
           &#8592; Back
         </Link>
 
@@ -121,35 +128,31 @@ export default function CustomizePanel({
             type="button"
             onClick={() => setDevice("desktop")}
             title="Desktop preview"
-            className={`flex h-8 w-9 items-center justify-center rounded-full transition ${
+            aria-label="Desktop preview"
+            className={`flex h-8 w-9 items-center justify-center rounded-full transition active:scale-90 ${
               device === "desktop" ? "bg-white shadow-sm text-[var(--ink)]" : "text-[var(--ink)]/45"
             }`}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="2" y="4" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="18" x2="12" y2="21" />
-            </svg>
+            <Monitor size={17} weight="regular" />
           </button>
           <button
             type="button"
             onClick={() => setDevice("mobile")}
             title="Mobile preview"
-            className={`flex h-8 w-9 items-center justify-center rounded-full transition ${
+            aria-label="Mobile preview"
+            className={`flex h-8 w-9 items-center justify-center rounded-full transition active:scale-90 ${
               device === "mobile" ? "bg-white shadow-sm text-[var(--ink)]" : "text-[var(--ink)]/45"
             }`}
           >
-            <svg width="13" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="6" y="2" width="12" height="20" rx="2" />
-              <line x1="10" y1="19" x2="14" y2="19" />
-            </svg>
+            <DeviceMobile size={17} weight="regular" />
           </button>
         </div>
 
         <button
           type="submit"
           form={FORM_ID}
-          className="rounded-full bg-[var(--ink)] px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+          className="rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
+          style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
           Continue to payment
         </button>
@@ -157,17 +160,19 @@ export default function CustomizePanel({
 
       {/* ---------- Live URL strip ---------- */}
       <div className="flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] text-[var(--ink)]/70 bg-[var(--blue-light)]/40 border-b border-black/[0.06]">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-55">
-          <rect x="3" y="11" width="18" height="10" rx="2" />
-          <path d="M7 11V7a5 5 0 0110 0v4" />
-        </svg>
-        <span>Live preview — nothing is saved yet. Your link will be</span>
-        <strong className="font-semibold text-[var(--ink)]">apresmidi.com/{liveSlugPreview}</strong>
+        <Lock size={13} weight="regular" className="opacity-55" />
+        <span>Nothing&apos;s saved yet. Your link will be</span>
+        <strong
+          className="font-semibold text-[var(--ink)]"
+          title="A few random characters are added when your invite is created, so guests can't guess someone else's link."
+        >
+          apresmidi.com/{baseSlugPreview}-••••••
+        </strong>
       </div>
 
       {/* ---------- Main layout ---------- */}
       <div className="grid md:grid-cols-[minmax(0,2.3fr)_minmax(340px,1fr)]">
-        <div className="relative flex items-center justify-center bg-[#EDE7DD] p-8 min-h-[600px]">
+        <div className="relative flex items-center justify-center p-8 min-h-[600px]" style={{ background: "rgba(31,36,48,0.05)" }}>
           <span className="absolute left-5 top-5 flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--yellow-dark)]" />
             Updating live
@@ -188,10 +193,10 @@ export default function CustomizePanel({
         </div>
 
         <form id={FORM_ID} action={submitOrder} className="p-7">
-          <h2 className="text-lg font-bold">Customize your invite</h2>
+          <h2 className="display text-lg font-bold">Customize your invite</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
             {templateName}
-            {priceLabel ? ` — ${priceLabel}` : ""}. Everything updates on the left as you type.
+            {priceLabel ? ` · ${priceLabel}` : ""}. Everything updates on the left as you type.
           </p>
 
           <CustomizeForm

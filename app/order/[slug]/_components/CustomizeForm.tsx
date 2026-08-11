@@ -1,9 +1,11 @@
+import { Image as ImageIcon } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
 
 // Plain-string values for every possible field. CustomizeForm only reads
 // the ones a given template's manifest actually turns on — the rest are
 // simply ignored/not rendered.
 export type CustomizeValues = {
+  owner_email: string;
   host_names: string;
   event_date: string;
   venue_name: string;
@@ -12,6 +14,7 @@ export type CustomizeValues = {
 };
 
 export const EMPTY_VALUES: CustomizeValues = {
+  owner_email: "",
   host_names: "",
   event_date: "",
   venue_name: "",
@@ -44,6 +47,25 @@ export default function CustomizeForm({
 }) {
   return (
     <div className="flex flex-col gap-5">
+      {/* Unconditional — every order needs this regardless of the
+          template's field manifest, since it's checkout-level contact
+          info (receipt + dashboard link), not invite content. */}
+      <div>
+        <label className={labelClass}>Your email *</label>
+        <input
+          name="owner_email"
+          type="email"
+          required
+          placeholder="you@email.com"
+          value={values.owner_email}
+          onChange={(e) => onValueChange("owner_email", e.target.value)}
+          className={inputClass}
+        />
+        <p className="mt-1 text-[11px] text-[var(--ink)]/45">
+          We&apos;ll send your dashboard and guest links here once payment is confirmed.
+        </p>
+      </div>
+
       {fields.host_names && (
         <div>
           <label className={labelClass}>Host names *</label>
@@ -129,11 +151,7 @@ export default function CustomizeForm({
                     <img src={preview} alt={`Photo ${i + 1}`} className="absolute inset-0 h-full w-full object-cover" />
                   ) : (
                     <>
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
-                        <rect x="3" y="3" width="18" height="18" rx="2" />
-                        <circle cx="8.5" cy="8.5" r="1.5" />
-                        <path d="M21 15l-5-5L5 21" />
-                      </svg>
+                      <ImageIcon size={20} weight="light" />
                       Photo {i + 1}
                     </>
                   )}

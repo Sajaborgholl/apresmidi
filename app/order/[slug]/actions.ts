@@ -1,19 +1,31 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTemplateBySlug } from "@/lib/templates/registry";
 import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
+import { sendInviteReadyEmail } from "@/lib/email";
+
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+// 6 lowercase hex chars pulled off a UUID — 16^6 (~16.7M) combinations, no
+// new dependency needed. Appended to every invite slug (not just on
+// collision) so the guest link itself isn't guessable from the host names
+// alone (e.g. someone trying "john-jane", "sarah-karim", etc.).
+function randomSlugSuffix(): string {
+  return randomUUID().replace(/-/g, "").slice(0, 6);
+}
 
 // Runs when the intake form on /order/[slug] is submitted. Creates the
-// invite as a DRAFT (not publicly visible — the "public read live invites"
-// RLS policy only allows status = 'live'). It only flips to 'live' once
-// payment succeeds, which isn't wired up yet. That's what makes it safe to
-// let people fill this out before the Whish/Tap integration exists.
+// invite as a DRAFT (not publicly visible — see the status/is_demo check
+// in app/i/[slug]/page.tsx). It only flips to 'live' via
+// confirmInvitePayment below, once payment succeeds.
 export async function createOrder(templateSlug: string, formData: FormData) {
   const supabaseAdmin = getSupabaseAdmin();
 
   const hostNames = String(formData.get("host_names") ?? "").trim();
+  const ownerEmail = String(formData.get("owner_email") ?? "").trim();
   const eventDate = String(formData.get("event_date") ?? "").trim();
   const venueName = String(formData.get("venue_name") ?? "").trim();
   const venueMapUrl = String(formData.get("venue_map_url") ?? "").trim();
@@ -21,6 +33,11 @@ export async function createOrder(templateSlug: string, formData: FormData) {
 
   if (!hostNames) {
     throw new Error("Host names are required.");
+  }
+  // Deliberately simple format check — full deliverability validation
+  // (e.g. a verification email) is out of scope here.
+  if (!ownerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
+    throw new Error("A valid email address is required.");
   }
 
   const { data: template } = await supabaseAdmin
@@ -33,12 +50,13 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     throw new Error("Template not found.");
   }
 
-  // Build a unique invite slug from the host names ("Sarah & Karim" ->
-  // "sarah-karim"), adding a numeric suffix if that slug is already taken.
+  // Base slug from host names ("Sarah & Karim" -> "sarah-karim"), always
+  // with a random suffix appended (e.g. "sarah-karim-x7k2p9") — not just as
+  // a collision tiebreaker. The while-loop below is now just a cheap
+  // safety net for the astronomically unlikely case of a suffix clash, not
+  // the primary uniqueness mechanism.
   const baseSlug = slugify(hostNames) || "invite";
-  let inviteSlug = baseSlug;
-  let attempt = 1;
-  // eslint-disable-next-line no-constant-condition
+  let inviteSlug = `${baseSlug}-${randomSlugSuffix()}`;
   while (true) {
     const { data: existing } = await supabaseAdmin
       .from("invites")
@@ -46,8 +64,7 @@ export async function createOrder(templateSlug: string, formData: FormData) {
       .eq("slug", inviteSlug)
       .maybeSingle();
     if (!existing) break;
-    attempt += 1;
-    inviteSlug = `${baseSlug}-${attempt}`;
+    inviteSlug = `${baseSlug}-${randomSlugSuffix()}`;
   }
 
   // Upload any photos that came with the submission (CustomizeForm names
@@ -79,10 +96,11 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     photoUrls.push(url);
   }
 
-  await supabaseAdmin.from("invites").insert({
+  const { error: insertError } = await supabaseAdmin.from("invites").insert({
     slug: inviteSlug,
     template_id: template.id,
     host_names: hostNames,
+    owner_email: ownerEmail,
     event_date: eventDate || null,
     venue_name: venueName || null,
     venue_map_url: venueMapUrl || null,
@@ -91,5 +109,75 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     status: "draft",
   });
 
+  // Surfacing this matters: a silent failure here (e.g. schema drift, a
+  // migration not yet applied) would otherwise redirect to a confirmation
+  // page for an invite that was never actually created, which just 404s
+  // with no indication why.
+  if (insertError) {
+    throw new Error(`Could not create invite: ${insertError.message}`);
+  }
+
   redirect(`/order/${templateSlug}/confirmation?invite=${inviteSlug}`);
+}
+
+// The single trusted entry point for "a real payment was verified for this
+// invite." This function does NOT talk to Whish (or any payment provider)
+// at all — that integration doesn't exist yet and is explicitly out of
+// scope here. Whatever gets built later (a webhook route handler with its
+// own signature verification, or a redirect-back page that independently
+// re-checks payment status server-side) must call this ONLY after it has
+// verified the payment itself; this function trusts its caller completely.
+//
+// Must never be reachable via a GET route/query param the customer's own
+// browser can trigger unauthenticated (e.g. never "if success=true in the
+// URL, call this") — a webhook needs its own signature check first, and a
+// redirect-back flow needs a server-side status lookup against Whish,
+// never just trusting what the redirect URL claims.
+//
+// Idempotent: safe to call more than once for the same invite (webhook
+// retries, accidental double-calls) — a second call reuses the existing
+// dashboard_token/paid_at and skips re-sending the email.
+export async function confirmInvitePayment(
+  inviteSlug: string
+): Promise<{ dashboardUrl: string; guestUrl: string }> {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  const { data: invite } = await supabaseAdmin
+    .from("invites")
+    .select("id, owner_email, dashboard_token, status")
+    .eq("slug", inviteSlug)
+    .single();
+
+  if (!invite) {
+    throw new Error(`confirmInvitePayment: no invite found for slug "${inviteSlug}"`);
+  }
+
+  const alreadyConfirmed = invite.status === "live" && Boolean(invite.dashboard_token);
+  const dashboardToken = invite.dashboard_token ?? randomUUID();
+
+  if (!alreadyConfirmed) {
+    await supabaseAdmin
+      .from("invites")
+      .update({
+        status: "live",
+        dashboard_token: dashboardToken,
+        paid_at: new Date().toISOString(),
+      })
+      .eq("id", invite.id);
+  }
+
+  const guestUrl = `${BASE_URL}/i/${inviteSlug}`;
+  const dashboardUrl = `${BASE_URL}/dashboard/${dashboardToken}`;
+
+  if (!alreadyConfirmed) {
+    // Never let an email failure block the payment confirmation itself —
+    // the status flip above has already committed by this point.
+    try {
+      await sendInviteReadyEmail({ to: invite.owner_email, dashboardUrl, guestUrl });
+    } catch (err) {
+      console.error("confirmInvitePayment: failed to send owner email", err);
+    }
+  }
+
+  return { dashboardUrl, guestUrl };
 }

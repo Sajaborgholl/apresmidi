@@ -49,7 +49,7 @@ export default async function OrderPage({
         category={template.category}
         fields={fields}
         templateName={template.name}
-        priceLabel={categoryRow ? `$${categoryRow.price} — ${categoryRow.name}` : null}
+        priceLabel={categoryRow ? `$${categoryRow.price}` : null}
       />
     </main>
   );
