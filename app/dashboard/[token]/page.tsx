@@ -61,7 +61,7 @@ export default async function DashboardPage({
 
   return (
     <main
-      className="mx-auto max-w-2xl px-6 py-16"
+      className="min-h-dvh"
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
     >
       {/* New responses land here as guests submit — re-runs this page's
@@ -70,120 +70,129 @@ export default async function DashboardPage({
           (RSVPs trickle in far more slowly than a single payment event). */}
       <AutoRefresh intervalMs={15000} />
 
-      <h1 className="display text-2xl font-bold">{invite.host_names}&apos;s RSVPs</h1>
+      <div className="mx-auto max-w-[1400px] px-6 py-10 md:px-12">
+        <h1 className="display text-3xl font-bold md:text-4xl">{invite.host_names}&apos;s RSVPs</h1>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow">
-          <Lock size={12} weight="regular" />
-          Private, only you have this link
-        </span>
-        <span className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow">
-          <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--blue-dark)" }} />
-          Updating live
-        </span>
-      </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow">
+            <Lock size={12} weight="regular" />
+            Private, only you have this link
+          </span>
+          <span className="flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--blue-dark)" }} />
+            Updating live
+          </span>
+        </div>
 
-      <div className="mt-6">
-        <CopyLinkButton label="Guest link" url={guestUrl} />
-      </div>
+        <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px]">
+          {/* Side panel: ordered first on mobile so the guest link is within
+              easy reach, ordered second (right column) on desktop. */}
+          <div className="order-1 lg:order-2">
+            <CopyLinkButton
+              label="Guest link"
+              url={guestUrl}
+              shareText={`You're invited to ${invite.host_names}! RSVP here: ${guestUrl}`}
+            />
+          </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-3">
-        <div
-          className="rounded-2xl p-4 text-center"
-          style={{ background: "var(--blue-light)", border: "1px solid var(--blue-dark)" }}
-        >
-          <CheckCircle size={18} weight="regular" className="mx-auto mb-1.5" style={{ color: "var(--blue-dark)" }} />
-          <p className="display text-2xl font-bold">{accepted.length}</p>
-          <p className="text-[12px] opacity-70">Accepted</p>
-        </div>
-        <div className="rounded-2xl p-4 text-center" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-          <XCircle size={18} weight="regular" className="mx-auto mb-1.5 opacity-60" style={{ color: "var(--ink)" }} />
-          <p className="display text-2xl font-bold">{declined.length}</p>
-          <p className="text-[12px] opacity-60">Declined</p>
-        </div>
-        <div className="rounded-2xl p-4 text-center" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-          <UsersThree size={18} weight="regular" className="mx-auto mb-1.5 opacity-60" style={{ color: "var(--ink)" }} />
-          <p className="display text-2xl font-bold">{totalGuests}</p>
-          <p className="text-[12px] opacity-60">Total guests</p>
-        </div>
-      </div>
-
-      {rsvps.length === 0 ? (
-        <div
-          className="mt-8 flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center"
-          style={{ background: "#fff", border: "1px dashed rgba(0,0,0,0.15)" }}
-        >
-          <Envelope size={28} weight="regular" className="opacity-40" />
-          <p className="opacity-60">No RSVPs yet. Share the guest link above to start getting responses.</p>
-        </div>
-      ) : (
-        <div className="mt-8 flex flex-col gap-8">
-          {accepted.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold opacity-60">Attending ({accepted.length})</h2>
-              <ul className="mt-3 flex flex-col gap-3">
-                {accepted.map((r) => (
-                  <li key={r.id} className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="display flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                        style={{ background: "var(--blue)", border: "3px solid var(--blue-dark)", color: "var(--ink)" }}
-                      >
-                        {r.guest_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-semibold">{r.guest_name}</span>
-                          <span className="shrink-0 text-xs opacity-45">{relativeTime(r.created_at)}</span>
-                        </div>
-                        <p className="text-sm opacity-60">{r.guest_count ?? 1} guest{(r.guest_count ?? 1) === 1 ? "" : "s"}</p>
-                      </div>
-                    </div>
-                    {r.message && (
-                      <p className="mt-2 flex items-start gap-1.5 pl-[52px] text-sm italic opacity-70">
-                        <ChatCircleText size={14} weight="regular" className="mt-0.5 shrink-0 opacity-60" />
-                        {r.message}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
+          <div className="order-2 flex flex-col gap-8 lg:order-1">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl p-6 text-center" style={{ background: "var(--blue)" }}>
+                <CheckCircle size={22} weight="regular" className="mx-auto mb-2" />
+                <p className="display text-4xl font-bold">{accepted.length}</p>
+                <p className="mt-1 text-[13px] font-medium opacity-80">Accepted</p>
+              </div>
+              <div className="rounded-2xl p-6 text-center" style={{ background: "rgba(31,36,48,0.06)" }}>
+                <XCircle size={22} weight="regular" className="mx-auto mb-2 opacity-50" />
+                <p className="display text-4xl font-bold">{declined.length}</p>
+                <p className="mt-1 text-[13px] font-medium opacity-70">Declined</p>
+              </div>
+              <div className="rounded-2xl p-6 text-center" style={{ background: "var(--yellow)" }}>
+                <UsersThree size={22} weight="regular" className="mx-auto mb-2" />
+                <p className="display text-4xl font-bold">{totalGuests}</p>
+                <p className="mt-1 text-[13px] font-medium opacity-80">Total guests</p>
+              </div>
             </div>
-          )}
 
-          {declined.length > 0 && (
-            <div>
-              <h2 className="text-sm font-semibold opacity-60">Declined ({declined.length})</h2>
-              <ul className="mt-3 flex flex-col gap-3">
-                {declined.map((r) => (
-                  <li key={r.id} className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="display flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold opacity-60"
-                        style={{ background: "rgba(31,36,48,0.06)", border: "2px solid rgba(31,36,48,0.2)", color: "var(--ink)" }}
-                      >
-                        {r.guest_name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-semibold opacity-60">{r.guest_name}</span>
-                          <span className="shrink-0 text-xs opacity-45">{relativeTime(r.created_at)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {r.message && (
-                      <p className="mt-2 flex items-start gap-1.5 pl-[52px] text-sm italic opacity-70">
-                        <ChatCircleText size={14} weight="regular" className="mt-0.5 shrink-0 opacity-60" />
-                        {r.message}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {rsvps.length === 0 ? (
+              <div
+                className="flex flex-col items-center gap-3 rounded-2xl px-6 py-14 text-center"
+                style={{ background: "#fff", border: "1px dashed rgba(0,0,0,0.15)" }}
+              >
+                <Envelope size={28} weight="regular" className="opacity-40" />
+                <p className="opacity-60">No RSVPs yet. Share the guest link to start getting responses.</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-8">
+                {accepted.length > 0 && (
+                  <div>
+                    <h2 className="text-sm font-semibold opacity-60">Attending ({accepted.length})</h2>
+                    <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {accepted.map((r) => (
+                        <li key={r.id} className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="display flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                              style={{ background: "var(--blue)", border: "3px solid var(--blue-dark)", color: "var(--ink)" }}
+                            >
+                              {r.guest_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="font-semibold">{r.guest_name}</span>
+                                <span className="shrink-0 text-xs opacity-45">{relativeTime(r.created_at)}</span>
+                              </div>
+                              <p className="text-sm opacity-60">{r.guest_count ?? 1} guest{(r.guest_count ?? 1) === 1 ? "" : "s"}</p>
+                            </div>
+                          </div>
+                          {r.message && (
+                            <p className="mt-2 flex items-start gap-1.5 pl-[52px] text-sm italic opacity-70">
+                              <ChatCircleText size={14} weight="regular" className="mt-0.5 shrink-0 opacity-60" />
+                              {r.message}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {declined.length > 0 && (
+                  <div>
+                    <h2 className="text-sm font-semibold opacity-60">Declined ({declined.length})</h2>
+                    <ul className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                      {declined.map((r) => (
+                        <li key={r.id} className="rounded-2xl p-4" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="display flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold"
+                              style={{ background: "rgba(31,36,48,0.06)", border: "2px solid rgba(31,36,48,0.2)", color: "var(--ink)" }}
+                            >
+                              {r.guest_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="font-semibold">{r.guest_name}</span>
+                                <span className="shrink-0 text-xs opacity-45">{relativeTime(r.created_at)}</span>
+                              </div>
+                            </div>
+                          </div>
+                          {r.message && (
+                            <p className="mt-2 flex items-start gap-1.5 pl-[52px] text-sm italic opacity-70">
+                              <ChatCircleText size={14} weight="regular" className="mt-0.5 shrink-0 opacity-60" />
+                              {r.message}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </main>
   );
 }
