@@ -160,7 +160,12 @@ function CarouselSide({ template, color }: { template: CarouselTemplate; color: 
     >
       {template.thumbnail_url && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={template.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        <img
+          src={template.thumbnail_url}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
       )}
     </div>
   );

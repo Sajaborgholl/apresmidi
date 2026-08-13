@@ -12,6 +12,7 @@ export default function HeroPreview({ slug }: { slug: string }) {
       title={`Live preview of the ${slug} invitation`}
       tabIndex={-1}
       scrolling="no"
+      loading="lazy"
       style={{
         width: "400%",
         height: "400%",

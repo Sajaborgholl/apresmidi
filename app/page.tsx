@@ -202,6 +202,7 @@ export default async function Home() {
                               <img
                                 src={template.thumbnail_url}
                                 alt={template.name}
+                                loading="lazy"
                                 className="absolute inset-0 h-full w-full object-cover"
                               />
                             )
