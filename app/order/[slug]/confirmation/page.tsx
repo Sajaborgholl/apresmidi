@@ -1,6 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, WarningCircle, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import AutoRefresh from "../../../_components/AutoRefresh";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
 import { confirmInvitePayment, startWhishPayment } from "../actions";
@@ -35,63 +35,82 @@ export default async function OrderConfirmationPage({
   if (invite.status !== "live") {
     return (
       <main
-        className="mx-auto max-w-lg px-6 py-16 text-center"
-        style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
+        className="flex min-h-dvh items-center justify-center px-6 py-16"
+        style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
       >
         <AutoRefresh />
-        <CheckCircle size={40} weight="fill" className="mx-auto mb-4" style={{ color: "var(--blue-dark)" }} />
-        <h1 className="display text-2xl font-bold">Almost there, {invite.host_names}!</h1>
-        <p className="mt-3 opacity-70">
-          Your invite details are saved. It&apos;ll go live at your link as
-          soon as payment is completed below.
-        </p>
-
-        {result === "failure" && (
-          <p className="mt-4 text-sm font-medium" style={{ color: "#B45454" }}>
-            Payment didn&apos;t go through. You can try again below.
-          </p>
-        )}
-
-        <form
-          action={async () => {
-            "use server";
-            const collectUrl = await startWhishPayment(templateSlug, inviteSlug);
-            redirect(collectUrl);
-          }}
-          className="mt-8"
+        <div
+          className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
+          style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
         >
-          <button
-            type="submit"
-            className="w-full rounded-full px-5 py-3 font-medium transition active:scale-[0.98]"
-            style={{ background: "var(--blue-dark)", color: "var(--cream)" }}
+          <div
+            className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ background: "var(--yellow)" }}
           >
-            Pay with Whish — $80
-          </button>
-        </form>
+            <Sparkle size={26} weight="fill" style={{ color: "var(--ink)" }} />
+          </div>
+          <h1 className="display text-2xl font-bold md:text-[26px]">Almost there, {invite.host_names}!</h1>
+          <p className="mt-3 text-[14.5px] opacity-65">
+            Your invite details are saved. It&apos;ll go live at your link as
+            soon as payment is completed below.
+          </p>
 
-        {/* Dev-only: statically stripped from production builds by the
-            NODE_ENV check, since Next.js replaces process.env.NODE_ENV at
-            build time. Whish rejects localhost callback/redirect URLs
-            outright, so the real "Pay with Whish" button above can't be
-            exercised end-to-end locally — this stays the way to walk the
-            paid path in local dev. Never a real payment trigger. */}
-        {process.env.NODE_ENV !== "production" && (
+          {result === "failure" && (
+            <div
+              className="mt-5 flex items-start gap-2 rounded-xl px-4 py-3 text-left text-[13.5px] font-medium"
+              style={{ background: "rgba(180,84,84,0.08)", color: "#B45454" }}
+            >
+              <WarningCircle size={17} weight="fill" className="mt-0.5 shrink-0" />
+              Payment didn&apos;t go through. You can try again below.
+            </div>
+          )}
+
           <form
             action={async () => {
               "use server";
-              await confirmInvitePayment(inviteSlug);
+              const collectUrl = await startWhishPayment(templateSlug, inviteSlug);
+              redirect(collectUrl);
             }}
-            className="mt-6"
+            className="mt-7"
           >
             <button
               type="submit"
-              className="w-full rounded-full px-5 py-3 text-sm font-medium transition active:scale-[0.98]"
-              style={{ background: "var(--yellow-dark)", color: "var(--ink)" }}
+              className="w-full rounded-full py-3.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
+              style={{ background: "var(--ink)", color: "var(--cream)" }}
             >
-              Simulate payment success (dev only)
+              Pay with Whish — $80
             </button>
           </form>
-        )}
+
+          {/* Dev-only: statically stripped from production builds by the
+              NODE_ENV check, since Next.js replaces process.env.NODE_ENV at
+              build time. Whish rejects localhost callback/redirect URLs
+              outright, so the real "Pay with Whish" button above can't be
+              exercised end-to-end locally — this stays the way to walk the
+              paid path in local dev. Never a real payment trigger. */}
+          {process.env.NODE_ENV !== "production" && (
+            <>
+              <p className="mt-5 text-[11px] font-semibold uppercase tracking-wide opacity-40">
+                Local development only
+              </p>
+              <form
+                action={async () => {
+                  "use server";
+                  await confirmInvitePayment(inviteSlug);
+                }}
+                className="mt-2"
+              >
+                <button
+                  type="submit"
+                  className="w-full rounded-full py-2.5 text-[13px] font-medium transition active:scale-[0.97]"
+                  style={{ background: "var(--yellow)", color: "var(--ink)" }}
+                >
+                  Simulate payment success
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </main>
     );
   }
@@ -101,18 +120,28 @@ export default async function OrderConfirmationPage({
 
   return (
     <main
-      className="mx-auto max-w-lg px-6 py-16 text-center"
-      style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
+      className="flex min-h-dvh items-center justify-center px-6 py-16"
+      style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
     >
-      <CheckCircle size={40} weight="fill" className="mx-auto mb-4" style={{ color: "var(--blue-dark)" }} />
-      <h1 className="display text-2xl font-bold">You&apos;re all set, {invite.host_names}!</h1>
-      <p className="mt-3 opacity-70">
-        Your invite is live. Save both links below, we also emailed them to you.
-      </p>
+      <div
+        className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
+        style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
+      >
+        <div
+          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full"
+          style={{ background: "var(--blue)" }}
+        >
+          <CheckCircle size={26} weight="fill" style={{ color: "var(--ink)" }} />
+        </div>
+        <h1 className="display text-2xl font-bold md:text-[26px]">You&apos;re all set, {invite.host_names}!</h1>
+        <p className="mt-3 text-[14.5px] opacity-65">
+          Your invite is live. Save both links below, we also emailed them to you.
+        </p>
 
-      <div className="mt-8 flex flex-col gap-3">
-        <CopyLinkButton label="Guest link" url={guestUrl} />
-        <CopyLinkButton label="Dashboard link" url={dashboardUrl} isPrivate />
+        <div className="mt-8 flex flex-col gap-3">
+          <CopyLinkButton label="Guest link" url={guestUrl} />
+          <CopyLinkButton label="Dashboard link" url={dashboardUrl} isPrivate />
+        </div>
       </div>
     </main>
   );
