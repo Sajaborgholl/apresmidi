@@ -1,20 +1,23 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CheckCircle } from "@phosphor-icons/react/dist/ssr";
 import AutoRefresh from "../../../_components/AutoRefresh";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
-import { confirmInvitePayment } from "../actions";
+import { confirmInvitePayment, startWhishPayment } from "../actions";
 
 export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 export default async function OrderConfirmationPage({
+  params,
   searchParams,
 }: {
-  searchParams: Promise<{ invite?: string }>;
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ invite?: string; result?: string }>;
 }) {
-  const { invite: inviteSlug } = await searchParams;
+  const { slug: templateSlug } = await params;
+  const { invite: inviteSlug, result } = await searchParams;
 
   if (!inviteSlug) notFound();
 
@@ -27,9 +30,8 @@ export default async function OrderConfirmationPage({
 
   if (!invite) notFound();
 
-  // Not paid yet — keep the existing "waiting on Whish" messaging, but
-  // auto-refresh so this naturally flips to the paid view below once a
-  // webhook (built separately) calls confirmInvitePayment.
+  // Not paid yet — auto-refresh so this naturally flips to the paid view
+  // below once app/api/whish/callback/route.ts confirms payment.
   if (invite.status !== "live") {
     return (
       <main
@@ -44,24 +46,35 @@ export default async function OrderConfirmationPage({
           soon as payment is completed below.
         </p>
 
-        {/* Stubbed until Whish/Tap API keys are wired in. Swap this for
-            the real payment button once that's ready. */}
-        <button
-          disabled
-          className="mt-8 w-full cursor-not-allowed rounded-full px-5 py-3 font-medium"
-          style={{ background: "rgba(31,36,48,0.08)", color: "var(--ink)", opacity: 0.5 }}
+        {result === "failure" && (
+          <p className="mt-4 text-sm font-medium" style={{ color: "#B45454" }}>
+            Payment didn&apos;t go through. You can try again below.
+          </p>
+        )}
+
+        <form
+          action={async () => {
+            "use server";
+            const collectUrl = await startWhishPayment(templateSlug, inviteSlug);
+            redirect(collectUrl);
+          }}
+          className="mt-8"
         >
-          Pay with Whish (coming soon)
-        </button>
-        <p className="mt-2 text-xs opacity-45">
-          We&apos;re finishing payment setup. We&apos;ll reach out to activate
-          your invite once it&apos;s ready.
-        </p>
+          <button
+            type="submit"
+            className="w-full rounded-full px-5 py-3 font-medium transition active:scale-[0.98]"
+            style={{ background: "var(--blue-dark)", color: "var(--cream)" }}
+          >
+            Pay with Whish — $80
+          </button>
+        </form>
 
         {/* Dev-only: statically stripped from production builds by the
             NODE_ENV check, since Next.js replaces process.env.NODE_ENV at
-            build time. Lets you exercise the paid path locally before the
-            real Whish webhook exists — never a real payment trigger. */}
+            build time. Whish rejects localhost callback/redirect URLs
+            outright, so the real "Pay with Whish" button above can't be
+            exercised end-to-end locally — this stays the way to walk the
+            paid path in local dev. Never a real payment trigger. */}
         {process.env.NODE_ENV !== "production" && (
           <form
             action={async () => {

@@ -6,6 +6,7 @@ import { getTemplateBySlug } from "@/lib/templates/registry";
 import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 import { sendInviteReadyEmail } from "@/lib/email";
+import { createWhishPayment } from "@/lib/whish";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -180,4 +181,51 @@ export async function confirmInvitePayment(
   }
 
   return { dashboardUrl, guestUrl };
+}
+
+// Matches the fixed "$80" priceLabel shown on app/order/[slug]/page.tsx —
+// there's only the one Standard price point right now, nothing per-template.
+const STANDARD_PRICE_USD = "80.00";
+
+// Kicks off a real Whish payment and returns the hosted collectUrl to send
+// the customer's browser to. Does NOT mark the invite paid — Whish's
+// callback (app/api/whish/callback/route.ts) is what eventually calls
+// confirmInvitePayment, and only after independently re-checking status.
+export async function startWhishPayment(
+  templateSlug: string,
+  inviteSlug: string
+): Promise<string> {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  const { data: invite } = await supabaseAdmin
+    .from("invites")
+    .select("status")
+    .eq("slug", inviteSlug)
+    .single();
+
+  if (!invite) {
+    throw new Error(`startWhishPayment: no invite found for slug "${inviteSlug}"`);
+  }
+  if (invite.status === "live") {
+    throw new Error("This invite has already been paid for.");
+  }
+
+  const confirmationUrl = `${BASE_URL}/order/${templateSlug}/confirmation?invite=${encodeURIComponent(inviteSlug)}`;
+
+  // externalId = the invite slug itself (already globally unique) — Whish
+  // treats a repeated externalId as a safe retry rather than a double
+  // charge, which is exactly what we want if the customer clicks "Pay"
+  // again after an abandoned attempt.
+  const { collectUrl } = await createWhishPayment({
+    amount: STANDARD_PRICE_USD,
+    currency: "USD",
+    invoice: `Après-midi invite — ${inviteSlug}`,
+    externalId: inviteSlug,
+    successCallbackUrl: `${BASE_URL}/api/whish/callback?invite=${encodeURIComponent(inviteSlug)}`,
+    failureCallbackUrl: `${BASE_URL}/api/whish/callback?invite=${encodeURIComponent(inviteSlug)}`,
+    successRedirectUrl: confirmationUrl,
+    failureRedirectUrl: `${confirmationUrl}&result=failure`,
+  });
+
+  return collectUrl;
 }
