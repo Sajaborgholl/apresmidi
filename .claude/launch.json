@@ -4,8 +4,8 @@
     {
       "name": "invite-app",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "-p", "3521"],
-      "port": 3521
+      "runtimeArgs": ["run", "dev", "--", "-p", "3733"],
+      "port": 3733
     }
   ]
 }

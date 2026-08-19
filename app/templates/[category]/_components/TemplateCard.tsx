@@ -38,9 +38,6 @@ export default function TemplateCard({ template }: { template: TemplateMeta }) {
             {template.description}
           </p>
         )}
-        <p className="mt-3 font-medium text-neutral-900">
-          {template.price != null ? `$${template.price}` : "Price TBD"}
-        </p>
       </div>
     </Link>
   );

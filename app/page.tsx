@@ -6,6 +6,8 @@ import ClickableCard from "./_components/ClickableCard";
 import PreviewPill from "./_components/PreviewPill";
 import HeroCarousel, { type CarouselTemplate } from "./_components/HeroCarousel";
 import Reveal from "./_components/Reveal";
+import HowItWorks from "./_components/HowItWorks";
+import Pricing from "./_components/Pricing";
 
 export const dynamic = "force-dynamic";
 
@@ -104,7 +106,7 @@ export default async function Home() {
   const recentInvites: RecentInviteRow[] = recentInvitesRaw ?? [];
 
   return (
-    <div className="overflow-x-hidden" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
+    <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
       <nav className="flex items-center justify-between px-6 md:px-12 py-5">
         <span className="script text-3xl">Après-midi</span>
         <div className="hidden md:flex gap-8 text-sm font-medium">
@@ -155,16 +157,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section id="how-it-works" className="px-6 md:px-12 py-10 flex flex-wrap items-center gap-3 justify-center">
-        <span className="rounded-full px-5 py-2 font-medium" style={{ background: "var(--blue)" }}>Pick</span>
-        <span className="text-lg">a template</span>
-        <span className="display">→</span>
-        <span className="rounded-full px-5 py-2 font-medium" style={{ background: "var(--yellow)" }}>Personalize</span>
-        <span className="text-lg">it</span>
-        <span className="display">→</span>
-        <span className="rounded-full px-5 py-2 font-medium" style={{ background: "var(--blue)" }}>Share</span>
-        <span className="text-lg">the link</span>
-      </section>
+      <HowItWorks />
 
       <section id="occasions" className="px-6 md:px-12 py-14">
         <h2 className="display font-bold text-2xl md:text-3xl mb-8">Browse by occasion</h2>
@@ -173,13 +166,10 @@ export default async function Home() {
             {categories.map((cat, catIndex) => (
               <Reveal key={cat.slug} delay={Math.min(catIndex, 3) * 80}>
               <div id={`occasion-${cat.slug}`} className="scroll-mt-24">
-                <div className="flex items-baseline justify-between mb-4">
+                <div className="mb-4">
                   <Link href={`/templates/${cat.slug}`} className="display font-bold text-xl hover:opacity-70">
                     {cat.name}
                   </Link>
-                  <span className="text-sm font-medium opacity-70">
-                    {cat.price != null ? `From $${cat.price}` : "Price TBD"}
-                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   {Array.from({ length: 3 }, (_, cardIndex) => templatesByCategory[cat.slug]?.[cardIndex] ?? null).map(
@@ -386,6 +376,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <Pricing />
 
       <footer className="px-6 md:px-12 py-14 mt-8" style={{ background: "var(--blue)" }}>
         <Reveal>

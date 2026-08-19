@@ -13,11 +13,9 @@ export default async function CategoryPage({
   const { category } = await params;
   const supabaseAdmin = getSupabaseAdmin();
 
-  // Category row gives us the display name and the price for every
-  // template in this category (price lives on categories, not templates).
   const { data: categoryRow } = await supabaseAdmin
     .from("categories")
-    .select("slug, name, price")
+    .select("slug, name")
     .eq("slug", category)
     .single();
 
@@ -33,7 +31,6 @@ export default async function CategoryPage({
     slug: t.slug,
     name: t.name,
     description: t.description ?? null,
-    price: categoryRow.price,
     thumbnail_url: t.thumbnail_url,
     category_slug: categoryRow.slug,
     category_name: categoryRow.name,
@@ -44,7 +41,6 @@ export default async function CategoryPage({
       <h1 className="text-3xl font-semibold text-neutral-900">
         {categoryRow.name} Templates
       </h1>
-      <p className="mt-1 text-neutral-600">${categoryRow.price} per invite</p>
 
       {templates.length === 0 ? (
         <p className="mt-8 text-neutral-500">No templates in this category yet.</p>

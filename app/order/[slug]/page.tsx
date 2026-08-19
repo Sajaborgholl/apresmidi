@@ -33,12 +33,6 @@ export default async function OrderPage({
 
   if (!template) notFound();
 
-  const { data: categoryRow } = await supabaseAdmin
-    .from("categories")
-    .select("name, price")
-    .eq("slug", template.category)
-    .single();
-
   const registryEntry = getTemplateBySlug(template.slug);
   const fields = registryEntry?.fields ?? EMPTY_FIELDS;
 
@@ -49,7 +43,7 @@ export default async function OrderPage({
         category={template.category}
         fields={fields}
         templateName={template.name}
-        priceLabel={categoryRow ? `$${categoryRow.price}` : null}
+        priceLabel="$80"
       />
     </main>
   );

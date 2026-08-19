@@ -19,14 +19,14 @@ export type Invite = {
 // reads — it's metadata for BROWSING templates, separate from the
 // `TemplateEntry` in lib/templates/registry.ts (which maps a slug to
 // actual React code). A TemplateCard needs both: the DB row for
-// name/price/thumbnail, and the registry only if it needs to render a
-// live preview.
+// name/thumbnail, and the registry only if it needs to render a live
+// preview. Pricing now lives entirely in the Standard/Premium plans
+// section (app/_components/Pricing.tsx), not per category/template.
 export type TemplateMeta = {
   id: string;
   slug: string;
   name: string;
   description: string | null; // per-template, from templates.description
-  price: number | null; // per-category, from categories.price (via join)
   thumbnail_url: string | null;
   category_slug: string;
   category_name: string;

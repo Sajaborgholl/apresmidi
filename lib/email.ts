@@ -48,3 +48,51 @@ export async function sendInviteReadyEmail({
     `,
   });
 }
+
+// Notifies the team of a new "Get Premium" lead from the homepage pricing
+// section. Same noop-when-unconfigured / let-the-caller-catch-failures
+// pattern as sendInviteReadyEmail above — a failed notification must never
+// block the inquiry from being saved (submitPremiumInquiry already commits
+// the row before calling this).
+export async function sendPremiumInquiryNotification({
+  name,
+  email,
+  phone,
+}: {
+  name: string;
+  email: string;
+  phone: string;
+}) {
+  const to = "sborghol@edtpartners.com";
+  const subject = `New Premium inquiry: ${name}`;
+  const text = [
+    "New Premium plan inquiry from the homepage.",
+    "",
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Phone: ${phone}`,
+    "",
+    "Follow up within 48 hours.",
+  ].join("\n");
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log(`[email:noop] RESEND_API_KEY not set — would have sent to ${to}:\n${subject}\n\n${text}`);
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "Après-midi <onboarding@resend.dev>",
+    to,
+    subject,
+    text,
+    html: `
+      <p>New Premium plan inquiry from the homepage.</p>
+      <p><strong>Name:</strong> ${name}<br/>
+      <strong>Email:</strong> ${email}<br/>
+      <strong>Phone:</strong> ${phone}</p>
+      <p>Follow up within 48 hours.</p>
+    `,
+  });
+}

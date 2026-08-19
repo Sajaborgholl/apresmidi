@@ -305,14 +305,32 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ i
             {attending === "yes" && (
               <label>
                 Number of Guests
-                <input
-                  ref={stopFlipDrag}
-                  type="number"
-                  min={1}
-                  max={6}
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(Number(e.target.value))}
-                />
+                {/* Explicit +/- buttons instead of a native number-input
+                    spinner: <button> is already exempted from page-flip's
+                    own mousedown interception (see stopFlipDrag above), so
+                    this sidesteps that fragility entirely — a real native
+                    spinner click could silently fail to register on some
+                    browsers/devices inside a flip-book page, which is the
+                    likely reason every real RSVP so far shows a guest
+                    count of exactly 1 regardless of what the guest
+                    actually intended. */}
+                <div className="stepper">
+                  <button
+                    type="button"
+                    onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                    aria-label="Decrease number of guests"
+                  >
+                    −
+                  </button>
+                  <span aria-live="polite">{guestCount}</span>
+                  <button
+                    type="button"
+                    onClick={() => setGuestCount((c) => Math.min(6, c + 1))}
+                    aria-label="Increase number of guests"
+                  >
+                    +
+                  </button>
+                </div>
               </label>
             )}
 
@@ -488,6 +506,10 @@ form input:focus { border-color: var(--green-dark); }
 .toggle-group { display: flex; gap: 8px; }
 .toggle-btn { flex: 1; padding: 8px 6px; border-radius: 8px; border: 1.5px solid var(--pink); background: #fff; font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 11px; color: var(--ink); cursor: pointer; }
 .toggle-btn.active { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+.stepper { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.stepper button { width: 30px; height: 30px; border-radius: 999px; border: 1.5px solid var(--pink); background: #fff; color: var(--ink); font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 16px; line-height: 1; cursor: pointer; }
+.stepper button:active { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+.stepper span { min-width: 18px; font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 15px; color: var(--ink); }
 .error-text { font-size: 11.5px; color: #b23; margin: -4px 0 0; }
 .submit-btn { margin-top: 2px; padding: 10px; border: none; border-radius: 999px; background: var(--green-dark); color: #fff; font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 1px; cursor: pointer; }
 .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }

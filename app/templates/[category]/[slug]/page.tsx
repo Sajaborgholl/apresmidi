@@ -14,7 +14,7 @@ export default async function TemplateDetailPage({
 
   const { data: categoryRow } = await supabaseAdmin
     .from("categories")
-    .select("slug, name, price")
+    .select("slug, name")
     .eq("slug", category)
     .single();
 
@@ -75,9 +75,6 @@ export default async function TemplateDetailPage({
           {template.description && (
             <p className="mt-3 text-neutral-600">{template.description}</p>
           )}
-          <p className="mt-4 text-xl font-medium text-neutral-900">
-            ${categoryRow.price}
-          </p>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
             {demoInvite && (
