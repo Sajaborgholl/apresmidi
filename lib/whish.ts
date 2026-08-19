@@ -6,11 +6,14 @@
 // in app/order/[slug]/actions.ts, which is the only thing allowed to act on
 // a "success" this module reports.
 
+// Defaults to the sandbox API, since that's what the credentials we have
+// are for. Vercel sets NODE_ENV=production on every deployment (including
+// preview ones), so that can't be used to infer "we have real production
+// Whish credentials now" — only an explicit WHISH_BASE_URL override can.
+// Set WHISH_BASE_URL=https://api.whish.money/itel-service/api once Whish
+// issues real production credentials.
 const WHISH_BASE_URL =
-  process.env.WHISH_BASE_URL ??
-  (process.env.NODE_ENV === "production"
-    ? "https://api.whish.money/itel-service/api"
-    : "https://partner.api.sbx.whish.money/itel-service/api");
+  process.env.WHISH_BASE_URL ?? "https://partner.api.sbx.whish.money/itel-service/api";
 
 type WhishEnvelope<T> = { status: boolean; code: string | null; data: T };
 
