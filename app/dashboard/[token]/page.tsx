@@ -56,7 +56,12 @@ export default async function DashboardPage({
   const rsvps = rsvpRows ?? [];
   const accepted = rsvps.filter((r) => r.attending);
   const declined = rsvps.filter((r) => !r.attending);
-  const totalGuests = accepted.reduce((sum, r) => sum + (r.guest_count ?? 1), 0);
+  // Headcount of confirmed attendees, not just number of RSVP responses —
+  // someone who accepted "+1" contributes 2 here, not 1.
+  const acceptedGuestCount = accepted.reduce((sum, r) => sum + (r.guest_count ?? 1), 0);
+  // How many people have responded at all so far, whether yes or no —
+  // distinct from acceptedGuestCount, which only counts confirmed attendees.
+  const totalResponses = accepted.length + declined.length;
   const guestUrl = `${BASE_URL}/i/${invite.slug}`;
 
   return (
@@ -99,7 +104,7 @@ export default async function DashboardPage({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-2xl p-6 text-center" style={{ background: "var(--blue)" }}>
                 <CheckCircle size={22} weight="regular" className="mx-auto mb-2" />
-                <p className="display text-4xl font-bold">{accepted.length}</p>
+                <p className="display text-4xl font-bold">{acceptedGuestCount}</p>
                 <p className="mt-1 text-[13px] font-medium opacity-80">Accepted</p>
               </div>
               <div className="rounded-2xl p-6 text-center" style={{ background: "rgba(31,36,48,0.06)" }}>
@@ -109,8 +114,8 @@ export default async function DashboardPage({
               </div>
               <div className="rounded-2xl p-6 text-center" style={{ background: "var(--yellow)" }}>
                 <UsersThree size={22} weight="regular" className="mx-auto mb-2" />
-                <p className="display text-4xl font-bold">{totalGuests}</p>
-                <p className="mt-1 text-[13px] font-medium opacity-80">Total guests</p>
+                <p className="display text-4xl font-bold">{totalResponses}</p>
+                <p className="mt-1 text-[13px] font-medium opacity-80">Total Responses</p>
               </div>
             </div>
 
