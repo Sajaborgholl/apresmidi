@@ -68,6 +68,10 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
         <div
           className="relative h-56 w-96 flex-shrink-0 overflow-hidden rounded-3xl md:h-72 md:w-[32rem]"
           style={{ background: CARD_COLORS[currentIndex % CARD_COLORS.length] }}
+          // While playing, the round play/pause button is hidden entirely
+          // (see below) so it doesn't sit over the preview — the whole
+          // card becomes the tap target to pause instead.
+          onClick={canPlay && playing ? togglePlay : undefined}
         >
           {center.video_url ? (
             <video
@@ -93,23 +97,20 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
             )
           )}
 
-          {canPlay && (
+          {canPlay && !playing && (
             <button
               type="button"
-              onClick={togglePlay}
-              aria-label={playing ? "Pause preview" : "Play preview"}
+              onClick={(e) => {
+                e.stopPropagation();
+                togglePlay();
+              }}
+              aria-label="Play preview"
               className="absolute top-1/2 left-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition hover:scale-105"
               style={{ background: "var(--ink)" }}
             >
-              {playing ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--cream)">
-                  <path d="M6 5h4v14H6zM14 5h4v14h-4z" />
-                </svg>
-              ) : (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--cream)">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              )}
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--cream)">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </button>
           )}
 
