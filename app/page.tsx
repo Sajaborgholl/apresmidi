@@ -8,6 +8,7 @@ import HeroCarousel, { type CarouselTemplate } from "./_components/HeroCarousel"
 import Reveal from "./_components/Reveal";
 import HowItWorks from "./_components/HowItWorks";
 import Pricing from "./_components/Pricing";
+import FeatureShowcase from "./_components/FeatureShowcase";
 
 export const dynamic = "force-dynamic";
 
@@ -284,44 +285,7 @@ export default async function Home() {
       </section>
       )}
 
-      <section className="px-6 md:px-12 py-16">
-        <Reveal>
-        <h2 className="leading-none">
-          <span className="display font-bold block" style={{ fontSize: "clamp(2.5rem,8vw,6rem)" }}>Or find it</span>
-          <span className="script block" style={{ fontSize: "clamp(3rem,10vw,7rem)", color: "var(--blue-dark)" }}>by style</span>
-        </h2>
-        </Reveal>
-        <div className="mt-8 divide-y" style={{ borderColor: "rgba(0,0,0,0.08)" }}>
-          {[
-            { label: "Elegant", font: "'Playfair Display', serif", tracking: "normal", weight: 700, color: "var(--blue)", italic: false },
-            { label: "Playful", font: "'Quicksand', sans-serif", tracking: "normal", weight: 700, color: "var(--yellow)", italic: false },
-            { label: "Minimal", font: "'Space Grotesk', sans-serif", tracking: "0.06em", weight: 500, color: "var(--blue)", italic: false },
-            { label: "Rustic", font: "'Cormorant Garamond', serif", tracking: "normal", weight: 500, color: "var(--yellow)", italic: true },
-          ].map((style, i) => (
-            <Reveal key={style.label} delay={i * 60}>
-              <div className="group flex items-center justify-between py-4 transition cursor-default">
-                <span
-                  className="text-2xl md:text-3xl transition group-hover:opacity-70"
-                  style={{
-                    fontFamily: style.font,
-                    fontWeight: style.weight,
-                    fontStyle: style.italic ? "italic" : "normal",
-                    letterSpacing: style.tracking,
-                  }}
-                >
-                  {style.label}
-                </span>
-                <span
-                  className="w-9 h-9 rounded-full flex items-center justify-center transition group-hover:translate-x-1"
-                  style={{ background: style.color }}
-                >
-                  →
-                </span>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+      <FeatureShowcase />
 
       <section className="px-6 md:px-12 py-14">
         <Reveal>

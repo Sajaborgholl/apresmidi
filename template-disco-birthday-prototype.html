@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Olivia's Birthday Party — Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #fbeef2;
+    color: #1a1a1a;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    background: #ffffff;
+    padding: 64px 6vw 40px;
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #c23c7b;
+    margin: 0 0 10px;
+  }
+  .hero-card {
+    max-width: 520px;
+    margin: 0 auto;
+    background: #fffdfb;
+    border-radius: 18px;
+    padding: 22px;
+  }
+  .hero-card img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+
+  /* ---------- Details ---------- */
+  .details-section {
+    padding: 84px 8vw;
+    border-top: 1px solid rgba(26,26,26,0.08);
+  }
+  .details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 60px;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  .details-rule { background: rgba(26,26,26,0.1); }
+  .detail-col { text-align: center; }
+  .detail-script {
+    font-family: 'Permanent Marker', cursive;
+    font-weight: 400;
+    font-size: clamp(34px, 5vw, 48px);
+    color: #c23c7b;
+    margin: 0 0 18px;
+    transform: rotate(-2deg);
+  }
+  .detail-heading {
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #8b9198;
+    margin: 0 0 14px;
+  }
+  .detail-body {
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 1.9;
+    color: #1a1a1a;
+  }
+  .detail-link {
+    display: inline-block;
+    margin-top: 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #e85f9c;
+    text-decoration: none;
+    border-bottom: 1px solid #e85f9c;
+    padding-bottom: 2px;
+  }
+  .detail-link:hover { color: #c23c7b; border-color: #c23c7b; }
+
+  @media (max-width: 720px) {
+    .details-grid { grid-template-columns: 1fr; gap: 46px; }
+    .details-rule { display: none; }
+    .details-section { padding: 60px 8vw; }
+    .hero { padding: 48px 6vw 32px; }
+  }
+
+  /* ---------- RSVP ---------- */
+  .rsvp-section {
+    padding: 84px 8vw 110px;
+    border-top: 1px solid rgba(26,26,26,0.08);
+    text-align: center;
+    background: #fffdfb;
+  }
+  .rsvp-script {
+    font-family: 'Permanent Marker', cursive;
+    font-weight: 400;
+    font-size: clamp(42px, 7vw, 64px);
+    color: #1a1a1a;
+    margin: 0 0 10px;
+    transform: rotate(-1.5deg);
+  }
+  .rsvp-sub {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    color: rgba(26,26,26,0.55);
+    margin-bottom: 40px;
+  }
+  #rsvpForm {
+    max-width: 380px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    text-align: left;
+  }
+  #rsvpForm label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #8b9198;
+    margin-bottom: 8px;
+  }
+  #rsvpForm input {
+    width: 100%;
+    border: none;
+    border-bottom: 2px solid rgba(26,26,26,0.15);
+    background: transparent;
+    font-family: 'Poppins', sans-serif;
+    font-size: 15px;
+    padding: 6px 2px 10px;
+    color: #1a1a1a;
+    outline: none;
+  }
+  #rsvpForm input:focus { border-bottom-color: #e85f9c; }
+  .attend-row { display: flex; gap: 10px; }
+  .attend-btn {
+    flex: 1;
+    padding: 13px 8px;
+    border: 2px solid rgba(26,26,26,0.15);
+    border-radius: 999px;
+    background: transparent;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    color: #1a1a1a;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .attend-btn.active { background: #e85f9c; color: #fff; border-color: #e85f9c; }
+  #guestField.hidden { display: none; }
+  .submit-btn {
+    margin-top: 4px;
+    padding: 15px;
+    border: none;
+    border-radius: 999px;
+    background: #1a1a1a;
+    color: #fff;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+  .submit-btn:hover { opacity: 0.88; }
+  .thank-you {
+    max-width: 380px;
+    margin: 0 auto;
+    font-size: 15px;
+    line-height: 1.8;
+    color: #333;
+  }
+  .thank-you .rsvp-script { margin-bottom: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+  <div class="hero">
+    <p class="eyebrow">You're invited</p>
+    <div class="hero-card">
+      <img src="public/olivia-birthday-disco.png" alt="Olivia's Birthday Party invitation" />
+    </div>
+  </div>
+
+  <!-- Details -->
+  <section class="details-section">
+    <div class="details-grid">
+      <div class="detail-col">
+        <div class="detail-script">When</div>
+        <div class="detail-heading">Date &amp; Time</div>
+        <div class="detail-body">
+          November 10<br />
+          7:00 PM
+        </div>
+      </div>
+
+      <div class="details-rule"></div>
+
+      <div class="detail-col">
+        <div class="detail-script">Where</div>
+        <div class="detail-heading">Location</div>
+        <div class="detail-body">
+          123 Anywhere Street<br />
+          Any City
+        </div>
+        <a href="https://maps.google.com/?q=123+Anywhere+Street" target="_blank" rel="noopener" class="detail-link">View map</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- RSVP -->
+  <section class="rsvp-section">
+    <h2 class="rsvp-script">RSVP</h2>
+    <p class="rsvp-sub">Let us know if you'll be at the disco!</p>
+
+    <form id="rsvpForm">
+      <label>
+        Guest name
+        <input type="text" id="guestName" required placeholder="Your name" />
+      </label>
+
+      <div class="attend-row">
+        <button type="button" class="attend-btn active" data-value="accept">Count me in</button>
+        <button type="button" class="attend-btn" data-value="decline">Can't make it</button>
+      </div>
+
+      <label id="guestField">
+        Number of guests
+        <input type="number" id="guestCount" min="1" max="10" value="1" />
+      </label>
+
+      <button type="submit" class="submit-btn">Send RSVP</button>
+    </form>
+
+    <div id="thankYou" class="thank-you hidden">
+      <div class="rsvp-script" id="thankYouHeading">Yay!</div>
+      <p id="thankYouMessage"></p>
+    </div>
+  </section>
+
+<script>
+  const attendBtns = document.querySelectorAll(".attend-btn");
+  const guestField = document.getElementById("guestField");
+  let attending = "accept";
+
+  attendBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      attendBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      attending = btn.dataset.value;
+      guestField.classList.toggle("hidden", attending === "decline");
+    });
+  });
+
+  document.getElementById("rsvpForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = document.getElementById("guestName").value.trim() || "friend";
+    const heading = document.getElementById("thankYouHeading");
+    const message = document.getElementById("thankYouMessage");
+
+    if (attending === "accept") {
+      heading.textContent = "Yay!";
+      message.textContent = `Can't wait to party with you, ${name}!`;
+    } else {
+      heading.textContent = "We'll miss you";
+      message.textContent = `Thanks for letting us know, ${name}.`;
+    }
+
+    document.getElementById("rsvpForm").classList.add("hidden");
+    document.getElementById("thankYou").classList.remove("hidden");
+  });
+</script>
+
+</body>
+</html>
