@@ -63,7 +63,7 @@ export async function sendPremiumInquiryNotification({
   email: string;
   phone: string;
 }) {
-  const to = "sborghol@edtpartners.com";
+  const to = "saja.borgholl@hotmail.com";
   const subject = `New Premium inquiry: ${name}`;
   const text = [
     "New Premium plan inquiry from the homepage.",
