@@ -19,7 +19,7 @@ export default async function InvitePage({
   const { data: invite } = await supabaseAdmin
     .from("invites")
     .select(
-      "id, host_names, event_date, venue_name, venue_map_url, primary_color, photo_urls, music_url, whatsapp_number, slug, status, is_demo, templates(slug, name)"
+      "id, host_names, event_date, venue_name, venue_map_url, primary_color, photo_urls, music_url, whatsapp_number, age, slug, status, is_demo, templates(slug, name)"
     )
     .eq("slug", slug)
     .single();

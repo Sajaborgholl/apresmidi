@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Everything's Included — Redesign Mockup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --cream: #FBF8F1;
+    --blue: #A9C5E3;
+    --blue-dark: #6E93BE;
+    --blue-light: #D9E6F3;
+    --yellow: #F5EFA0;
+    --yellow-dark: #D8C94A;
+    --ink: #1F2430;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    padding: 80px 24px 120px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  .display { font-family: 'Space Grotesk', sans-serif; }
+  .script { font-family: 'Caveat', cursive; }
+
+  h2.heading {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 0.95;
+    font-weight: 700;
+    margin: 0;
+  }
+  h2.heading .script-line {
+    display: block;
+    color: var(--blue-dark);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    margin-top: -6px;
+  }
+  .subtext {
+    margin: 20px 0 48px;
+    color: rgba(31,36,48,0.6);
+    font-size: 15px;
+  }
+
+  /* ---------- Grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
+  }
+  .grid > * { opacity: 0; animation: cardIn 600ms var(--ease-out) forwards; }
+  .grid > *:nth-child(1) { animation-delay: 0ms; }
+  .grid > *:nth-child(2) { animation-delay: 70ms; }
+  .grid > *:nth-child(3) { animation-delay: 140ms; }
+  .bottom-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 20px; }
+  .bottom-row > * { opacity: 0; animation: cardIn 600ms var(--ease-out) forwards; }
+  .bottom-row > *:nth-child(1) { animation-delay: 210ms; }
+  .bottom-row > *:nth-child(2) { animation-delay: 280ms; }
+  .bottom-row > *:nth-child(3) { animation-delay: 350ms; }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .grid > *, .bottom-row > * { animation: none !important; opacity: 1 !important; }
+  }
+
+  .card {
+    border-radius: 24px;
+    transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card:hover { transform: translateY(-5px); }
+  }
+
+  /* ---------- Hero dashboard card ---------- */
+  .hero-card {
+    grid-row: span 2;
+    background: #fff;
+    padding: 36px 36px 32px;
+    box-shadow: 0 30px 60px -20px rgba(110,147,190,0.35), 0 2px 8px rgba(31,36,48,0.05);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-card::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 14px;
+    background-image: radial-gradient(circle at 10px 0, transparent 9px, var(--blue-light) 9.5px);
+    background-size: 20px 20px;
+    background-repeat: repeat-x;
+    opacity: 0.7;
+  }
+  .hero-card h3 { margin: 6px 0 12px; font-size: 22px; font-weight: 700; }
+  .pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500;
+    padding: 6px 12px; border-radius: 999px;
+    background: var(--cream); border: 1px solid rgba(31,36,48,0.08);
+    color: rgba(31,36,48,0.7);
+  }
+  .live-dot {
+    width: 7px; height: 7px; border-radius: 999px; background: var(--blue-dark);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.3); } }
+  @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
+
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: 12px; margin-bottom: 26px; }
+  .stat {
+    border-radius: 16px; padding: 16px 10px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .stat .num { font-size: 26px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; }
+  .stat .label { font-size: 11.5px; color: rgba(31,36,48,0.6); }
+  .stat.accepted { background: var(--blue); }
+  .stat.declined { background: rgba(31,36,48,0.06); }
+  .stat.total { background: var(--yellow); }
+  .guest-link {
+    border-radius: 16px; border: 1.5px solid rgba(31,36,48,0.1);
+    display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+    background: var(--cream);
+  }
+  .guest-link .url { flex: 1; font-size: 11.5px; color: rgba(31,36,48,0.55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .icon-btn {
+    width: 26px; height: 26px; border-radius: 999px; border: none;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: transform 150ms var(--ease-out);
+  }
+  .icon-btn:active { transform: scale(0.9); }
+  .icon-btn.wa { background: #3fbf60; }
+  .icon-btn.copy { background: var(--ink); }
+
+  hr.divider { border: none; border-top: 1px solid rgba(31,36,48,0.08); margin: 0 0 22px; }
+  .hero-card .foot h4 { margin: 0 0 6px; font-size: 16px; font-weight: 700; }
+  .hero-card .foot p { margin: 0; font-size: 13.5px; color: rgba(31,36,48,0.6); line-height: 1.5; }
+
+  /* ---------- Feature tiles ---------- */
+  .tile {
+    padding: 26px 24px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    min-height: 148px;
+  }
+  .tile h4 { margin: 14px 0 6px; font-size: 15.5px; font-weight: 700; }
+  .tile p { margin: 0; font-size: 12.5px; line-height: 1.5; color: rgba(31,36,48,0.65); }
+  .tile.blue { background: var(--blue); }
+  .tile.yellow { background: var(--yellow); }
+  .tile.olive { background: var(--yellow-dark); }
+  .tile.white { background: #fff; border: 1px solid rgba(31,36,48,0.08); }
+
+  .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+  /* mini map graphic */
+  .map-preview {
+    height: 62px; border-radius: 12px; background: rgba(255,255,255,0.55);
+    position: relative; overflow: hidden;
+  }
+  .map-preview svg { position: absolute; inset: 0; }
+  .map-pin {
+    position: absolute; left: 50%; top: 46%; transform: translate(-50%,-100%);
+    width: 20px; height: 20px; color: var(--ink);
+  }
+
+  /* accept/decline mini mockup */
+  .rsvp-mock { display: flex; gap: 6px; }
+  .rsvp-mock span {
+    font-size: 10px; font-weight: 600; padding: 6px 10px; border-radius: 999px;
+  }
+  .rsvp-mock .accept { background: var(--ink); color: #fff; }
+  .rsvp-mock .decline { background: rgba(255,255,255,0.6); color: var(--ink); }
+
+  /* whatsapp mini bubble */
+  .chat-bubble {
+    background: #dff5df; border-radius: 12px 12px 12px 2px; padding: 8px 12px;
+    font-size: 11.5px; color: #1c3d1c; max-width: 190px; position: relative;
+  }
+
+  /* photo stack */
+  .photo-stack { display: flex; height: 54px; align-items: center; }
+  .photo-stack .ph {
+    width: 46px; height: 46px; border-radius: 10px; border: 2px solid #fff;
+    margin-left: -14px; box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  }
+  .photo-stack .ph:first-child { margin-left: 0; }
+  .photo-stack .ph:nth-child(1) { background: linear-gradient(135deg,#cbd9ec,#9fb7d6); transform: rotate(-6deg); }
+  .photo-stack .ph:nth-child(2) { background: linear-gradient(135deg,#f2e9b8,#e3d387); z-index: 2; }
+  .photo-stack .ph:nth-child(3) { background: linear-gradient(135deg,#e3c9cf,#c99aa4); transform: rotate(6deg); }
+
+  /* share link chip */
+  .link-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.5); border-radius: 999px; padding: 8px 8px 8px 14px;
+  }
+  .link-chip span { font-size: 11px; font-weight: 600; color: var(--ink); }
+  .link-chip button {
+    width: 24px; height: 24px; border-radius: 999px; border: none; background: var(--ink);
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+  }
+
+  @media (max-width: 860px) {
+    .grid { grid-template-columns: 1fr; }
+    .hero-card { grid-row: auto; }
+    .bottom-row { grid-template-columns: 1fr; }
+    .stat-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h2 class="heading display">Everything&rsquo;s<span class="script-line script">included</span></h2>
+  <p class="subtext">One link. Real RSVPs. A dashboard that updates itself.</p>
+
+  <div class="grid">
+    <div class="hero-card card">
+      <h3>Alex &amp; Jordan&rsquo;s RSVPs</h3>
+      <div class="pills">
+        <span class="pill">🔒 Private, only you have this link</span>
+        <span class="pill"><span class="live-dot"></span> Updating live</span>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat accepted"><span class="num">12</span><span class="label">Accepted</span></div>
+        <div class="stat declined"><span class="num">2</span><span class="label">Declined</span></div>
+        <div class="stat total"><span class="num">14</span><span class="label">Total Responses</span></div>
+        <div class="guest-link">
+          <span class="url">apresmidi.com/alex-jordan</span>
+          <button class="icon-btn wa" aria-label="Send on WhatsApp">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M12 2a10 10 0 0 0-8.5 15.3L2 22l4.9-1.3A10 10 0 1 0 12 2Z"/></svg>
+          </button>
+          <button class="icon-btn copy" aria-label="Copy link">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <hr class="divider" />
+      <div class="foot">
+        <h4>Watch RSVPs roll in</h4>
+        <p>A private dashboard that updates itself: accepted, declined, and total responses, live.</p>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="tile blue card">
+        <div class="map-preview">
+          <svg viewBox="0 0 200 62" preserveAspectRatio="none">
+            <path d="M0 40 Q 50 10 90 30 T 200 20" stroke="rgba(31,36,48,0.25)" stroke-width="3" fill="none"/>
+            <path d="M0 55 Q 70 45 130 55 T 200 50" stroke="rgba(31,36,48,0.18)" stroke-width="2" fill="none"/>
+          </svg>
+          <svg class="map-pin" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.6 2 4 5.6 4 10c0 5.4 8 12 8 12s8-6.6 8-12c0-4.4-3.6-8-8-8Zm0 11a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg>
+        </div>
+        <div>
+          <h4>Venue on the map</h4>
+          <p>One tap opens Google Maps to the exact venue.</p>
+        </div>
+      </div>
+
+      <div class="tile yellow card">
+        <div class="rsvp-mock">
+          <span class="accept">Joyfully Accept</span>
+          <span class="decline">Regretfully Decline</span>
+        </div>
+        <div>
+          <h4>Accept or decline</h4>
+          <p>Guests RSVP right on the page and say how many are coming.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="tile white card">
+      <div class="chat-bubble">Hi! Confirming 2 guests for Alex &amp; Jordan&rsquo;s wedding 🎉</div>
+      <div>
+        <h4>Confirm on WhatsApp</h4>
+        <p>A one-tap WhatsApp message to the host, pre-filled and ready to send.</p>
+      </div>
+    </div>
+
+    <div class="tile blue card">
+      <div class="photo-stack">
+        <div class="ph"></div><div class="ph"></div><div class="ph"></div>
+      </div>
+      <div>
+        <h4>Add your photos</h4>
+        <p>Upload up to three photos and see them in the design instantly.</p>
+      </div>
+    </div>
+
+    <div class="tile olive card">
+      <div class="link-chip">
+        <span>apresmidi.com/alex-jordan</span>
+        <button aria-label="Copy link">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+        </button>
+      </div>
+      <div>
+        <h4>One link to share</h4>
+        <p>Send your private link by text, WhatsApp, or email, that&rsquo;s it.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

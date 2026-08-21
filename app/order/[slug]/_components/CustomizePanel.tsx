@@ -79,6 +79,7 @@ export default function CustomizePanel({
       photo_urls: photoPreviews.length > 0 ? photoPreviews.map((p) => p ?? "") : null,
       music_url: null,
       whatsapp_number: values.whatsapp_number || null,
+      age: values.age ? Number(values.age) : null,
     }),
     [values, photoPreviews]
   );

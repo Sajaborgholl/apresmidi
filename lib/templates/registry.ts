@@ -4,6 +4,7 @@ import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
+import BirthdayDisco from "@/app/i/[slug]/_designs/BirthdayDisco";
 
 // Moved here from app/i/[slug]/_designs/registry.ts: this used to be
 // "page-only" code for the invite-rendering route, but the customize page
@@ -30,6 +31,7 @@ export type TemplateFieldManifest = {
   venue_map_url: boolean;
   whatsapp_number: boolean;
   photoCount: number; // 0 if the template doesn't use photos at all
+  age?: boolean; // the birthday hero's big balloon-style number — optional, only Disco Birthday uses it
 };
 
 // The single source of truth for "what templates exist." Anything that
@@ -99,6 +101,21 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_map_url: false,
       whatsapp_number: false,
       photoCount: 0,
+    },
+  },
+  {
+    slug: "birthday-disco",
+    name: "Disco Birthday",
+    category: "birthday",
+    component: BirthdayDisco,
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
+      whatsapp_number: true,
+      photoCount: 1,
+      age: true,
     },
   },
 ];
