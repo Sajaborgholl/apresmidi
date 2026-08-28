@@ -9,6 +9,8 @@ import Reveal from "./_components/Reveal";
 import HowItWorks from "./_components/HowItWorks";
 import Pricing from "./_components/Pricing";
 import FeatureShowcase from "./_components/FeatureShowcase";
+import TypewriterText from "./_components/TypewriterText";
+import RequestCategorySection from "./_components/RequestCategorySection";
 
 export const dynamic = "force-dynamic";
 
@@ -224,6 +226,15 @@ export default async function Home() {
                       )
                   )}
                 </div>
+                <div className="flex justify-end mt-4">
+                  <Link
+                    href={`/templates/${cat.slug}`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium hover:opacity-70"
+                  >
+                    See all
+                    <span aria-hidden="true">&rarr;</span>
+                  </Link>
+                </div>
               </div>
               </Reveal>
             ))}
@@ -232,6 +243,8 @@ export default async function Home() {
           <p className="text-neutral-500">Categories coming soon.</p>
         )}
       </section>
+
+      <RequestCategorySection />
 
       {SHOW_RECENTLY_DESIGNED && (
       <section className="px-6 md:px-12 py-14">
@@ -294,9 +307,10 @@ export default async function Home() {
         <div className="grid md:grid-cols-3 gap-6">
           <Reveal className="md:col-span-2">
             <div className="rounded-3xl p-8 md:p-10 h-full flex flex-col justify-between" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-              <p className="display font-medium text-xl md:text-2xl leading-snug max-w-lg">
-                &quot;Guests loved the link, RSVPs came in within a day and the photos made it feel like our actual wedding site.&quot;
-              </p>
+              <TypewriterText
+                className="display font-medium text-xl md:text-2xl leading-snug max-w-lg"
+                text={`"Guests loved the link, RSVPs came in within a day and the photos made it feel like our actual wedding site."`}
+              />
               <div className="flex items-center gap-3 mt-6">
                 <div
                   className="display font-bold text-sm w-10 h-10 rounded-full flex items-center justify-center"
@@ -311,7 +325,7 @@ export default async function Home() {
           <div className="flex flex-col gap-6">
             <Reveal delay={80}>
               <div className="rounded-3xl p-6" style={{ background: "var(--yellow)" }}>
-                <p className="text-sm">&quot;Set up in ten minutes, looked amazing.&quot;</p>
+                <TypewriterText className="text-sm" text={`"Set up in ten minutes, looked amazing."`} startDelay={200} />
                 <div className="flex items-center gap-2 mt-4">
                   <div
                     className="display font-bold text-xs w-8 h-8 rounded-full flex items-center justify-center"
@@ -325,7 +339,7 @@ export default async function Home() {
             </Reveal>
             <Reveal delay={140}>
               <div className="rounded-3xl p-6" style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}>
-                <p className="text-sm">&quot;Exactly the vibe we wanted for the baptism.&quot;</p>
+                <TypewriterText className="text-sm" text={`"Exactly the vibe we wanted for the baptism."`} startDelay={400} />
                 <div className="flex items-center gap-2 mt-4">
                   <div
                     className="display font-bold text-xs w-8 h-8 rounded-full flex items-center justify-center"

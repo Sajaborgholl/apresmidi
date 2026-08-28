@@ -10,17 +10,60 @@ import type { Invite } from "@/lib/types";
 // replaced with real invite data and a real Supabase insert, matching every
 // other template's data-binding + RSVP pattern (see WeddingClassic.tsx).
 //
-// The hero's disco ball / bunting / stars / balloons below are this
-// template's fixed design (hand-built SVG, not a bundled image) — the only
-// customer-editable pieces are the photo, the age number, and the
-// name/date/venue text. NOTE: public/olivia-birthday-disco.png (the
-// original flat mockup this was ported from) is NOT used as an asset
-// here — its embedded XMP metadata identifies it as a Canva template
-// export ("Pink Silver and Black Retro Birthday Invitation"), and reusing
-// a Canva-designed composition as a product asset on a paid commercial
-// site is a licensing question worth checking before this ships (same
-// concern already flagged for the hotlinked Canva font in
+// UPDATE (per explicit customer instruction): the hero's disco ball /
+// bunting / stars / balloon-cluster / megaphone / cake are now real image
+// assets (public/templates/birthday-disco/*.png — background removed,
+// each piece isolated), replacing the earlier hand-built SVG versions of
+// the same decorations. These images are this template's fixed design,
+// same on every invite built on this template — only the photo and the
+// name/date/venue text (all still rendered from `invite` below) change
+// per customer.
+//
+// The previously-flagged licensing question (the reference mockup's XMP
+// metadata identifies it as a Canva template export, "Pink Silver and
+// Black Retro Birthday Invitation") still applies to these cropped assets
+// since they're derived from that same file — the customer reviewed this
+// and asked to proceed anyway. Confirming actual commercial usage rights
+// for that Canva design is still worth doing before this goes live to
+// paying customers (same open concern as the hotlinked Canva font in
 // WeddingClassic.tsx).
+//
+// AGE REMOVED (per explicit customer instruction): this template used to
+// have a customer-editable "age" field, shown as a number next to the
+// cake. That field is gone entirely now — not just hidden here, but
+// removed from Invite (lib/types.ts), TemplateFieldManifest and this
+// template's registry entry (lib/templates/registry.ts), the customize
+// form (CustomizeForm.tsx/CustomizePanel.tsx), and createOrder's insert
+// (app/order/[slug]/actions.ts). cake.png stays as pure decoration, same
+// as every other Decoration image on this page. The `age` column on the
+// `invites` table itself was left in place (unused, nullable) — dropping
+// a column is a schema change worth doing deliberately, not as a
+// side-effect of a UI cleanup.
+//
+// ASSET QUALITY UPDATE: the first export pass cropped these as bounding
+// boxes off the final flattened mockup rather than as isolated layers, so
+// several files originally carried visible fragments of whatever was next
+// to them in the original composition (e.g. disco-ball-pink.png had a
+// chunk of the bunting hanging off it; megaphone.png had slivers of both
+// disco balls and the balloon cluster baked in). All of these have since
+// been re-exported/re-processed as properly isolated cutouts (opaque white
+// backgrounds removed via a border-flood-fill, not a global brightness
+// threshold, so interior highlights and white design elements — e.g. the
+// stars' white sticker backing, the bunting flags' white fill — survive
+// intact).
+//
+// PHOTO/HAT UPDATE (per explicit customer instruction): there is no
+// separate party-hat decoration image anymore. It's baked directly into
+// public/templates/birthday-disco/demo-photo.png (a transparent cutout of
+// the reference mockup's sample photo, hat included), which is set as
+// this template's demo invite's photo — same `invite.photo_urls?.[0]`
+// PhotoSlot every other template uses, just with a hat-wearing image as
+// the sample content instead of a plain portrait. A real customer's own
+// uploaded photo will NOT have a hat on it — this trades away a
+// universal, always-present hat overlay (which would sit at a fixed
+// position regardless of what the customer's own photo actually looks
+// like) for a demo photo that matches the reference exactly, per what was
+// asked. Worth knowing before shipping to real customers.
 
 function PhotoSlot({ url, alt }: { url: string | undefined; alt: string }) {
   return (
@@ -35,65 +78,16 @@ function PhotoSlot({ url, alt }: { url: string | undefined; alt: string }) {
   );
 }
 
-// Fixed decoration — part of the template's design, not something a
-// customer edits. Only the photo, the age number, and the name/date/venue
-// text (all rendered separately below) change per invite.
-function DiscoBall({ className, tone }: { className: string; tone: "pink" | "silver" }) {
-  const base = tone === "pink" ? "#e85f9c" : "#c7ccd4";
-  const dark = tone === "pink" ? "#a8306c" : "#8b919b";
+// Fixed decoration images — cropped/cutout from the reference mockup, see
+// the file header note above. `alt=""` because these are purely
+// decorative; the meaningful content (name/date/venue/photo) is rendered
+// separately.
+function Decoration({ className, file }: { className: string; file: string }) {
   return (
-    <svg className={`bd-decoration ${className}`} viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="46" fill={base} />
-      <g stroke={dark} strokeWidth="1.6" opacity="0.55">
-        <line x1="4" y1="26" x2="96" y2="26" />
-        <line x1="4" y1="50" x2="96" y2="50" />
-        <line x1="4" y1="74" x2="96" y2="74" />
-        <line x1="26" y1="4" x2="26" y2="96" />
-        <line x1="50" y1="4" x2="50" y2="96" />
-        <line x1="74" y1="4" x2="74" y2="96" />
-      </g>
-      <circle cx="30" cy="30" r="3" fill="#fff" opacity="0.85" />
-      <circle cx="66" cy="62" r="2.4" fill="#fff" opacity="0.7" />
-      <circle cx="70" cy="28" r="2" fill="#fff" opacity="0.6" />
-    </svg>
-  );
-}
-
-function StarShape({ className }: { className: string }) {
-  return (
-    <svg className={`bd-decoration ${className}`} viewBox="0 0 40 40" aria-hidden="true">
-      <path
-        d="M20 4 L24.7 15.2 L36.5 15.8 L27.3 23.3 L30.6 34.8 L20 28.2 L9.4 34.8 L12.7 23.3 L3.5 15.8 L15.3 15.2 Z"
-        fill="#e85f9c"
-      />
-    </svg>
-  );
-}
-
-function BalloonCluster({ className }: { className: string }) {
-  return (
-    <svg className={`bd-decoration ${className}`} viewBox="0 0 90 120" aria-hidden="true">
-      <ellipse cx="24" cy="34" rx="20" ry="26" fill="#f4a6cf" />
-      <ellipse cx="58" cy="26" rx="17" ry="22" fill="#c7ccd4" />
-      <ellipse cx="42" cy="52" rx="18" ry="24" fill="#e85f9c" />
-      <path d="M24 60 C 20 80, 26 95, 22 112" stroke="#c23c7b" strokeWidth="1.5" fill="none" />
-      <path d="M58 48 C 54 68, 60 88, 56 108" stroke="#8b919b" strokeWidth="1.5" fill="none" />
-      <path d="M42 76 C 40 92, 44 100, 42 114" stroke="#a8306c" strokeWidth="1.5" fill="none" />
-    </svg>
-  );
-}
-
-function Bunting() {
-  return (
-    <svg className="bd-bunting" viewBox="0 0 400 40" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M0 4 Q 200 34 400 4" stroke="#1a1a1a" strokeWidth="1.5" fill="none" />
-      {Array.from({ length: 7 }, (_, i) => {
-        const x = 24 + i * 56;
-        const y = 6 + Math.sin((i / 6) * Math.PI) * 26;
-        const fill = i % 2 === 0 ? "#e85f9c" : "#c7ccd4";
-        return <path key={i} d={`M${x - 12} ${y} L${x + 12} ${y} L${x} ${y + 26} Z`} fill={fill} />;
-      })}
-    </svg>
+    <div className={`bd-decoration ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={`/templates/birthday-disco/${file}`} alt="" aria-hidden="true" />
+    </div>
   );
 }
 
@@ -151,23 +145,15 @@ export default function BirthdayDisco({ invite }: { invite: Invite }) {
         <p className="bd-eyebrow">You&apos;re invited</p>
 
         <div className="bd-hero-scene">
-          <Bunting />
-          <DiscoBall className="bd-disco-a" tone="pink" />
-          <DiscoBall className="bd-disco-b" tone="silver" />
-          <StarShape className="bd-star-1" />
-          <StarShape className="bd-star-2" />
-          <StarShape className="bd-star-3" />
-          <BalloonCluster className="bd-balloons" />
+          <Decoration className="bd-bunting" file="bunting.png" />
+          <Decoration className="bd-disco-a" file="disco-ball-pink.png" />
+          <Decoration className="bd-disco-b" file="disco-ball-silver.png" />
+          <Decoration className="bd-stars" file="stars.png" />
+          <Decoration className="bd-balloons" file="balloon-cluster.png" />
+          <Decoration className="bd-megaphone" file="megaphone.png" />
+          <Decoration className="bd-cake" file="cake.png" />
 
-          <div className="bd-photo-frame">
-            <PhotoSlot url={invite.photo_urls?.[0]} alt={invite.host_names} />
-          </div>
-
-          {invite.age != null && (
-            <div className="bd-age-balloon" aria-label={`Turning ${invite.age}`}>
-              {invite.age}
-            </div>
-          )}
+          <PhotoSlot url={invite.photo_urls?.[0]} alt={invite.host_names} />
 
           <div className="bd-hero-note">
             <p className="bd-hero-note-name">{invite.host_names}&apos;s Birthday Party</p>
@@ -300,6 +286,13 @@ const CSS = `
   background: #ffffff;
   padding: 64px 6vw 40px;
   text-align: center;
+  /* Decorations intentionally bleed past .bd-hero-scene's edges (that's the
+     look), but their offsets are percentage-based and were sized for
+     desktop — on narrow viewports they can push past .bd-hero's own edge,
+     which (being full viewport width) means past the viewport itself,
+     causing an unwanted horizontal scrollbar. Clip at this boundary so
+     that never happens, without affecting how anything looks on desktop. */
+  overflow-x: hidden;
 }
 .bd-eyebrow {
   font-size: 12px;
@@ -309,109 +302,116 @@ const CSS = `
   color: #c23c7b;
   margin: 0 0 10px;
 }
-/* ---------- Hero scene: fixed decoration + customizable photo/age/text ----------
-   Only .bd-photo-frame's contents, .bd-age-balloon's number, and
-   .bd-hero-note's text come from invite data — the disco balls, bunting,
-   stars, and balloons are the template's fixed design, same on every
-   invite built on this template. */
+/* ---------- Hero scene: fixed decoration + customizable photo/text ----------
+   Positions below are converted directly from the reference mockup's own
+   layout (a 600.203 x 846 canvas) into percentages of this scene's own
+   box, via a fixed aspect-ratio — so every element sits exactly where it
+   sits in the reference, just scaled to whatever width the scene renders
+   at. Only .bd-photo's image and .bd-hero-note's text come from invite
+   data — the disco balls, bunting, stars, balloon cluster, megaphone, and
+   cake images are this template's fixed design, same on every invite
+   built on this template. */
 .bd-hero-scene {
   position: relative;
-  max-width: 460px;
-  margin: 56px auto 90px;
-  padding: 0 20px;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 600 / 846;
+  margin: 70px auto 40px;
 }
 .bd-decoration { position: absolute; pointer-events: none; }
-.bd-bunting {
-  position: absolute;
-  top: -44px;
-  left: -10%;
-  width: 120%;
-  height: 44px;
-}
-.bd-disco-a { width: 78px; top: -34px; left: -8%; filter: drop-shadow(0 8px 14px rgba(194,60,123,0.3)); }
-.bd-disco-b { width: 60px; top: -18px; right: -6%; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.15)); }
-.bd-star-1 { width: 26px; top: 46%; left: -9%; transform: rotate(-8deg); }
-.bd-star-2 { width: 18px; top: 58%; left: -4%; transform: rotate(10deg); }
-.bd-star-3 { width: 22px; top: 6%; right: -10%; transform: rotate(14deg); }
-.bd-balloons { width: 78px; bottom: -30px; right: -12%; }
+.bd-decoration img { display: block; width: 100%; height: 100%; object-fit: contain; }
 
-.bd-photo-frame {
-  position: relative;
-  z-index: 2;
-  max-width: 320px;
-  margin: 0 auto;
-  background: #fffdfb;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 20px 40px rgba(26,26,26,0.12);
-}
+.bd-bunting { left: -3%; top: -6%; width: 74%; height: 24%; }
+.bd-disco-a { left: -20%; top: 4%; width: 54%; height: 39%; transform: rotate(20deg); filter: drop-shadow(0 10px 16px rgba(143,45,94,0.3)); }
+.bd-disco-b { left: 65%; top: -2%; width: 50%; height: 36%; filter: drop-shadow(0 8px 14px rgba(0,0,0,0.18)); }
+.bd-stars { left: -3%; top: 50%; width: 25%; height: 13%; }
+.bd-balloons { left: 74%; top: 50%; width: 33%; height: 55%; }
+.bd-megaphone { left: 76%; top: 24%; width: 32%; height: 40%; transform: rotate(-20deg); filter: drop-shadow(0 8px 14px rgba(0,0,0,0.25)); }
+
+/* No white card/frame, no fixed hat overlay — the reference has neither;
+   demo-photo.png already includes the hat baked in as a transparent
+   cutout (see the file header note on why there's no separate hat image
+   anymore), so this just floats the photo directly like every other
+   decoration, sized to fit hat-through-shoulders. */
 .bd-photo {
-  width: 100%;
-  aspect-ratio: 4 / 5;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f6d9e6;
+  position: absolute;
+  z-index: 2;
+  left: 29%;
+  top: 17%;
+  width: 38%;
+  height: 34%;
+  transform: rotate(-5deg);
+  filter: drop-shadow(0 10px 20px rgba(26,26,26,0.2));
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.bd-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.bd-photo-placeholder { font-size: 13px; font-weight: 500; color: #c23c7b; opacity: 0.6; }
+.bd-photo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Placeholder still needs *some* visible shape (a customer hasn't
+   uploaded a real photo yet) even though the frame itself is gone — a
+   soft rounded card, unlike the borderless transparent photo it stands
+   in for. */
+.bd-photo-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  background: #f2ece1;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8b8478;
+  padding: 0 8%;
+  text-align: center;
+}
 
-.bd-age-balloon {
+/* Replaces the earlier coded silver-balloon "21" numeral (per explicit
+   customer instruction to remove the age feature entirely) — purely
+   decorative now, same as every other Decoration image on this page. */
+.bd-cake {
+  left: -2%;
+  top: 58%;
+  width: 30%;
+  aspect-ratio: 446 / 453;
+  filter: drop-shadow(0 8px 14px rgba(26,26,26,0.2));
+}
+
+/* Positioned + sized to match the reference exactly (left 30%/top 49%,
+   ~43% of the scene wide) instead of flowing under the photo — everything
+   in this hero is now placed the same way, by fixed reference coordinates. */
+.bd-hero-note {
   position: absolute;
   z-index: 3;
-  bottom: 6%;
-  left: -6%;
-  width: 84px;
-  height: 84px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(160deg, #e2e6ec, #9aa0ab);
-  color: #1a1a1a;
-  font-family: 'Permanent Marker', cursive;
-  font-size: clamp(1.8rem, 5vw, 2.4rem);
-  box-shadow: 0 10px 22px rgba(0,0,0,0.2), inset 0 -6px 10px rgba(0,0,0,0.15);
-  transform: rotate(-6deg);
-}
-
-.bd-hero-note {
-  position: relative;
-  z-index: 3;
-  max-width: 260px;
-  margin: -30px auto 0;
-  background: #fffdfb;
+  left: 30%;
+  top: 49%;
+  width: 43%;
+  background-color: #fdf9ef;
+  background-image:
+    linear-gradient(rgba(26,26,26,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,26,26,0.06) 1px, transparent 1px);
+  background-size: 14px 14px;
   border: 1px solid rgba(26,26,26,0.08);
-  border-radius: 10px;
-  padding: 14px 18px;
+  clip-path: polygon(12% 0%, 88% 0%, 100% 58%, 50% 100%, 0% 58%);
+  padding: 16% 12% 22%;
   text-align: center;
-  transform: rotate(1.5deg);
+  transform: rotate(2deg);
   box-shadow: 0 12px 24px rgba(26,26,26,0.1);
 }
 .bd-hero-note-name {
   font-family: 'Permanent Marker', cursive;
   font-weight: 400;
-  font-size: clamp(1.3rem, 4vw, 1.7rem);
+  font-size: clamp(1.1rem, 4vw, 1.5rem);
   color: #1a1a1a;
   margin: 0 0 6px;
   line-height: 1.15;
 }
 .bd-hero-note-info {
-  font-size: 12.5px;
+  font-size: 11.5px;
   font-weight: 500;
   color: #6b7178;
   margin: 0;
-  line-height: 1.6;
-}
-
-@media (max-width: 480px) {
-  .bd-hero-scene { max-width: 340px; margin: 50px auto 70px; }
-  .bd-disco-a { width: 56px; }
-  .bd-disco-b { width: 44px; }
-  .bd-balloons { width: 58px; }
-  .bd-age-balloon { width: 64px; height: 64px; }
+  line-height: 1.5;
 }
 
 /* ---------- Details ---------- */

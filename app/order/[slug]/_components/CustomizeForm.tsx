@@ -11,7 +11,6 @@ export type CustomizeValues = {
   venue_name: string;
   venue_map_url: string;
   whatsapp_number: string;
-  age: string;
 };
 
 export const EMPTY_VALUES: CustomizeValues = {
@@ -21,7 +20,6 @@ export const EMPTY_VALUES: CustomizeValues = {
   venue_name: "",
   venue_map_url: "",
   whatsapp_number: "",
-  age: "",
 };
 
 const inputClass =
@@ -117,22 +115,6 @@ export default function CustomizeForm({
             placeholder="https://maps.google.com/..."
             value={values.venue_map_url}
             onChange={(e) => onValueChange("venue_map_url", e.target.value)}
-            className={inputClass}
-          />
-        </div>
-      )}
-
-      {fields.age && (
-        <div>
-          <label className={labelClass}>Age</label>
-          <input
-            name="age"
-            type="number"
-            min={0}
-            max={130}
-            placeholder="21"
-            value={values.age}
-            onChange={(e) => onValueChange("age", e.target.value)}
             className={inputClass}
           />
         </div>

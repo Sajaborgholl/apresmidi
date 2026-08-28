@@ -96,3 +96,47 @@ export async function sendPremiumInquiryNotification({
     `,
   });
 }
+
+// Notifies the team of a new "suggest a category" lead from the homepage's
+// handwritten-note section. Same noop-when-unconfigured / let-the-caller-
+// catch-failures pattern as sendPremiumInquiryNotification above —
+// submitCategoryRequest already commits the row before calling this.
+export async function sendCategoryRequestNotification({
+  name,
+  email,
+  category,
+}: {
+  name: string;
+  email: string;
+  category: string;
+}) {
+  const to = "saja.borgholl@hotmail.com";
+  const subject = `New category request: ${category}`;
+  const text = [
+    "New category request from the homepage.",
+    "",
+    `Name: ${name}`,
+    `Email: ${email}`,
+    `Category requested: ${category}`,
+  ].join("\n");
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log(`[email:noop] RESEND_API_KEY not set — would have sent to ${to}:\n${subject}\n\n${text}`);
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "Après-midi <onboarding@resend.dev>",
+    to,
+    subject,
+    text,
+    html: `
+      <p>New category request from the homepage.</p>
+      <p><strong>Name:</strong> ${name}<br/>
+      <strong>Email:</strong> ${email}<br/>
+      <strong>Category requested:</strong> ${category}</p>
+    `,
+  });
+}

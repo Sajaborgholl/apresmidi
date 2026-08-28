@@ -9,6 +9,13 @@ export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+// Business WhatsApp number for the "Pay via WhatsApp" alternative to
+// Whish — customers who'd rather arrange payment over chat than pay by
+// card. Assumed Lebanon (+961), matching the rest of this app's Beirut-
+// based demo data; wa.me numbers take no "+" or leading 0. If that
+// assumption is wrong, this is the only line that needs to change.
+const BUSINESS_WHATSAPP_NUMBER = "96170664401";
+
 export default async function OrderConfirmationPage({
   params,
   searchParams,
@@ -81,6 +88,26 @@ export default async function OrderConfirmationPage({
               Pay with Whish — $80
             </button>
           </form>
+
+          {/* Alternative to Whish for customers who'd rather arrange
+              payment over chat than pay by card — opens WhatsApp with a
+              pre-filled message identifying this invite, addressed to the
+              business number above. Unlike Whish, nothing here confirms
+              payment automatically: the invite stays a draft until it's
+              marked paid directly in Supabase once payment is actually
+              received (see confirmInvitePayment in ../actions.ts for what
+              that flips). */}
+          <a
+            href={`https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(
+              `Hi! I'd like to pay for my invite — ${invite.host_names}, $80. (ref: ${inviteSlug})`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
+            style={{ background: "#25D366", color: "#fff" }}
+          >
+            Pay via WhatsApp
+          </a>
 
           {/* Dev-only: statically stripped from production builds by the
               NODE_ENV check, since Next.js replaces process.env.NODE_ENV at

@@ -12,7 +12,6 @@ export type Invite = {
   photo_urls: string[] | null;
   music_url: string | null;
   whatsapp_number: string | null;
-  age: number | null; // used by the Disco Birthday template's hero number
 };
 
 // A row from the `templates` table, joined with its category name.

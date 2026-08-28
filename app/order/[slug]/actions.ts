@@ -31,8 +31,6 @@ export async function createOrder(templateSlug: string, formData: FormData) {
   const venueName = String(formData.get("venue_name") ?? "").trim();
   const venueMapUrl = String(formData.get("venue_map_url") ?? "").trim();
   const whatsappNumber = String(formData.get("whatsapp_number") ?? "").trim();
-  const ageRaw = String(formData.get("age") ?? "").trim();
-  const age = ageRaw ? Number(ageRaw) : null;
 
   if (!hostNames) {
     throw new Error("Host names are required.");
@@ -108,7 +106,6 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     venue_name: venueName || null,
     venue_map_url: venueMapUrl || null,
     whatsapp_number: whatsappNumber || null,
-    age,
     photo_urls: photoUrls.length > 0 ? photoUrls : null,
     status: "draft",
   });

@@ -113,13 +113,6 @@ export default function HeroCarousel({ templates }: { templates: CarouselTemplat
               </svg>
             </button>
           )}
-
-          <span
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium"
-            style={{ background: "var(--cream)", color: "var(--ink)" }}
-          >
-            {center.name}
-          </span>
         </div>
 
         {n > 1 && (

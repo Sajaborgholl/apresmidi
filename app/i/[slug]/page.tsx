@@ -19,7 +19,7 @@ export default async function InvitePage({
   const { data: invite } = await supabaseAdmin
     .from("invites")
     .select(
-      "id, host_names, event_date, venue_name, venue_map_url, primary_color, photo_urls, music_url, whatsapp_number, age, slug, status, is_demo, templates(slug, name)"
+      "id, host_names, event_date, venue_name, venue_map_url, primary_color, photo_urls, music_url, whatsapp_number, slug, status, is_demo, templates(slug, name)"
     )
     .eq("slug", slug)
     .single();
@@ -43,5 +43,14 @@ export default async function InvitePage({
   const template = getTemplateBySlug(templateSlug) ?? TEMPLATE_REGISTRY[0];
 
   const TemplateComponent = template.component;
-  return <TemplateComponent invite={invite} />;
+  // min-height: 100vh + the template's own background color, so if the
+  // rendered page is shorter than the viewport it's embedded in (e.g. the
+  // homepage's scaled-up preview iframe), the leftover space blends with
+  // this template instead of showing the site's own (dark-mode-capable)
+  // background.
+  return (
+    <div style={{ minHeight: "100vh", background: template.previewBackground }}>
+      <TemplateComponent invite={invite} />
+    </div>
+  );
 }

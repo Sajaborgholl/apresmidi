@@ -61,7 +61,8 @@ export default function Pricing() {
               Recommended for weddings
             </span>
             <h3 className="display text-xl font-bold">Premium</h3>
-            <p className="display mt-3 text-5xl font-extrabold">$180</p>
+            <p className="mt-3 text-[13px] font-medium uppercase tracking-wide opacity-60">Starting at</p>
+            <p className="display mt-1 text-5xl font-extrabold">$180</p>
             <ul className="mt-6 flex flex-col gap-3">
               {PREMIUM_FEATURES.map((feature) => (
                 <li key={feature} className="flex items-start gap-2.5 text-[14.5px]">

@@ -31,7 +31,6 @@ export type TemplateFieldManifest = {
   venue_map_url: boolean;
   whatsapp_number: boolean;
   photoCount: number; // 0 if the template doesn't use photos at all
-  age?: boolean; // the birthday hero's big balloon-style number — optional, only Disco Birthday uses it
 };
 
 // The single source of truth for "what templates exist." Anything that
@@ -44,6 +43,12 @@ export type TemplateEntry = {
   category: string; // matches a `categories.slug`
   component: ComponentType<{ invite: Invite }>;
   fields: TemplateFieldManifest;
+  // The template's own dominant/paper background color. Used to wrap the
+  // rendered page in a full-height container of the same color, so if the
+  // page's real content is shorter than the viewport it's rendered in (e.g.
+  // inside the homepage's scaled-up preview iframe), the leftover space
+  // blends with the template instead of showing the site's own background.
+  previewBackground: string;
 };
 
 export const TEMPLATE_REGISTRY: TemplateEntry[] = [
@@ -52,6 +57,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     name: "Classic Wedding",
     category: "wedding",
     component: WeddingClassic,
+    previewBackground: "#ffffff",
     fields: {
       host_names: true,
       event_date: true,
@@ -66,6 +72,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     name: "Scrapbook Wedding",
     category: "wedding",
     component: WeddingScrapbook,
+    previewBackground: "#EFE6D6",
     fields: {
       host_names: true,
       event_date: false,
@@ -80,6 +87,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     name: "Blush Bow Wedding",
     category: "wedding",
     component: WeddingBlushBow,
+    previewBackground: "#F6C9D3",
     fields: {
       host_names: true,
       event_date: true,
@@ -94,6 +102,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     name: "Coastal Bachelorette",
     category: "bachelorette",
     component: BacheloretteCoastal,
+    previewBackground: "#EDE7DD",
     fields: {
       host_names: true,
       event_date: true,
@@ -108,6 +117,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     name: "Disco Birthday",
     category: "birthday",
     component: BirthdayDisco,
+    previewBackground: "#fffdfb",
     fields: {
       host_names: true,
       event_date: true,
@@ -115,7 +125,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_map_url: true,
       whatsapp_number: true,
       photoCount: 1,
-      age: true,
     },
   },
 ];
