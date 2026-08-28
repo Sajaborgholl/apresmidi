@@ -1,3 +1,8 @@
+// Shared between the customize form's client-side check (CustomizeForm.tsx)
+// and the server action's re-check (app/order/[slug]/actions.ts) — one
+// number, so the two can never silently drift apart.
+export const MAX_PHOTO_SIZE_MB = 8;
+
 // Shared data shape for an invite, used by every template component.
 // This is the one place the field names are defined — templates import
 // this instead of each declaring their own version, so they can never

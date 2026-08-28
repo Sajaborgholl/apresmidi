@@ -7,6 +7,9 @@ import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 import { sendInviteReadyEmail } from "@/lib/email";
 import { createWhishPayment } from "@/lib/whish";
+import { MAX_PHOTO_SIZE_MB } from "@/lib/types";
+
+const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -83,6 +86,15 @@ export async function createOrder(templateSlug: string, formData: FormData) {
     let url = "";
 
     if (file instanceof File && file.size > 0) {
+      // Backstop for the client-side check in CustomizeForm.tsx (which
+      // already clears an oversized file before it can be submitted) —
+      // this only fires if that was somehow bypassed (JS disabled,
+      // tampering), so a thrown Error here is an acceptable fallback
+      // rather than a friendly inline message.
+      if (file.size > MAX_PHOTO_SIZE_BYTES) {
+        throw new Error(`Photo ${i} exceeds the ${MAX_PHOTO_SIZE_MB}MB limit.`);
+      }
+
       const ext = file.name.split(".").pop() || "jpg";
       const path = `${inviteSlug}-${i}.${ext}`;
       const { error: uploadError } = await supabaseAdmin.storage
@@ -223,7 +235,14 @@ export async function startWhishPayment(
     externalId: inviteSlug,
     successCallbackUrl: `${BASE_URL}/api/whish/callback?invite=${encodeURIComponent(inviteSlug)}`,
     failureCallbackUrl: `${BASE_URL}/api/whish/callback?invite=${encodeURIComponent(inviteSlug)}`,
-    successRedirectUrl: confirmationUrl,
+    // "result=processing" distinguishes "just got redirected back from
+    // Whish, waiting on its webhook to actually confirm the payment" from
+    // a customer's first-ever visit to this page (which hasn't attempted
+    // payment yet) — see app/order/[slug]/confirmation/page.tsx, where
+    // this shows a "Confirming your payment…" state instead of the normal
+    // pick-a-payment-method one, without changing how fast AutoRefresh
+    // itself polls for the real status flip.
+    successRedirectUrl: `${confirmationUrl}&result=processing`,
     failureRedirectUrl: `${confirmationUrl}&result=failure`,
   });
 

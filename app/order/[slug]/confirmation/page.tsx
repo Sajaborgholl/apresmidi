@@ -1,8 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle, WarningCircle, Sparkle } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, WarningCircle, Sparkle, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import AutoRefresh from "../../../_components/AutoRefresh";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
+import TryAgainFallback from "./_components/TryAgainFallback";
 import { confirmInvitePayment, startWhishPayment } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,41 @@ export default async function OrderConfirmationPage({
   // Not paid yet — auto-refresh so this naturally flips to the paid view
   // below once app/api/whish/callback/route.ts confirms payment.
   if (invite.status !== "live") {
+    // Just got redirected back from Whish's hosted page (see
+    // successRedirectUrl in ../actions.ts) — the webhook that actually
+    // flips this invite to "live" runs as an independent server-to-server
+    // call, so it routinely hasn't landed yet by the time this render
+    // happens. Showing the normal "pick a payment method" buttons here
+    // would look like the payment never went through; this state makes
+    // clear it's just a matter of AutoRefresh (below) catching up.
+    if (result === "processing") {
+      return (
+        <main
+          className="flex min-h-dvh items-center justify-center px-6 py-16"
+          style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
+        >
+          <AutoRefresh />
+          <div
+            className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
+            style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
+          >
+            <div
+              className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full"
+              style={{ background: "var(--blue)" }}
+            >
+              <CircleNotch size={26} weight="bold" className="animate-spin" style={{ color: "var(--ink)" }} />
+            </div>
+            <h1 className="display text-2xl font-bold md:text-[26px]">Confirming your payment&hellip;</h1>
+            <p className="mt-3 text-[14.5px] opacity-65">
+              This only takes a few seconds. This page will update on its own — no need to refresh.
+            </p>
+
+            <TryAgainFallback href={`/order/${templateSlug}/confirmation?invite=${encodeURIComponent(inviteSlug)}`} />
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main
         className="flex min-h-dvh items-center justify-center px-6 py-16"

@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { Image as ImageIcon } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
+import { MAX_PHOTO_SIZE_MB } from "@/lib/types";
+
+const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 
 // Plain-string values for every possible field. CustomizeForm only reads
 // the ones a given template's manifest actually turns on — the rest are
@@ -45,6 +49,37 @@ export default function CustomizeForm({
   photoPreviews: (string | undefined)[];
   onPhotoChange: (index: number, file: File | null) => void;
 }) {
+  // Local to this component — CustomizePanel only needs to know about
+  // valid selections (it drives the live preview + the real upload), not
+  // rejected ones.
+  const [photoErrors, setPhotoErrors] = useState<(string | undefined)[]>([]);
+
+  function handlePhotoInputChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+
+    if (file && file.size > MAX_PHOTO_SIZE_BYTES) {
+      setPhotoErrors((prev) => {
+        const next = [...prev];
+        next[index] = `That photo is too large — please choose one under ${MAX_PHOTO_SIZE_MB}MB.`;
+        return next;
+      });
+      // Clears the input's own file list too, not just our preview state —
+      // otherwise the oversized file would still ride along when the real
+      // <form> is submitted, since that reads straight from the browser's
+      // native FormData rather than from onPhotoChange's argument.
+      e.target.value = "";
+      onPhotoChange(index, null);
+      return;
+    }
+
+    setPhotoErrors((prev) => {
+      const next = [...prev];
+      next[index] = undefined;
+      return next;
+    });
+    onPhotoChange(index, file);
+  }
+
   return (
     <div className="flex flex-col gap-5">
       {/* Unconditional — every order needs this regardless of the
@@ -136,34 +171,41 @@ export default function CustomizeForm({
       {fields.photoCount > 0 && (
         <div>
           <label className={labelClass}>Photos</label>
+          <p className="mb-2 -mt-1 text-[11px] text-[var(--ink)]/45">Max {MAX_PHOTO_SIZE_MB}MB per photo.</p>
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: fields.photoCount }, (_, i) => {
               const preview = photoPreviews[i];
               const inputId = `photo-input-${i}`;
               return (
-                <label
-                  key={i}
-                  htmlFor={inputId}
-                  className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border-[1.5px] border-dashed border-black/25 bg-[var(--cream)] text-[11px] text-[var(--ink)]/45 transition hover:border-[var(--blue-dark)] hover:text-[var(--blue-dark)]"
-                >
-                  {preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={preview} alt={`Photo ${i + 1}`} className="absolute inset-0 h-full w-full object-cover" />
-                  ) : (
-                    <>
-                      <ImageIcon size={20} weight="light" />
-                      Photo {i + 1}
-                    </>
+                <div key={i} className="flex flex-col gap-1">
+                  <label
+                    htmlFor={inputId}
+                    className="relative flex aspect-square cursor-pointer flex-col items-center justify-center gap-1.5 overflow-hidden rounded-xl border-[1.5px] border-dashed border-black/25 bg-[var(--cream)] text-[11px] text-[var(--ink)]/45 transition hover:border-[var(--blue-dark)] hover:text-[var(--blue-dark)]"
+                  >
+                    {preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={preview} alt={`Photo ${i + 1}`} className="absolute inset-0 h-full w-full object-cover" />
+                    ) : (
+                      <>
+                        <ImageIcon size={20} weight="light" />
+                        Photo {i + 1}
+                      </>
+                    )}
+                    <input
+                      id={inputId}
+                      name={`photo_${i + 1}`}
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handlePhotoInputChange(i, e)}
+                      className="absolute h-0 w-0 opacity-0"
+                    />
+                  </label>
+                  {photoErrors[i] && (
+                    <p className="text-[10px] font-medium leading-tight" style={{ color: "#B23" }}>
+                      {photoErrors[i]}
+                    </p>
                   )}
-                  <input
-                    id={inputId}
-                    name={`photo_${i + 1}`}
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => onPhotoChange(i, e.target.files?.[0] ?? null)}
-                    className="absolute h-0 w-0 opacity-0"
-                  />
-                </label>
+                </div>
               );
             })}
           </div>
