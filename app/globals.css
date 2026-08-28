@@ -166,6 +166,27 @@
     0 8px 12px rgba(31, 36, 48, 0.12);
 }
 
+/* The order-page live preview, as a mobile bottom sheet (see
+   CustomizePanel.tsx). Written as a plain `transform` rule rather than
+   Tailwind's translate-y-* utilities — those compile to the standalone CSS
+   `translate` property in this Tailwind version, which doesn't resolve
+   here (and wouldn't animate via `transition-transform` anyway, since
+   that only transitions `transform`, not `translate`). */
+.order-preview-sheet {
+  transform: translateY(100%);
+}
+
+.order-preview-sheet.is-open {
+  transform: translateY(0);
+}
+
+@media (min-width: 768px) {
+  .order-preview-sheet,
+  .order-preview-sheet.is-open {
+    transform: none;
+  }
+}
+
 .sticky-chip::after {
   content: "";
   position: absolute;

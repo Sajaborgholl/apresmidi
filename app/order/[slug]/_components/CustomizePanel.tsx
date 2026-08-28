@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Monitor, DeviceMobile, Lock } from "@phosphor-icons/react";
+import { Monitor, DeviceMobile, Lock, Eye, X } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
 import type { Invite } from "@/lib/types";
 import { slugify } from "../_lib/slugify";
@@ -47,6 +47,13 @@ export default function CustomizePanel({
   );
   const [previewReady, setPreviewReady] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  // Mobile only (see the `md:` overrides below, which put the preview back
+  // into its normal docked position and ignore this entirely on larger
+  // screens) — the live preview renders as a bottom sheet the customer
+  // opens on demand, rather than a large fixed-height box sitting above
+  // the form. Real device widths are already "mobile", so there's nothing
+  // for the desktop/mobile preview toggle to do there either.
+  const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   function handleValueChange(name: keyof CustomizeValues, value: string) {
@@ -123,7 +130,9 @@ export default function CustomizePanel({
           &#8592; Back
         </Link>
 
-        <div className="flex gap-1 rounded-full bg-black/[0.05] p-1">
+        {/* Device toggle only makes sense on desktop — a real phone is
+            already "mobile", so there's nothing for it to switch. */}
+        <div className="hidden gap-1 rounded-full bg-black/[0.05] p-1 md:flex">
           <button
             type="button"
             onClick={() => setDevice("desktop")}
@@ -148,10 +157,13 @@ export default function CustomizePanel({
           </button>
         </div>
 
+        {/* On mobile this moves into the sticky bottom bar instead (see
+            below), alongside a "Preview" button — no room for it up here
+            next to "Back" on a narrow screen. */}
         <button
           type="submit"
           form={FORM_ID}
-          className="rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
+          className="hidden rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97] md:inline-flex"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
           Continue to payment
@@ -172,15 +184,51 @@ export default function CustomizePanel({
 
       {/* ---------- Main layout ---------- */}
       <div className="grid md:grid-cols-[minmax(0,2.3fr)_minmax(340px,1fr)]">
-        <div className="relative flex items-center justify-center p-8 min-h-[600px]" style={{ background: "rgba(31,36,48,0.05)" }}>
-          <span className="absolute left-5 top-5 flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow">
+        {/* Backdrop for the mobile preview sheet — desktop never shows it
+            (the preview is always visible there, docked in its own
+            column), so this only renders/matters below md. */}
+        {previewSheetOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={() => setPreviewSheetOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Docked side-by-side panel on desktop; a bottom sheet the
+            customer opens on demand on mobile (see previewSheetOpen) —
+            same iframe/ref either way, just repositioned by breakpoint, so
+            there's only ever one live preview instance to keep in sync. */}
+        <div
+          className={`order-preview-sheet fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.25)] transition-transform duration-300 ease-out ${
+            previewSheetOpen ? "is-open" : ""
+          } md:relative md:z-auto md:flex md:h-auto md:min-h-[600px] md:flex-row md:items-center md:justify-center md:rounded-none md:bg-[rgba(31,36,48,0.05)] md:p-8 md:shadow-none md:transition-none`}
+        >
+          {/* Mobile-only sheet header (close button) — desktop shows the
+              "Updating live" badge as a floating pill instead, below. */}
+          <div className="flex items-center justify-between px-5 py-4 md:hidden">
+            <span className="flex items-center gap-1.5 text-[13px] font-semibold">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--yellow-dark)]" />
+              Updating live
+            </span>
+            <button
+              type="button"
+              onClick={() => setPreviewSheetOpen(false)}
+              aria-label="Close preview"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-black/[0.05] transition active:scale-90"
+            >
+              <X size={16} weight="bold" />
+            </button>
+          </div>
+
+          <span className="absolute left-5 top-5 hidden items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-[11px] font-semibold shadow md:flex">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--yellow-dark)]" />
             Updating live
           </span>
 
           <div
-            className={`overflow-hidden rounded-2xl bg-white shadow-[0_30px_70px_rgba(0,0,0,0.18)] transition-all ${
-              device === "mobile" ? "w-[390px] h-[720px] max-h-[75vh]" : "w-full h-[75vh] max-w-[720px]"
+            className={`flex-1 overflow-hidden bg-white transition-all md:flex-none md:rounded-2xl md:shadow-[0_30px_70px_rgba(0,0,0,0.18)] ${
+              device === "mobile" ? "md:w-[390px] md:h-[720px] md:max-h-[75vh]" : "md:w-full md:h-[75vh] md:max-w-[720px]"
             }`}
           >
             <iframe
@@ -192,7 +240,7 @@ export default function CustomizePanel({
           </div>
         </div>
 
-        <form id={FORM_ID} action={submitOrder} className="p-7">
+        <form id={FORM_ID} action={submitOrder} className="p-7 pb-28 md:pb-7">
           <h2 className="display text-lg font-bold">Customize your invite</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
             {templateName}
@@ -207,6 +255,33 @@ export default function CustomizePanel({
             onPhotoChange={handlePhotoChange}
           />
         </form>
+      </div>
+
+      {/* Sticky mobile action bar — replaces the top chrome's "Continue"
+          button (hidden below md) and gives the on-demand preview sheet
+          its entry point. Sits at the same fixed bottom edge as the sheet
+          above; opening the sheet visually covers this since the sheet is
+          both taller and higher z-index. */}
+      <div
+        className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-black/10 bg-white p-3 md:hidden"
+        style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+      >
+        <button
+          type="button"
+          onClick={() => setPreviewSheetOpen(true)}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-black/10 py-3 text-sm font-semibold transition active:scale-[0.97]"
+        >
+          <Eye size={16} weight="regular" />
+          Preview
+        </button>
+        <button
+          type="submit"
+          form={FORM_ID}
+          className="flex-[1.4] rounded-full py-3 text-sm font-semibold transition active:scale-[0.97]"
+          style={{ background: "var(--ink)", color: "var(--cream)" }}
+        >
+          Continue to payment
+        </button>
       </div>
     </div>
   );
