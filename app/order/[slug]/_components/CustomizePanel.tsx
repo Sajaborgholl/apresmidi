@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Monitor, DeviceMobile, Lock, Eye, X } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
@@ -10,6 +10,14 @@ import CustomizeForm, { EMPTY_VALUES, type CustomizeValues } from "./CustomizeFo
 import { createOrder } from "../actions";
 
 const FORM_ID = "customize-form";
+
+// Derived from the same NEXT_PUBLIC_SITE_URL that already drives every real
+// link this app generates (actions.ts, confirmation/page.tsx, dashboard) —
+// this is only ever a display preview of what the guest link will look
+// like, but it must track the real domain, not a second hardcoded one that
+// can silently drift out of sync when the domain changes (as the old
+// literal "apresmidi.com" did once the real site moved to apresmidi.app).
+const SITE_HOST = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://apresmidi.app").replace(/^https?:\/\//, "");
 
 // Owns the live state for the customize page: whatever's typed or picked
 // on the right flows into the real template component on the left — but
@@ -40,7 +48,13 @@ export default function CustomizePanel({
   templateName: string;
   priceLabel: string | null;
 }) {
-  const submitOrder = createOrder.bind(null, slug);
+  // isPending covers the whole round trip — photo uploads to Supabase plus
+  // the invite insert — which can take a few seconds now that photos can
+  // be up to MAX_PHOTO_SIZE_MB each; both "Continue to payment" buttons
+  // below (desktop top chrome + mobile sticky bar) read it to disable
+  // themselves and show they're working instead of sitting there looking
+  // clickable while nothing visibly happens.
+  const [, formAction, isPending] = useActionState(createOrder.bind(null, slug), null);
   const [values, setValues] = useState<CustomizeValues>(EMPTY_VALUES);
   const [photoPreviews, setPhotoPreviews] = useState<(string | undefined)[]>(
     Array.from({ length: fields.photoCount }, () => undefined)
@@ -121,11 +135,11 @@ export default function CustomizePanel({
 
   return (
     <div
-      className="rounded-2xl border border-black/10 overflow-hidden bg-white"
+      className="rounded-2xl overflow-hidden bg-white"
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
     >
       {/* ---------- Top chrome ---------- */}
-      <div className="flex items-center justify-between gap-4 px-6 py-3.5 border-b border-black/10">
+      <div className="flex items-center justify-between gap-4 px-6 py-3.5">
         <Link href={`/#occasion-${category}`} className="text-sm font-semibold transition hover:opacity-70">
           &#8592; Back
         </Link>
@@ -163,22 +177,23 @@ export default function CustomizePanel({
         <button
           type="submit"
           form={FORM_ID}
-          className="hidden rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97] md:inline-flex"
+          disabled={isPending}
+          className="hidden rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97] disabled:opacity-60 md:inline-flex"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
-          Continue to payment
+          {isPending ? "Creating your invite…" : "Continue to payment"}
         </button>
       </div>
 
       {/* ---------- Live URL strip ---------- */}
-      <div className="flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] text-[var(--ink)]/70 bg-[var(--blue-light)]/40 border-b border-black/[0.06]">
+      <div className="flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] text-[var(--ink)]/70 bg-[var(--blue-light)]/40">
         <Lock size={13} weight="regular" className="opacity-55" />
         <span>Nothing&apos;s saved yet. Your link will be</span>
         <strong
           className="font-semibold text-[var(--ink)]"
           title="A few random characters are added when your invite is created, so guests can't guess someone else's link."
         >
-          apresmidi.com/{baseSlugPreview}-••••••
+          {SITE_HOST}/{baseSlugPreview}-••••••
         </strong>
       </div>
 
@@ -240,7 +255,7 @@ export default function CustomizePanel({
           </div>
         </div>
 
-        <form id={FORM_ID} action={submitOrder} className="p-7 pb-28 md:pb-7">
+        <form id={FORM_ID} action={formAction} className="p-7 pb-28 md:pb-7">
           <h2 className="display text-lg font-bold">Customize your invite</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
             {templateName}
@@ -263,13 +278,13 @@ export default function CustomizePanel({
           above; opening the sheet visually covers this since the sheet is
           both taller and higher z-index. */}
       <div
-        className="fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-black/10 bg-white p-3 md:hidden"
+        className="fixed inset-x-0 bottom-0 z-30 flex gap-2 bg-white p-3 md:hidden"
         style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
       >
         <button
           type="button"
           onClick={() => setPreviewSheetOpen(true)}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-black/10 py-3 text-sm font-semibold transition active:scale-[0.97]"
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-black/5 py-3 text-sm font-semibold transition active:scale-[0.97]"
         >
           <Eye size={16} weight="regular" />
           Preview
@@ -277,10 +292,11 @@ export default function CustomizePanel({
         <button
           type="submit"
           form={FORM_ID}
-          className="flex-[1.4] rounded-full py-3 text-sm font-semibold transition active:scale-[0.97]"
+          disabled={isPending}
+          className="flex-[1.4] rounded-full py-3 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-60"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
-          Continue to payment
+          {isPending ? "Creating…" : "Continue to payment"}
         </button>
       </div>
     </div>

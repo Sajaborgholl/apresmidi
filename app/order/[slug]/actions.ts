@@ -25,7 +25,14 @@ function randomSlugSuffix(): string {
 // invite as a DRAFT (not publicly visible — see the status/is_demo check
 // in app/i/[slug]/page.tsx). It only flips to 'live' via
 // confirmInvitePayment below, once payment succeeds.
-export async function createOrder(templateSlug: string, formData: FormData) {
+//
+// Takes an (unused) _prevState param purely so it fits useActionState's
+// (prevState, formData) => ... contract — CustomizePanel.tsx binds
+// `templateSlug` and reads back `isPending` to disable/label the
+// "Continue to payment" button while this is running (photo uploads can
+// take a few seconds). It never actually returns a state: every path
+// either throws or calls redirect().
+export async function createOrder(templateSlug: string, _prevState: unknown, formData: FormData) {
   const supabaseAdmin = getSupabaseAdmin();
 
   const hostNames = String(formData.get("host_names") ?? "").trim();

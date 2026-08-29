@@ -33,7 +33,7 @@ function whishHeaders(): HeadersInit {
     secret,
     websiteUrl,
     "Content-Type": "application/json",
-    "User-Agent": "apresmidi/1.0 (+https://apresmidi.vercel.app; sborghol@edtpartners.com)",
+    "User-Agent": `apresmidi/1.0 (+${process.env.NEXT_PUBLIC_SITE_URL ?? "https://apresmidi.app"}; sborghol@edtpartners.com)`,
   };
 }
 

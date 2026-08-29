@@ -37,14 +37,16 @@ export default async function OrderPage({
   const fields = registryEntry?.fields ?? EMPTY_FIELDS;
 
   return (
-    <main className="mx-auto max-w-[1400px] px-6 py-8">
-      <CustomizePanel
-        slug={template.slug}
-        category={template.category}
-        fields={fields}
-        templateName={template.name}
-        priceLabel="$80"
-      />
-    </main>
+    <div className="min-h-dvh" style={{ background: "var(--cream)" }}>
+      <main className="mx-auto max-w-[1400px] px-6 py-8">
+        <CustomizePanel
+          slug={template.slug}
+          category={template.category}
+          fields={fields}
+          templateName={template.name}
+          priceLabel="$80"
+        />
+      </main>
+    </div>
   );
 }
