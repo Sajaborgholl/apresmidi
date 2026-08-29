@@ -8,6 +8,7 @@ import type { Invite } from "@/lib/types";
 import { slugify } from "../_lib/slugify";
 import CustomizeForm, { EMPTY_VALUES, type CustomizeValues } from "./CustomizeForm";
 import { createOrder } from "../actions";
+import ReloadOnBfcacheRestore from "@/app/_components/ReloadOnBfcacheRestore";
 
 const FORM_ID = "customize-form";
 
@@ -138,6 +139,7 @@ export default function CustomizePanel({
       className="rounded-2xl overflow-hidden bg-white"
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
     >
+      <ReloadOnBfcacheRestore />
       {/* ---------- Top chrome ---------- */}
       <div className="flex items-center justify-between gap-4 px-6 py-3.5">
         <Link href={`/#occasion-${category}`} className="text-sm font-semibold transition hover:opacity-70">

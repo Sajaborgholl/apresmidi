@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle, WarningCircle, Sparkle, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import AutoRefresh from "../../../_components/AutoRefresh";
+import ReloadOnBfcacheRestore from "../../../_components/ReloadOnBfcacheRestore";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
 import TryAgainFallback from "./_components/TryAgainFallback";
 import { confirmInvitePayment, startWhishPayment } from "../actions";
@@ -55,6 +56,7 @@ export default async function OrderConfirmationPage({
           style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
         >
           <AutoRefresh />
+          <ReloadOnBfcacheRestore />
           <div
             className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
             style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
@@ -82,6 +84,7 @@ export default async function OrderConfirmationPage({
         style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
       >
         <AutoRefresh />
+        <ReloadOnBfcacheRestore />
         <div
           className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
           style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
@@ -186,6 +189,7 @@ export default async function OrderConfirmationPage({
       className="flex min-h-dvh items-center justify-center px-6 py-16"
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
     >
+      <ReloadOnBfcacheRestore />
       <div
         className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
         style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
