@@ -11,6 +11,23 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "30mb",
     },
   },
+  async headers() {
+    return [
+      {
+        // The customize page (and its preview iframe + confirmation page)
+        // holds live, per-session form state — a browser's back-forward
+        // cache (bfcache) can otherwise freeze and later restore a whole
+        // prior instance of this page verbatim on Back navigation,
+        // including whatever it was showing at the moment the customer
+        // navigated away. Cache-Control: no-store is the standard way to
+        // opt a page out of bfcache in Chromium/WebKit browsers, so every
+        // visit — including via Back — is guaranteed a genuinely fresh
+        // load instead of a frozen one.
+        source: "/order/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
