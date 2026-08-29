@@ -91,12 +91,17 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
     }
     const finalName = name.trim() || "Friend";
 
-    await supabase.from("rsvps").insert({
+    const { error: insertError } = await supabase.from("rsvps").insert({
       invite_id: invite.id,
       guest_name: finalName,
       attending,
       guest_count: attending ? guestCount : 0,
     });
+
+    if (insertError) {
+      setWarning("Something went wrong — please try again.");
+      return;
+    }
 
     setThankYouMsg(
       attending
