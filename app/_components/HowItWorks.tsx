@@ -32,7 +32,7 @@ const STEPS: Step[] = [
   },
   {
     title: ["Share the", "Link"],
-    body: "Get a private link for your invite and send it however you reach your guests: text, WhatsApp, email.",
+    body: "Get a private link for your invite and send it however you already reach your guests.",
     tags: ["Text", "WhatsApp", "Email", "Private Link"],
     bg: "var(--yellow)",
     fg: "var(--ink)",

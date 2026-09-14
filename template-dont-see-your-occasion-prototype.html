@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Don't See Your Occasion? — Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-cream: #fff5dc;
+    --blue-badge: #6cc1ff;
+    --yellow-blob: #fbf0a3;
+    --frame-grey: #d9d9d9;
+    --card-grey: #dad8db;
+    --ink: #000000;
+    --font-sans: Helvetica, Arial, sans-serif;
+    --font-serif-italic: "Times New Roman", Times, serif;
+    --font-button: Poppins, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8e8e8;
+    padding: 24px;
+  }
+
+  /*
+    Source design canvas is 1366x768. Everything below is positioned as a
+    percentage of that canvas so the whole card scales as one unit, the
+    same approach used by the other templates in this project. Font sizes
+    use cqw (relative to the stage's own current width) via
+    container-type: inline-size, so text scales together with the layout.
+  */
+  .stage {
+    position: relative;
+    width: 100%;
+    max-width: 1366px;
+    aspect-ratio: 1366 / 768;
+    background: var(--bg-cream);
+    overflow: hidden;
+    border-radius: 24px;
+    container-type: inline-size;
+  }
+
+  .el { position: absolute; }
+
+  /* ---- decorative shapes ---- */
+
+  /* Square corners, not rounded: the source's clip path for this shape is
+     M0,0L1178.47,0L1178.47,256L0,256Z — a sharp rectangle with no corner
+     radius anywhere in the chain. */
+  .yellow-blob {
+    background: var(--yellow-blob);
+  }
+
+  /* This is a real cropped PNG the user provided (not a CSS recreation) —
+     a CSS approximation of this compound shape (translucent rect + two
+     solid end-bars) kept not-quite-matching after two correction rounds,
+     so per the "give me the exact asset" fallback this uses the literal
+     source pixels instead. */
+  .blue-badge {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    display: block;
+  }
+
+  /* ---- photo tiles ----
+
+     Each tile is its OWN container-query context, because in the source
+     every caption is a fixed proportion of its own tile, not of the
+     canvas — the three "slay.png" captions render at three different
+     pixel sizes (9.55 / 7.82 / 10.02 design px) purely because their
+     tiles are different sizes, but all three are 3.6355% of their own
+     tile's width. Sizing them off the stage instead would make them all
+     identical, which is wrong.
+
+     Font sizes here are scale-corrected. The source nests each caption's
+     <p> inside a transform: scale() wrapper, so the <p>'s own font-size
+     is NOT the rendered size: "slay.png" reads 25.9772px but sits in a
+     scale(0.277725) wrapper (verified: 196.286 x 0.277725 = 54.515 =
+     the caption box's real outer width), so it actually renders at
+     7.21px in tile space. Reading the <p> value raw made it 2.7x too
+     big. Same correction applies to "Details.jpg": 16.2504 x 0.635614. */
+
+  /* No position declaration here on purpose — every tile also carries
+     .el (position: absolute), which already establishes the containing
+     block for the absolutely-positioned photo/caption inside. Declaring
+     position: relative here would override .el at equal specificity and
+     drop the tiles out of their absolute placement. */
+  .photo-tile {
+    container-type: inline-size;
+  }
+
+  /* -- "slay.png" tiles: a grey file-window card, rebuilt as the source's
+        exact three-layer stack:
+          1. a grey backing card
+          2. the photo, inset from the top by its own real offset
+          3. a grey bar redrawn back over the photo's top edge
+        The earlier version collapsed 2+3 into "start the photo where the
+        bar ends." That looks similar but is NOT the same: it shrinks the
+        photo's own box, so object-fit: cover crops a different slice of
+        the image than the source does. Each tile passes its own real
+        numbers in as inline styles / --r (corner radius), because the
+        three tiles genuinely differ in the source. -- */
+  .window-card {
+    position: absolute;
+    inset: 0 0 auto 0;
+    background: var(--card-grey);
+    border-radius: var(--r);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.13);
+  }
+
+  .window-photo {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: var(--r);
+  }
+
+  /* Same grey as the card, drawn over the photo's top edge — this is what
+     squares off the photo's rounded top corners in the source. */
+  .window-bar {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: var(--card-grey);
+  }
+
+  .window-caption {
+    position: absolute;
+    left: 3.1992%;
+    width: 27.4735%;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-weight: 700;
+    font-size: 3.6355cqw;
+    line-height: 1.27;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    text-shadow: 0 0.04em 0.05em rgba(0, 0, 0, 0.08);
+    white-space: nowrap;
+  }
+
+  /* -- "Details.jpg" tiles: a grey-framed photo with the filename centred
+        underneath. The frame is an SVG stroke in the source, clipped to
+        the photo rect so only its inner half shows — stroke-width/2 over
+        the photo's rendered width. Two of the three use stroke 21.3006
+        (=> 9.2487%), the pool one uses 20.9591 (=> 9.0990%), so the
+        thickness is passed per tile.
+
+        The frame is a separate overlay div sharing the photo's exact box,
+        not a border on the <img> and not an outline. In the source the
+        image fills the whole box and the stroke is painted over its
+        edges, so the image's box must stay full-size: a border on the img
+        would shrink its content box and make object-fit: cover crop a
+        different slice (0.8064 vs the source's 0.8059 aspect), while an
+        inset outline avoids that but gets quantised by the browser to a
+        0.5px grid (7.841px -> 7.5px, ~4% off) — and so does a border on
+        the overlay. The frame is therefore drawn as an inset box-shadow
+        spread, which Chrome paints at sub-pixel precision. -- */
+  .polaroid-photo {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    object-fit: cover;
+    display: block;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.13);
+  }
+
+  .polaroid-frame {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: inset 0 0 0 var(--frame) var(--frame-grey);
+    pointer-events: none;
+  }
+
+  .polaroid-caption {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    font-size: 12.727cqw;
+    line-height: 1.35;
+    letter-spacing: 0.025em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+
+  /* ---- decorative small assets ---- */
+
+  .cursor-icon,
+  .arrow-icon,
+  .button-bg {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* ---- text content ---- */
+
+  .headline {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    font-size: calc(101.311 / 1366 * 100cqw);
+    margin: 0;
+  }
+
+  .subhead-italic {
+    font-family: var(--font-serif-italic);
+    font-style: italic;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.2;
+    font-size: calc(93.333 / 1366 * 100cqw);
+    margin: 0;
+  }
+
+  .eyebrow {
+    font-family: "Inter", sans-serif;
+    font-weight: 400;
+    color: var(--ink);
+    text-align: center;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    font-size: calc(26.667 / 1366 * 100cqw);
+    margin: 0;
+  }
+
+  .button-label {
+    font-family: var(--font-button);
+    color: #ffffff;
+    text-align: center;
+    line-height: 1.2;
+    font-size: calc(21.333 / 1366 * 100cqw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <!-- blue highlight, sits BEHIND the eyebrow text (underlines "your occasion").
+       Real cropped asset, not a CSS recreation — see the .blue-badge comment above. -->
+  <div class="el" style="top:10.16%; left:48.68%; width:9.339%; height:4.88%;">
+    <img class="blue-badge" alt="" src="data:image/png;base64,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">
+  </div>
+
+  <!-- "Don't see your occasion?" eyebrow heading -->
+  <div class="el" style="top:10.0%; left:33.372%; width:27.87%; height:4.167%;">
+    <h3 class="eyebrow">Don&rsquo;t see your occasion?</h3>
+  </div>
+
+  <!-- "Don't Worry!" headline -->
+  <div class="el" style="top:32.663%; left:28.339%; width:43.328%; height:15.72%;">
+    <p class="headline">Don&rsquo;t Worry!</p>
+  </div>
+
+  <!-- yellow blob behind "We'll design it" -->
+  <div class="el yellow-blob" style="top:53.41%; left:33.37%; width:37.078%; height:14.326%;"></div>
+
+  <!-- "We'll design it" subheadline -->
+  <div class="el" style="top:54.925%; left:29.235%; width:44.895%; height:14.496%;">
+    <p class="subhead-italic">We&rsquo;ll design it</p>
+  </div>
+
+  <!-- photo tile: Details.jpg (top area, selfie) — group 81.1536x118.897 -->
+  <div class="el photo-tile" style="top:52.17%; left:21.436%; width:8.714%; height:22.705%; --frame:9.2487cqw;">
+    <img class="polaroid-photo" style="height:84.6483%;" src="https://media-public.canva.com/7jPaQ/MAHE8-7jPaQ/1/s2.jpg" alt="Diverse Group of Friends Taking a Selfie Outdoors">
+    <div class="polaroid-frame" style="height:84.6483%;"></div>
+    <span class="polaroid-caption" style="top:89.8670%;">Details.jpg</span>
+  </div>
+
+  <!-- photo tile: Details.jpg (graduation caps) -->
+  <div class="el photo-tile" style="top:72.834%; left:12.72%; width:8.714%; height:22.705%; --frame:9.2487cqw;">
+    <img class="polaroid-photo" style="height:84.6483%;" src="https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2FIms8F9EoeT6aZY8M6B00GPDyUj-ogWoAgFE-yV3ispM.jpg?csig=AAAAAAAAAAAAAAAAAAAAALiWGszyxgRFoeMB2c2h13LUYJ2w8BZo46adjgDc9RsA&exp=1789398691&signer=media-rpc&token=AAIAAU0AL0ltczhGOUVvZVQ2YVpZOE02QjAwR1BEeVVqLW9nV29BZ0ZFLXlWM2lzcE0uanBnAAAAAAGgoHksuHDsrLrYjwgngs3t8oP1Z2EHZFSXC-2X4hQ1d-r0d1nK" alt="Graduation Caps Thrown in the Air">
+    <div class="polaroid-frame" style="height:84.6483%;"></div>
+    <span class="polaroid-caption" style="top:89.8670%;">Details.jpg</span>
+  </div>
+
+  <!-- photo tile: Details.jpg (pool party) -->
+  <div class="el photo-tile" style="top:64.505%; left:5.622%; width:8.855%; height:23.152%; --frame:9.0990cqw;">
+    <img class="polaroid-photo" style="height:84.3654%;" src="https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2FgVmL-laJmmaD9bWRBXCtVOCNFP2e2W_kjo6-4cVzd5o.jpg?csig=AAAAAAAAAAAAAAAAAAAAAK8guw8q-HHWZX909AnuhPiJUjAS9REGNQT1SfCiohuL&exp=1789398070&signer=media-rpc&token=AAIAAU0AL2dWbUwtbGFKbW1hRDliV1JCWEN0Vk9DTkZQMmUyV19ram82LTRjVnpkNW8uanBnAAAAAAGgoG-y8HGxVl6X2bsnHu4EUf0DjlV5uBVvwYwj9lFF2iPqiz2-" alt="Friends at Pool Party">
+    <div class="polaroid-frame" style="height:84.3654%;"></div>
+    <span class="polaroid-caption" style="top:89.5670%;">Details.jpg</span>
+  </div>
+
+  <!-- photo tile: slay.png (Thanksgiving, large, top-left) -->
+  <!-- group 198.422x237.209; card 236.421 tall; photo 224.578 at y=12.6307;
+       bar 6.93699 at y=9.94672; crop offset -105.411 of 179.708 => 58.657% -->
+  <div class="el photo-tile" style="top:18.782%; left:6.563%; width:19.229%; height:40.883%; --r:3.8075cqw;">
+    <div class="window-card" style="height:99.6678%;"></div>
+    <img class="window-photo" style="top:5.3248%; height:94.6752%; object-position:58.657% center;" src="https://media-public.canva.com/BScDo/MAFQxoBScDo/1/s2.jpg" alt="Friends Eating Together at a Thanksgiving Party">
+    <div class="window-bar" style="top:4.1932%; height:2.9244%;"></div>
+    <span class="window-caption" style="top:1.4462%;">slay.png</span>
+  </div>
+
+  <!-- photo tile: slay.png (large, top-right) -->
+  <!-- group 198.422x236.421; photo 224.578 at y=11.843; crop centred -->
+  <div class="el photo-tile" style="top:18.782%; left:72.618%; width:15.756%; height:33.397%; --r:4.6460cqw;">
+    <div class="window-card" style="height:100%;"></div>
+    <img class="window-photo" style="top:5.0093%; height:94.9907%;" src="https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2F9LsE7Df0n_y4Ea-3oKzQVQDdNp0R8-lALKhIXH4WTu8.jpg?csig=AAAAAAAAAAAAAAAAAAAAABasuaFPaa6MDCbOYWRlV9bzIkXxf9K_Rwo2hLPJCgYM&exp=1789398431&signer=media-rpc&token=AAIAAU0ALzlMc0U3RGYwbl95NEVhLTNvS3pRVlFEZE5wMFI4LWxBTEtoSVhINFdUdTguanBnAAAAAAGgoHU1GHT4yKJl93xmk_QBwrVXw6yIm6Kc4iu1XxtjlUq6d9kM" alt="Friends Taking Selfie">
+    <div class="window-bar" style="top:4.2072%; height:2.9342%;"></div>
+    <span class="window-caption" style="top:1.4511%;">slay.png</span>
+  </div>
+
+  <!-- photo tile: slay.png (large, bottom-right, beach wedding) -->
+  <!-- group 198.422x236.421; photo 224.578 at y=11.843; crop centred -->
+  <div class="el photo-tile" style="top:43.117%; left:74.795%; width:20.18%; height:42.766%; --r:3.6278cqw;">
+    <div class="window-card" style="height:100%;"></div>
+    <img class="window-photo" style="top:5.0093%; height:94.9907%;" src="https://media-public.canva.com/C83cg/MAG5zYC83cg/1/s2.jpg" alt="Romantic Beach Wedding Couple Embrace">
+    <div class="window-bar" style="top:4.2072%; height:2.9342%;"></div>
+    <span class="window-caption" style="top:1.4511%;">slay.png</span>
+  </div>
+
+  <!-- decorative cursor icon -->
+  <div class="el" style="top:66.006%; left:71.398%; width:2.457%; height:6.829%;">
+    <img class="cursor-icon" src="https://media.canva.com/v2/image-resize/format:PNG/height:150/quality:100/uri:ifs%3A%2F%2FM%2F077f8889-66d2-4998-be6d-0b374c9c5870/watermark:F/width:95?csig=AAAAAAAAAAAAAAAAAAAAAMy7nZZku_ULsO0HsOx8LRvWX_TDJ0rr9hTri_vtbid8&exp=1789398345&osig=AAAAAAAAAAAAAAAAAAAAAFWJbheI-Tkx90T6HhEDSDKYcDsB6MyoFJ_ttkaLEb9p&signer=media-rpc&x-canva-quality=micro_thumbnail" alt="Cursor">
+  </div>
+
+  <!-- decorative hand-drawn curved arrow, pointing at the button -->
+  <div class="el" style="top:70.048%; left:48.156%; width:3.687%; height:5.574%; transform: rotate(49.881deg); transform-origin: center;">
+    <img class="arrow-icon" src="https://media-public.canva.com/Eohss/MAGeBZEohss/1/s-1.svg" alt="Curved Arrow">
+  </div>
+
+  <!-- "Get Premium" button (real button-shape asset + real text layer on top) -->
+  <div class="el" style="top:79.091%; left:42.238%; width:14.522%; height:6.798%;">
+    <img class="button-bg" src="https://media.canva.com/v2/files/uri:ifs%3A%2F%2FM%2Fb1b8b05c-b6eb-4942-96ed-0e15561fd494?csig=AAAAAAAAAAAAAAAAAAAAABlNCNJV1CVJu97Zyh9dw1LC_LoVz5TFfJJhLZUuJOe-&exp=1789398150&signer=media-rpc&token=AAIAAU0AJGIxYjhiMDVjLWI2ZWItNDk0Mi05NmVkLTBlMTU1NjFmZDQ5NAAAAAABoKBw63AsmYcHqCxSxyRfZBQBwNw9elvCrmnHE9_7Jm9H84hAPQ" alt="">
+  </div>
+  <div class="el" style="top:80.879%; left:44.667%; width:9.443%; height:3.221%;">
+    <span class="button-label">Get Premium</span>
+  </div>
+
+</div>
+
+</body>
+</html>

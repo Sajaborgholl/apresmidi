@@ -1,8 +1,19 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore } from "react";
 import { CheckCircle } from "@phosphor-icons/react";
 import { submitPremiumInquiry, type PremiumInquiryState } from "../_actions/premium-inquiry";
+
+// Tracks the URL hash so this form can open itself when the page is at
+// #premium — that's how the "Get Premium" button in the request-a-category
+// section deep-links straight into this form instead of just scrolling
+// somewhere near it. useSyncExternalStore rather than an effect: it's
+// SSR-safe (the server snapshot is "") and avoids setting state inside an
+// effect body, which this repo's lint config rejects.
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
 
 // Matches the exact input/label classes already established in
 // app/order/[slug]/_components/CustomizeForm.tsx, for visual consistency
@@ -35,7 +46,9 @@ function FadeIn({ children }: { children: React.ReactNode }) {
 }
 
 export default function PremiumInquiryForm() {
-  const [expanded, setExpanded] = useState(false);
+  const [opened, setOpened] = useState(false);
+  const hash = useSyncExternalStore(subscribeToHash, () => window.location.hash, () => "");
+  const expanded = opened || hash === "#premium";
   const [state, formAction, isPending] = useActionState<PremiumInquiryState, FormData>(submitPremiumInquiry, null);
 
   const success = state !== null && "success" in state;
@@ -45,7 +58,7 @@ export default function PremiumInquiryForm() {
     return (
       <button
         type="button"
-        onClick={() => setExpanded(true)}
+        onClick={() => setOpened(true)}
         className="w-full rounded-full py-3 text-sm font-semibold transition active:scale-[0.97]"
         style={{ background: "var(--cream)", color: "var(--ink)" }}
       >

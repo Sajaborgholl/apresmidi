@@ -50,8 +50,13 @@ export default function Pricing() {
         </Reveal>
 
         <Reveal delay={100}>
+          {/* id="premium" is the deep-link target for the "Get Premium"
+              button in RequestCategorySection — landing on it also makes
+              PremiumInquiryForm open itself. scroll-mt matches the offset
+              already used by the occasion anchors in app/page.tsx. */}
           <div
-            className="relative rounded-[28px] p-8 shadow-2xl transition duration-300 hover:-translate-y-1 md:scale-105 md:p-10"
+            id="premium"
+            className="relative scroll-mt-24 rounded-[28px] p-8 shadow-2xl transition duration-300 hover:-translate-y-1 md:scale-105 md:p-10"
             style={{ background: "var(--ink)", color: "var(--cream)" }}
           >
             <span

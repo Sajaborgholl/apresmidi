@@ -30,7 +30,7 @@ const TILES = [
   {
     Icon: WhatsappLogo,
     label: "Confirm on WhatsApp",
-    copy: "A one-tap WhatsApp message to the host, pre-filled and ready to send.",
+    copy: "A WhatsApp message to the host, pre-filled and ready to send.",
     bg: "#fff",
     iconBg: "#25D366",
     iconColor: "#fff",
@@ -46,7 +46,7 @@ const TILES = [
   },
   {
     Icon: Lock,
-    label: "One link to share",
+    label: "Share it anywhere",
     copy: "Send your private link by text, WhatsApp, or email — that's it.",
     bg: "var(--yellow-dark)",
     iconBg: "#fff",

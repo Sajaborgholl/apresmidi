@@ -114,7 +114,8 @@ export default async function Home() {
   return (
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
       <nav className="flex items-center justify-between px-6 md:px-12 py-5">
-        <span className="script text-3xl">Après-midi</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo.png" alt="Après-midi" className="h-8 w-auto" />
         <div className="hidden md:flex gap-8 text-sm font-medium">
           {categories.slice(0, 3).map((cat) => (
             <a key={cat.slug} href={`#occasion-${cat.slug}`} className="hover:opacity-70">
@@ -381,7 +382,8 @@ export default async function Home() {
         </div>
         </Reveal>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-10 pt-6 border-t" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
-          <span className="script text-2xl">Après-midi</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Après-midi" className="h-7 w-auto" />
           <div className="flex gap-6 text-sm">
             {categories.slice(0, 3).map((cat) => (
               <Link key={cat.slug} href={`/templates/${cat.slug}`}>
