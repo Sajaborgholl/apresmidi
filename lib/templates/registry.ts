@@ -5,6 +5,8 @@ import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
 import BirthdayDisco from "@/app/i/[slug]/_designs/BirthdayDisco";
+import BirthdayCreamPink from "@/app/i/[slug]/_designs/BirthdayCreamPink";
+import BirthdayRetroPolaroid from "@/app/i/[slug]/_designs/BirthdayRetroPolaroid";
 
 // Moved here from app/i/[slug]/_designs/registry.ts: this used to be
 // "page-only" code for the invite-rendering route, but the customize page
@@ -118,6 +120,36 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     category: "birthday",
     component: BirthdayDisco,
     previewBackground: "#fffdfb",
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
+      whatsapp_number: true,
+      photoCount: 1,
+    },
+  },
+  {
+    slug: "birthday-cream-pink",
+    name: "Cream & Pink Birthday",
+    category: "birthday",
+    component: BirthdayCreamPink,
+    previewBackground: "#f9f7ec",
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
+      whatsapp_number: true,
+      photoCount: 6,
+    },
+  },
+  {
+    slug: "birthday-retro-polaroid",
+    name: "Retro Polaroid Birthday",
+    category: "birthday",
+    component: BirthdayRetroPolaroid,
+    previewBackground: "#efece6",
     fields: {
       host_names: true,
       event_date: true,

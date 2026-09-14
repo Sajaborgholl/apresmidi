@@ -27,6 +27,16 @@ export type Invite = {
 // name/thumbnail, and the registry only if it needs to render a live
 // preview. Pricing now lives entirely in the Standard/Premium plans
 // section (app/_components/Pricing.tsx), not per category/template.
+// Shared between the customize form's live preview (CustomizePanel.tsx) and
+// the server action that actually stores the invite (actions.ts) — the
+// RSVP link is built as `wa.me/<digits>`, which needs the country code and
+// local number joined with no "+", spaces, or dashes. Kept in one place so
+// the preview and the real submission can't compute this differently.
+export function buildWhatsappNumber(countryCode: string, number: string): string | null {
+  const digits = `${countryCode}${number}`.replace(/\D/g, "");
+  return digits || null;
+}
+
 export type TemplateMeta = {
   id: string;
   slug: string;

@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Save the Date — Envelope Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,500&family=Herr+Von+Muellerhoff&display=swap" rel="stylesheet" />
+<style>
+  /* Standalone prototype — matches the pattern of the other
+     template-*-prototype.html files in this repo. Vanilla HTML/CSS/JS
+     only, no framework, so it can be reviewed in a browser before being
+     hand-translated into app/i/[slug]/_designs/WeddingSaveTheDate.tsx.
+     Uses only Google Fonts (no "BD Script" — that one's hot-linked from
+     Canva and flagged elsewhere in this repo as likely needing its own
+     commercial license, so it's avoided here). */
+
+  * { box-sizing: border-box; }
+
+  :root {
+    --burgundy: #7A2E3B;
+    --burgundy-dark: #5C222C;
+    --cream: #FBF8F1;
+    --gold: #C9A66B;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--burgundy-dark);
+    background-image: radial-gradient(circle at 50% 20%, #6b2732, var(--burgundy-dark) 70%);
+    color: var(--cream);
+    font-family: 'Cormorant Garamond', serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  /* ---------- Envelope (closed state) ---------- */
+
+  .envelope-btn {
+    all: unset;
+    display: block;
+    width: 100%;
+    cursor: pointer;
+    perspective: 1400px;
+  }
+
+  .envelope {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(160deg, #8a3644, var(--burgundy) 60%);
+    border-radius: 6px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.45), 0 4px 10px rgba(0,0,0,0.3);
+    overflow: hidden;
+    transition: box-shadow 0.4s ease;
+  }
+
+  .envelope-btn:hover .envelope,
+  .envelope-btn:focus-visible .envelope {
+    box-shadow: 0 34px 70px rgba(0,0,0,0.5), 0 4px 10px rgba(0,0,0,0.3);
+  }
+
+  .envelope-btn:focus-visible .envelope {
+    outline: 2px solid var(--gold);
+    outline-offset: 4px;
+  }
+
+  /* Envelope body seams, drawn as gradients so no image assets are needed */
+  .envelope::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(135deg, transparent 49.6%, rgba(0,0,0,0.18) 50%, transparent 50.4%),
+      linear-gradient(45deg, transparent 49.6%, rgba(0,0,0,0.18) 50%, transparent 50.4%);
+    background-size: 100% 60%, 100% 60%;
+    background-position: top left, top right;
+    background-repeat: no-repeat;
+    opacity: 0.6;
+  }
+
+  .flap {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 62%;
+    background: linear-gradient(160deg, #7c303e, var(--burgundy-dark) 100%);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    transform-origin: top center;
+    transform-style: preserve-3d;
+    transition: transform 0.9s cubic-bezier(0.65, 0, 0.35, 1);
+    z-index: 3;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.3);
+  }
+
+  .seal-wrap {
+    position: absolute;
+    top: 38%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+  }
+
+  .caption {
+    position: absolute;
+    bottom: 14%;
+    left: 0; right: 0;
+    text-align: center;
+    z-index: 2;
+  }
+
+  .caption .label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(251,248,241,0.75);
+    margin: 0 0 10px;
+  }
+
+  /* ---------- Countdown ---------- */
+
+  .countdown {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .countdown .unit {
+    text-align: center;
+    min-width: 42px;
+  }
+
+  .countdown .num {
+    font-family: 'Cinzel', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--cream);
+    line-height: 1;
+  }
+
+  .countdown .u-label {
+    display: block;
+    margin-top: 4px;
+    font-family: 'Cinzel', serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(251,248,241,0.55);
+  }
+
+  /* ---------- Opened state ---------- */
+
+  .stage.is-open .flap {
+    transform: rotateX(180deg);
+  }
+
+  .stage.is-open .envelope {
+    box-shadow: none;
+  }
+
+  .stage.is-open .caption,
+  .stage.is-open .seal-wrap {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .card {
+    position: relative;
+    margin-top: -18px;
+    background: var(--cream);
+    color: #2a1418;
+    border-radius: 4px;
+    box-shadow: 0 24px 50px rgba(0,0,0,0.4);
+    padding: 44px 28px 36px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease 0.35s, transform 0.6s cubic-bezier(0.16,1,0.3,1) 0.35s;
+    pointer-events: none;
+  }
+
+  .stage.is-open .card {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  .eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--burgundy);
+    margin: 0 0 10px;
+  }
+
+  .headline {
+    font-family: 'Herr Von Muellerhoff', cursive;
+    font-weight: 400;
+    font-size: clamp(34px, 8vw, 52px);
+    line-height: 1;
+    margin: 0 0 14px;
+    color: var(--burgundy);
+  }
+
+  .names {
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0 0 22px;
+    color: #2a1418;
+  }
+
+  .photos {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  .photo-slot {
+    flex: 1;
+    aspect-ratio: 3 / 4;
+    background: #e7dccb;
+    border: 1px solid rgba(122,46,59,0.25);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(42,20,24,0.4);
+  }
+
+  .save-our-date {
+    font-family: 'Herr Von Muellerhoff', cursive;
+    font-size: clamp(26px, 6vw, 36px);
+    color: var(--burgundy);
+    margin: 0 0 6px;
+  }
+
+  .details {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 17px;
+    line-height: 1.6;
+    color: #3a2226;
+    margin: 0 0 26px;
+  }
+
+  .details strong { color: var(--burgundy); }
+
+  .rsvp {
+    border-top: 1px solid rgba(122,46,59,0.2);
+    padding-top: 24px;
+  }
+
+  .rsvp form { display: flex; flex-direction: column; gap: 14px; text-align: left; }
+
+  .rsvp label {
+    display: block;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(42,20,24,0.6);
+    margin-bottom: 6px;
+  }
+
+  .rsvp input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid rgba(122,46,59,0.35);
+    background: transparent;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px;
+    padding: 4px 2px 8px;
+    color: #2a1418;
+    outline: none;
+  }
+
+  .rsvp input:focus { border-bottom-color: var(--burgundy); }
+
+  .attend-row { display: flex; gap: 8px; }
+
+  .attend-btn {
+    flex: 1;
+    padding: 10px 6px;
+    border: 1px solid rgba(122,46,59,0.35);
+    background: transparent;
+    font-family: 'Cinzel', serif;
+    font-size: 10.5px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--burgundy);
+    cursor: pointer;
+    border-radius: 2px;
+  }
+
+  .attend-btn.active { background: var(--burgundy); color: var(--cream); border-color: var(--burgundy); }
+
+  .submit-btn {
+    margin-top: 4px;
+    padding: 13px;
+    border: none;
+    border-radius: 2px;
+    background: var(--burgundy);
+    color: var(--cream);
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .submit-btn:hover { background: var(--burgundy-dark); }
+
+  .thank-you { display: none; font-family: 'Cormorant Garamond', serif; font-size: 16px; color: #3a2226; }
+  .thank-you.show { display: block; }
+  .thank-you .headline { font-size: clamp(28px, 6vw, 40px); margin-bottom: 8px; }
+
+  .hint {
+    text-align: center;
+    margin-top: 18px;
+    font-family: 'Cinzel', serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(251,248,241,0.45);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .flap, .card { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <button class="envelope-btn" id="envelopeBtn" aria-expanded="false" aria-label="Open the save-the-date envelope">
+    <div class="envelope">
+      <div class="flap">
+        <div class="seal-wrap">
+          <!-- Wax-seal monogram: layered circles + initials, no image asset -->
+          <svg width="76" height="76" viewBox="0 0 76 76" aria-hidden="true">
+            <circle cx="38" cy="38" r="36" fill="#8f2f3d" />
+            <circle cx="38" cy="38" r="36" fill="none" stroke="#5C222C" stroke-width="2" />
+            <circle cx="38" cy="38" r="29" fill="none" stroke="rgba(251,248,241,0.5)" stroke-width="1" />
+            <text x="38" y="46" text-anchor="middle" font-family="Cinzel, serif" font-size="22" font-weight="600" fill="#FBF8F1">A·J</text>
+          </svg>
+        </div>
+      </div>
+      <div class="caption">
+        <p class="label">Formal invitation to follow</p>
+        <div class="countdown" id="countdown">
+          <div class="unit"><span class="num" id="cd-days">–</span><span class="u-label">Days</span></div>
+          <div class="unit"><span class="num" id="cd-hours">–</span><span class="u-label">Hrs</span></div>
+          <div class="unit"><span class="num" id="cd-mins">–</span><span class="u-label">Min</span></div>
+          <div class="unit"><span class="num" id="cd-secs">–</span><span class="u-label">Sec</span></div>
+        </div>
+      </div>
+    </div>
+  </button>
+
+  <div class="card">
+    <p class="eyebrow">We're getting married</p>
+    <h1 class="headline">Arabella &amp; James</h1>
+    <p class="names">Together with their families</p>
+
+    <div class="photos">
+      <div class="photo-slot">Photo 1</div>
+      <div class="photo-slot">Photo 2</div>
+    </div>
+
+    <p class="save-our-date">Save our Date</p>
+    <p class="details">
+      <strong>22.07.2027</strong><br />
+      Lake Como, Italy<br />
+      Formal invitation with details to follow
+    </p>
+
+    <div class="rsvp">
+      <form id="rsvpForm">
+        <label>Full name
+          <input type="text" id="guestName" placeholder="Your name" required />
+        </label>
+        <div class="attend-row">
+          <button type="button" class="attend-btn active" data-attend="accept">Joyfully accept</button>
+          <button type="button" class="attend-btn" data-attend="decline">Regretfully decline</button>
+        </div>
+        <button type="submit" class="submit-btn">Send RSVP</button>
+      </form>
+      <div class="thank-you" id="thankYou">
+        <p class="headline" id="thankYouHeadline">Yay!</p>
+        <p id="thankYouBody">We can't wait to celebrate with you.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="hint">Tap the envelope to open</p>
+</div>
+
+<script>
+  // ---- Envelope open/close ----
+  const stage = document.getElementById('stage');
+  const envelopeBtn = document.getElementById('envelopeBtn');
+
+  envelopeBtn.addEventListener('click', () => {
+    const isOpen = stage.classList.toggle('is-open');
+    envelopeBtn.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  // ---- Countdown ----
+  // Target date matches the placeholder demo content above.
+  const TARGET = new Date('2027-07-22T18:00:00+03:00').getTime();
+
+  function tick() {
+    const diff = TARGET - Date.now();
+    const el = (id) => document.getElementById(id);
+    if (diff <= 0) {
+      el('cd-days').textContent = '0';
+      el('cd-hours').textContent = '0';
+      el('cd-mins').textContent = '0';
+      el('cd-secs').textContent = '0';
+      return;
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const mins = Math.floor((diff / (1000 * 60)) % 60);
+    const secs = Math.floor((diff / 1000) % 60);
+    el('cd-days').textContent = String(days);
+    el('cd-hours').textContent = String(hours).padStart(2, '0');
+    el('cd-mins').textContent = String(mins).padStart(2, '0');
+    el('cd-secs').textContent = String(secs).padStart(2, '0');
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ---- RSVP demo (prototype only — no backend, just shows the pattern) ----
+  const rsvpForm = document.getElementById('rsvpForm');
+  const thankYou = document.getElementById('thankYou');
+  let attending = 'accept';
+
+  document.querySelectorAll('.attend-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.attend-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      attending = btn.dataset.attend;
+    });
+  });
+
+  rsvpForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('guestName').value.trim() || 'friend';
+    document.getElementById('thankYouHeadline').textContent = attending === 'accept' ? 'Yay!' : "We'll miss you";
+    document.getElementById('thankYouBody').textContent = attending === 'accept'
+      ? `We can't wait to celebrate with you, ${name}.`
+      : `Thank you for letting us know, ${name}.`;
+    rsvpForm.style.display = 'none';
+    thankYou.classList.add('show');
+  });
+</script>
+
+</body>
+</html>

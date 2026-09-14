@@ -4,7 +4,8 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Monitor, DeviceMobile, Lock, Eye, X } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
-import type { Invite } from "@/lib/types";
+import { buildWhatsappNumber, type Invite } from "@/lib/types";
+import { dialCodeForCountry } from "@/lib/countryCodes";
 import { slugify } from "../_lib/slugify";
 import CustomizeForm, { EMPTY_VALUES, type CustomizeValues } from "./CustomizeForm";
 import { createOrder } from "../actions";
@@ -100,7 +101,7 @@ export default function CustomizePanel({
       primary_color: null,
       photo_urls: photoPreviews.length > 0 ? photoPreviews.map((p) => p ?? "") : null,
       music_url: null,
-      whatsapp_number: values.whatsapp_number || null,
+      whatsapp_number: buildWhatsappNumber(dialCodeForCountry(values.whatsapp_country), values.whatsapp_number),
     }),
     [values, photoPreviews]
   );
@@ -266,6 +267,7 @@ export default function CustomizePanel({
 
           <CustomizeForm
             fields={fields}
+            category={category}
             values={values}
             onValueChange={handleValueChange}
             photoPreviews={photoPreviews}

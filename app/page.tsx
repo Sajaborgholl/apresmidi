@@ -58,7 +58,10 @@ export default async function Home() {
     .from("categories")
     .select("slug, name, price, sort_order")
     .order("sort_order", { ascending: true });
-  const categories: CategoryRow[] = categoryRows ?? [];
+  // Temporarily hides the "Baptism" occasion (no templates ready for it yet)
+  // from the nav, the occasions grid, and the footer. Remove this filter to
+  // bring it back once there's at least one baptism template.
+  const categories: CategoryRow[] = (categoryRows ?? []).filter((c) => c.slug !== "baptism");
 
   const { data: templateRows } = await supabaseAdmin
     .from("templates")

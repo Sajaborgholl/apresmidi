@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Birthday Invite — Cream &amp; Pink Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,700;1,500&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* Standalone prototype — matches the pattern of the other
+     template-*-prototype.html files in this repo. Vanilla HTML/CSS/JS
+     only, no framework, so it can be reviewed in a browser before being
+     hand-translated into app/i/[slug]/_designs/*.tsx.
+     Recreates a Canva "Birthday Event Website in Cream and Pink
+     Illustrative Style" design, matched against a rendered reference
+     screenshot (not just the raw editor DOM). Canva's own fonts
+     (Bugaki / Garet) are not hot-linked here (same reasoning as the
+     save-the-date prototypes re: licensing) — Fraunces stands in for
+     the bold rounded-serif display font, Quicksand for body copy.
+     Photos are stock placeholders (hero-photo.jpg, when-where-photo.jpg,
+     expect-photo-snacks/garden/dancing.jpg, contact-photo.jpg) — swap
+     each file for the real host's photos before shipping. */
+
+  * { box-sizing: border-box; }
+
+  :root {
+    --cream: #f9f7ec;
+    --blush: #ffdede;
+    --pink: #fe9c9c;
+    --pink-deep: #cf2025;
+    --ink: #2b2320;
+    --ink-soft: #4a3f3b;
+    --white: #ffffff;
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Quicksand', sans-serif;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  img { max-width: 100%; display: block; }
+
+  section { position: relative; padding: 90px 24px; overflow: visible; }
+
+  .section-inner { max-width: 1040px; margin: 0 auto; position: relative; }
+
+  /* ---------- Utility nav (not part of the original design; added for
+     reviewing this prototype only) ---------- */
+
+  .site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    background: rgba(249, 247, 236, 0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid rgba(43, 35, 32, 0.08);
+  }
+
+  .site-nav a {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    padding: 7px 13px;
+    border-radius: 999px;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .site-nav a:hover, .site-nav a:focus-visible { background: var(--pink); color: var(--white); }
+
+  /* ---------- Image placeholders ---------- */
+
+  .img-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(135deg, rgba(43,35,32,0.07), rgba(43,35,32,0.07) 10px, rgba(43,35,32,0.03) 10px, rgba(43,35,32,0.03) 20px);
+    color: rgba(43, 35, 32, 0.65);
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.4;
+    padding: 16px;
+  }
+
+  .img-placeholder svg { width: 26px; height: 26px; margin-bottom: 6px; opacity: 0.6; }
+  .img-placeholder .ph-label { display: block; }
+  .img-placeholder .ph-sub { display: block; font-weight: 500; opacity: 0.75; margin-top: 2px; font-size: 0.74rem; }
+
+  /* ---------- Photo frame (organic super-rounded rect with a thin
+     coral outline peeking from behind, bottom-right) ---------- */
+
+  .photo-frame {
+    position: relative;
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .photo-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translate(12px, 12px);
+    border: 2.5px solid var(--pink);
+    border-radius: inherit;
+    z-index: 0;
+  }
+
+  .photo-frame .frame-inner {
+    position: relative;
+    z-index: 1;
+    aspect-ratio: 3 / 3.6;
+    border-radius: inherit;
+    overflow: hidden;
+    border: 5px solid var(--cream);
+    background: var(--cream);
+  }
+
+  .photo-frame .frame-inner .img-placeholder,
+  .photo-frame .frame-inner img { border-radius: inherit; }
+
+  .photo-frame .frame-inner img { width: 100%; height: 100%; object-fit: cover; object-position: top center; }
+
+  .photo-frame,
+  .photo-frame .frame-inner {
+    border-radius: 46% 46% 38% 38% / 58% 58% 24% 24%;
+  }
+
+  /* Circle photo variant (What to Expect row) */
+  .circle-frame {
+    position: relative;
+    width: 100%;
+    max-width: 180px;
+    margin: 0 auto;
+  }
+
+  .circle-frame::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translate(8px, 8px);
+    border: 2.5px solid var(--pink-deep);
+    border-radius: 50%;
+    z-index: 0;
+  }
+
+  .circle-frame .frame-inner {
+    position: relative;
+    z-index: 1;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid var(--cream);
+    background: var(--cream);
+  }
+
+  .circle-frame .frame-inner .img-placeholder,
+  .circle-frame .frame-inner img { border-radius: 50%; }
+
+  .circle-frame .frame-inner img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* ---------- Outline badge (thin coral border, no fill, sparkle
+     corners) — used for "Rebecca Turns 7" / "Celebrate with Becca" ---------- */
+
+  .outline-badge {
+    position: relative;
+    display: inline-block;
+    border: 2.5px solid var(--pink);
+    border-radius: 20px;
+    padding: 22px 46px;
+    transform: rotate(-4deg);
+  }
+
+  .outline-badge .badge-text {
+    font-family: var(--font-display);
+    color: var(--pink);
+    font-weight: 700;
+    font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+    line-height: 1.08;
+    text-align: center;
+    margin: 0;
+  }
+
+  .outline-badge .spark {
+    position: absolute;
+    color: var(--pink);
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+
+  .outline-badge .spark.tl { top: -8px; left: -8px; }
+  .outline-badge .spark.tr { top: -8px; right: -8px; }
+  .outline-badge .spark.bl { bottom: -8px; left: -8px; }
+  .outline-badge .spark.br { bottom: -8px; right: -8px; }
+
+  /* ---------- Solid circle badge — "You're Invited" ---------- */
+
+  .circle-badge {
+    width: 112px;
+    height: 112px;
+    border-radius: 50%;
+    background: var(--pink);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.98rem;
+    letter-spacing: 0.01em;
+    line-height: 1.25;
+    transform: rotate(-8deg);
+    box-shadow: 0 8px 18px rgba(254, 156, 156, 0.4);
+  }
+
+  /* ---------- 12-point starburst badge — "When & Where" / "Got questions?" ---------- */
+
+  .star-badge {
+    position: relative;
+    width: min(230px, 62vw);
+    aspect-ratio: 1 / 1;
+    background: var(--pink);
+    clip-path: polygon(50% 0%, 59.6% 14.3%, 75% 6.7%, 76.2% 23.8%, 93.3% 25%, 85.7% 40.4%, 100% 50%, 85.7% 59.6%, 93.3% 75%, 76.2% 76.2%, 75% 93.3%, 59.6% 85.7%, 50% 100%, 40.4% 85.7%, 25% 93.3%, 23.8% 76.2%, 6.7% 75%, 14.3% 59.6%, 0% 50%, 14.3% 40.4%, 6.7% 25%, 23.8% 23.8%, 25% 6.7%, 40.4% 14.3%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    margin: 0 auto;
+  }
+
+  .star-badge .badge-text {
+    font-family: var(--font-display);
+    color: var(--white);
+    font-weight: 700;
+    font-size: clamp(1.15rem, 2vw, 1.5rem);
+    line-height: 1.15;
+    max-width: 78%;
+  }
+
+  .star-badge.small { width: min(150px, 45vw); }
+  .star-badge.small .badge-text { font-size: 1rem; }
+
+  /* ---------- Small scalloped seal button (scroll arrow) ---------- */
+
+  .seal-btn {
+    width: 62px;
+    height: 62px;
+    background: var(--pink);
+    clip-path: polygon(50% 0%, 59.6% 14.3%, 75% 6.7%, 76.2% 23.8%, 93.3% 25%, 85.7% 40.4%, 100% 50%, 85.7% 59.6%, 93.3% 75%, 76.2% 76.2%, 75% 93.3%, 59.6% 85.7%, 50% 100%, 40.4% 85.7%, 25% 93.3%, 23.8% 76.2%, 6.7% 75%, 14.3% 59.6%, 0% 50%, 14.3% 40.4%, 6.7% 25%, 23.8% 23.8%, 25% 6.7%, 40.4% 14.3%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+  }
+
+  .seal-btn svg { width: 20px; height: 20px; stroke: var(--white); }
+
+  /* ---------- "What to Expect" ticket badge — exact source asset ---------- */
+
+  .ribbon-badge-img {
+    width: min(420px, 78vw);
+    height: auto;
+  }
+
+  /* ---------- "BECCA" tag — exact wavy ribbon source asset ---------- */
+
+  .pennant-tag {
+    position: relative;
+    display: inline-block;
+    width: 150px;
+  }
+
+  .pennant-tag img { width: 100%; height: auto; display: block; }
+
+  .pennant-tag .pennant-label {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(14deg);
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--white);
+    font-size: 0.85rem;
+    letter-spacing: 0.16em;
+    white-space: nowrap;
+  }
+
+  /* ---------- HERO ---------- */
+
+  #hero { padding-top: 60px; }
+
+  .hero-flex {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 64px;
+    flex-wrap: wrap;
+  }
+
+  .hero-photo-wrap { flex: 0 1 300px; }
+
+  .hero-copy-wrap { position: relative; flex: 0 1 320px; padding-top: 30px; text-align: center; }
+
+  .hero-copy-wrap .circle-badge { position: absolute; top: -54px; right: -18px; z-index: 2; }
+
+  .hero-copy-wrap .seal-btn { margin: 30px auto 0; }
+
+  /* ---------- WHEN & WHERE ---------- */
+
+  .ww-flex {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+    flex-wrap: wrap-reverse;
+  }
+
+  .ww-copy { flex: 1 1 320px; max-width: 360px; text-align: center; }
+
+  .ww-details {
+    margin: 30px 0 0;
+    font-weight: 700;
+    font-size: 1.1rem;
+    line-height: 1.75;
+    color: var(--pink);
+  }
+
+  .ww-details .ww-place { color: var(--pink); font-weight: 600; }
+
+  .ww-photo-wrap { position: relative; flex: 0 1 300px; }
+
+  .ww-photo-wrap .pennant-tag { position: absolute; bottom: 22px; right: -30px; z-index: 2; }
+
+  /* ---------- DETAILS ---------- */
+
+  #details { background: var(--blush); }
+
+  .details-heading-wrap { display: flex; justify-content: center; margin-bottom: 60px; }
+
+  .details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    text-align: center;
+  }
+
+  .details-card { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+  .details-icon {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--pink);
+    border-radius: 50%;
+    color: var(--white);
+    box-shadow: 0 8px 18px rgba(254, 156, 156, 0.35);
+  }
+
+  .details-icon svg { width: 30px; height: 30px; }
+
+  .details-card h3 {
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    color: var(--pink);
+    font-weight: 700;
+    font-size: 0.92rem;
+    letter-spacing: 0.02em;
+    margin: 0;
+  }
+
+  .details-card p { margin: 0; font-weight: 600; line-height: 1.5; color: var(--ink-soft); font-size: 0.92rem; }
+
+  .details-card a { color: var(--ink); text-decoration: underline; font-weight: 700; }
+
+  /* ---------- WHAT TO EXPECT ---------- */
+
+  .expect-heading-wrap { display: flex; justify-content: center; margin-bottom: 64px; }
+
+  .expect-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+  }
+
+  .expect-card { text-align: center; }
+
+  .expect-card h3 {
+    font-family: var(--font-body);
+    text-transform: uppercase;
+    color: var(--pink);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    margin: 18px 0 0;
+    line-height: 1.4;
+  }
+
+  /* ---------- CONTACT ---------- */
+
+  #contact { background: var(--blush); }
+
+  .contact-flex {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 64px;
+    flex-wrap: wrap;
+  }
+
+  .contact-left { position: relative; flex: 0 1 300px; padding-top: 40px; }
+
+  .contact-left .star-badge { position: absolute; top: 0; left: -30px; z-index: 2; }
+
+  .contact-right { flex: 1 1 300px; max-width: 360px; text-align: left; }
+
+  /* ---------- RSVP form — same field/toggle pattern used by the other
+     templates' RSVP sections (see app/i/[slug]/_designs/BirthdayDisco.tsx),
+     restyled to match this template's cream/pink/serif look. This is a
+     static prototype so submission is handled client-side only (no
+     Supabase insert) — swap handleRsvpSubmit for the real insert when
+     this gets ported into a _designs/*.tsx component. ---------- */
+
+  .rsvp-heading {
+    font-family: var(--font-display);
+    color: var(--pink);
+    font-weight: 700;
+    font-size: clamp(1.6rem, 3vw, 2.1rem);
+    margin: 0 0 8px;
+  }
+
+  .rsvp-sub { margin: 0 0 28px; font-weight: 600; color: var(--ink-soft); font-size: 0.95rem; }
+
+  .rsvp-form { display: flex; flex-direction: column; gap: 22px; }
+
+  .rsvp-field { display: flex; flex-direction: column; gap: 8px; }
+
+  .rsvp-field span {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--pink);
+  }
+
+  .rsvp-field input {
+    border: none;
+    border-bottom: 2px solid rgba(43, 35, 32, 0.18);
+    background: transparent;
+    padding: 6px 2px 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .rsvp-field input:focus { border-bottom-color: var(--pink); }
+
+  .rsvp-attend-row { display: flex; gap: 10px; }
+
+  .rsvp-attend-btn {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 999px;
+    border: 2px solid var(--pink);
+    background: transparent;
+    color: var(--pink);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .rsvp-attend-btn.active { background: var(--pink); color: var(--white); }
+
+  .rsvp-submit-btn {
+    margin-top: 4px;
+    padding: 15px 20px;
+    border-radius: 999px;
+    border: none;
+    background: var(--pink);
+    color: var(--white);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.05rem;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(254, 156, 156, 0.4);
+    transition: transform 0.15s ease;
+  }
+
+  .rsvp-submit-btn:hover { transform: translateY(-1px); }
+  .rsvp-submit-btn:active { transform: translateY(0); }
+
+  .rsvp-thanks-title {
+    font-family: var(--font-display);
+    color: var(--pink);
+    font-weight: 700;
+    font-size: 1.9rem;
+    margin: 0 0 10px;
+  }
+
+  .rsvp-thanks-body { margin: 0; font-weight: 600; color: var(--ink-soft); }
+
+  footer.credits {
+    text-align: center;
+    padding: 30px 24px;
+    font-size: 0.78rem;
+    color: rgba(43, 35, 32, 0.55);
+    background: var(--blush);
+  }
+
+  /* ---------- Responsive ---------- */
+
+  @media (max-width: 720px) {
+    section { padding: 60px 20px; }
+    .hero-copy-wrap { padding-top: 60px; }
+    .ww-photo-wrap .pennant-tag { right: 0; }
+    .details-grid, .expect-grid { grid-template-columns: 1fr; gap: 48px; }
+    .contact-left { margin: 0 auto; padding-top: 60px; }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="site-nav" aria-label="Page sections">
+    <a href="#hero">Home</a>
+    <a href="#when-where">When &amp; Where</a>
+    <a href="#details">Details</a>
+    <a href="#expect">What to Expect</a>
+    <a href="#contact">Contact</a>
+  </nav>
+
+  <!-- ============ HOME / HERO ============ -->
+  <section id="hero">
+    <div class="section-inner hero-flex">
+
+      <div class="hero-photo-wrap">
+        <div class="photo-frame">
+          <div class="frame-inner">
+            <img src="hero-photo.jpg" alt="Rebecca smiling" />
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-copy-wrap">
+        <div class="circle-badge">You're<br>Invited</div>
+        <div class="outline-badge">
+          <span class="spark tl">✦</span>
+          <span class="spark br">✦</span>
+          <p class="badge-text">Rebecca<br>Turns 7</p>
+        </div>
+        <button class="seal-btn" aria-label="Scroll to details">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M6 14l6 6 6-6"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ WHEN & WHERE ============ -->
+  <section id="when-where">
+    <div class="section-inner ww-flex">
+
+      <div class="ww-copy">
+        <div class="star-badge">
+          <p class="badge-text">When &amp;<br>Where</p>
+        </div>
+        <p class="ww-details">
+          <span class="ww-date">September 20 | 5 PM</span><br><br>
+          <span class="ww-place">Eateria 27</span><br>
+          <span class="ww-place">2507 Snowbird Lane</span><br>
+          <span class="ww-place">Bellevue, NE 68005</span>
+        </p>
+      </div>
+
+      <div class="ww-photo-wrap">
+        <div class="photo-frame">
+          <div class="frame-inner">
+            <img src="when-where-photo.jpg" alt="Rebecca portrait" />
+          </div>
+        </div>
+        <div class="pennant-tag">
+          <img src="becca-ribbon-badge.png" alt="" />
+          <span class="pennant-label">BECCA</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ DETAILS ============ -->
+  <section id="details">
+    <div class="section-inner">
+      <div class="details-heading-wrap">
+        <div class="outline-badge">
+          <span class="spark tl">✦</span>
+          <span class="spark tr">✦</span>
+          <span class="spark bl">✦</span>
+          <span class="spark br">✦</span>
+          <p class="badge-text">Celebrate<br>with Becca</p>
+        </div>
+      </div>
+
+      <div class="details-grid">
+
+        <div class="details-card">
+          <div class="details-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.2-4.4-9.6-8.9C.9 8.2 2.6 4.5 6 4.5c2 0 3.6 1.1 4.5 2.7.9-1.6 2.5-2.7 4.5-2.7 3.4 0 5.1 3.7 3.6 7.1-2.4 4.5-9.6 8.9-9.6 8.9z"/></svg>
+          </div>
+          <h3>Rebecca's Wishlist</h3>
+          <p><a href="#">Click Here</a></p>
+        </div>
+
+        <div class="details-card">
+          <div class="details-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2a1.8 1.8 0 1 1-1.8 1.8"/><path d="M12 5v2.2"/><path d="M2.5 20l8-6.4a2.3 2.3 0 0 1 3 0l8 6.4"/></svg>
+          </div>
+          <h3>Outfit Suggestions</h3>
+          <p>Make sure you're comfortable. It's going to be an afternoon of games and prizes!</p>
+        </div>
+
+        <div class="details-card">
+          <div class="details-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2 19 20H5L12 3.2z"/><circle cx="12" cy="3.2" r="1.2" fill="currentColor" stroke="none"/><path d="M8.2 14.5h7.6M9.4 17.3h5.2"/></svg>
+          </div>
+          <h3>Party Theme</h3>
+          <p>It's a Pink and White party - Becca's favorite colors!</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ WHAT TO EXPECT ============ -->
+  <section id="expect">
+    <div class="section-inner">
+      <div class="expect-heading-wrap">
+        <img class="ribbon-badge-img" src="what-to-expect-badge.png" alt="What to Expect" />
+      </div>
+
+      <div class="expect-grid">
+
+        <div class="expect-card">
+          <div class="circle-frame">
+            <div class="frame-inner">
+              <img src="expect-photo-snacks.jpg" alt="Snack table" />
+            </div>
+          </div>
+          <h3>Afternoon Snacks<br>and Early Dinner</h3>
+        </div>
+
+        <div class="expect-card">
+          <div class="circle-frame">
+            <div class="frame-inner">
+              <img src="expect-photo-garden.jpg" alt="Face painting in the garden" />
+            </div>
+          </div>
+          <h3>Garden Games<br>and Fun Prizes</h3>
+        </div>
+
+        <div class="expect-card">
+          <div class="circle-frame">
+            <div class="frame-inner">
+              <img src="expect-photo-dancing.jpg" alt="Kids celebrating with streamers" />
+            </div>
+          </div>
+          <h3>Lots of Dancing<br>and Singing</h3>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CONTACT ============ -->
+  <section id="contact">
+    <div class="section-inner contact-flex">
+
+      <div class="contact-left">
+        <div class="star-badge small">
+          <p class="badge-text">Count<br>you in?</p>
+        </div>
+        <div class="photo-frame">
+          <div class="frame-inner">
+            <img src="contact-photo.jpg" alt="Rebecca at the window" />
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-right">
+        <h3 class="rsvp-heading">RSVP</h3>
+        <p class="rsvp-sub">Let us know if you'll be celebrating with Becca!</p>
+
+        <form class="rsvp-form" id="rsvp-form">
+          <label class="rsvp-field">
+            <span>Guest Name</span>
+            <input type="text" name="guest_name" placeholder="Your name" required />
+          </label>
+
+          <div class="rsvp-attend-row" role="group" aria-label="Attending">
+            <button type="button" class="rsvp-attend-btn active" data-attend="yes">Count me in</button>
+            <button type="button" class="rsvp-attend-btn" data-attend="no">Can't make it</button>
+          </div>
+
+          <label class="rsvp-field" id="rsvp-guest-count-field">
+            <span>Number of Guests</span>
+            <input type="number" name="guest_count" min="1" max="10" value="1" />
+          </label>
+
+          <button type="submit" class="rsvp-submit-btn">Send RSVP</button>
+        </form>
+
+        <div class="rsvp-thanks" id="rsvp-thanks" hidden>
+          <p class="rsvp-thanks-title">Yay!</p>
+          <p class="rsvp-thanks-body">Can't wait to celebrate with you!</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer class="credits">Prototype — photos via Pexels, for layout review only.</footer>
+
+  <script>
+    // Client-side only for this static prototype — no backend insert.
+    // Same fields/flow as the real templates' RSVP forms (guest name,
+    // attending toggle, conditional guest count); wire handleRsvpSubmit
+    // up to a real submit (e.g. Supabase `rsvps` insert) when this is
+    // ported into a _designs/*.tsx component.
+    (function () {
+      const form = document.getElementById('rsvp-form');
+      const thanks = document.getElementById('rsvp-thanks');
+      const thanksTitle = thanks.querySelector('.rsvp-thanks-title');
+      const thanksBody = thanks.querySelector('.rsvp-thanks-body');
+      const attendBtns = form.querySelectorAll('.rsvp-attend-btn');
+      const guestCountField = document.getElementById('rsvp-guest-count-field');
+      let attending = 'yes';
+
+      attendBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          attendBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          attending = btn.dataset.attend;
+          guestCountField.hidden = attending !== 'yes';
+        });
+      });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = form.querySelector('[name="guest_name"]').value.trim() || 'friend';
+        form.hidden = true;
+        thanks.hidden = false;
+        if (attending === 'yes') {
+          thanksTitle.textContent = 'Yay!';
+          thanksBody.textContent = "Can't wait to celebrate with you, " + name + "!";
+        } else {
+          thanksTitle.textContent = "We'll miss you";
+          thanksBody.textContent = 'Thanks for letting us know, ' + name + '.';
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>

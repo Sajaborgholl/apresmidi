@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Image as ImageIcon } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
 import { MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { COUNTRY_CODES } from "@/lib/countryCodes";
 
 const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 
@@ -14,6 +15,7 @@ export type CustomizeValues = {
   event_date: string;
   venue_name: string;
   venue_map_url: string;
+  whatsapp_country: string;
   whatsapp_number: string;
 };
 
@@ -23,11 +25,18 @@ export const EMPTY_VALUES: CustomizeValues = {
   event_date: "",
   venue_name: "",
   venue_map_url: "",
+  whatsapp_country: "",
   whatsapp_number: "",
 };
 
-const inputClass =
-  "w-full rounded-xl border-[1.5px] border-black/15 bg-[var(--cream)] px-3.5 py-2.5 text-[14.5px] text-[var(--ink)] outline-none transition focus:border-[var(--blue-dark)] focus:bg-white";
+// No width baked in here — composed with the actual width utility at each
+// call site instead, since a fixed-width field (the country code select)
+// combined with this via a template literal would otherwise have both
+// `w-full` and `w-24` in its class list, an ordering-dependent conflict
+// that isn't guaranteed to resolve to the narrower one.
+const inputFieldClass =
+  "rounded-xl border-[1.5px] border-black/15 bg-[var(--cream)] px-3.5 py-2.5 text-[14.5px] text-[var(--ink)] outline-none transition focus:border-[var(--blue-dark)] focus:bg-white";
+const inputClass = `w-full ${inputFieldClass}`;
 const labelClass = "mb-1.5 block text-[12.5px] font-semibold text-[var(--ink)]/65";
 
 // Renders only the inputs a given template's field manifest (step 1) says
@@ -38,17 +47,23 @@ const labelClass = "mb-1.5 block text-[12.5px] font-semibold text-[var(--ink)]/6
 // submitting this as a normal form keeps working via FormData.
 export default function CustomizeForm({
   fields,
+  category,
   values,
   onValueChange,
   photoPreviews,
   onPhotoChange,
 }: {
   fields: TemplateFieldManifest;
+  category: string;
   values: CustomizeValues;
   onValueChange: (name: keyof CustomizeValues, value: string) => void;
   photoPreviews: (string | undefined)[];
   onPhotoChange: (index: number, file: File | null) => void;
 }) {
+  // Birthdays and bachelorettes are celebrating one person, unlike a
+  // wedding's two hosts — so the field asks for (and previews) a single
+  // name instead of a "Name & Name" pair.
+  const isSingleHost = category === "birthday" || category === "bachelorette";
   // Local to this component — CustomizePanel only needs to know about
   // valid selections (it drives the live preview + the real upload), not
   // rejected ones.
@@ -103,11 +118,11 @@ export default function CustomizeForm({
 
       {fields.host_names && (
         <div>
-          <label className={labelClass}>Host names *</label>
+          <label className={labelClass}>{isSingleHost ? "Host name *" : "Host names *"}</label>
           <input
             name="host_names"
             required
-            placeholder="Sarah & Karim"
+            placeholder={isSingleHost ? "Alex" : "Alex & Jordan"}
             value={values.host_names}
             onChange={(e) => onValueChange("host_names", e.target.value)}
             className={inputClass}
@@ -133,7 +148,7 @@ export default function CustomizeForm({
           <label className={labelClass}>Venue name</label>
           <input
             name="venue_name"
-            placeholder="Merchak Rooftop"
+            placeholder="The Grand Hall"
             value={values.venue_name}
             onChange={(e) => onValueChange("venue_name", e.target.value)}
             className={inputClass}
@@ -158,13 +173,30 @@ export default function CustomizeForm({
       {fields.whatsapp_number && (
         <div>
           <label className={labelClass}>WhatsApp number (for RSVP confirmations)</label>
-          <input
-            name="whatsapp_number"
-            placeholder="+961..."
-            value={values.whatsapp_number}
-            onChange={(e) => onValueChange("whatsapp_number", e.target.value)}
-            className={inputClass}
-          />
+          <div className="flex gap-2">
+            <select
+              name="whatsapp_country"
+              value={values.whatsapp_country}
+              onChange={(e) => onValueChange("whatsapp_country", e.target.value)}
+              className={`w-32 shrink-0 truncate ${inputFieldClass}`}
+              aria-label="Code"
+            >
+              <option value="">+1</option>
+              {COUNTRY_CODES.map((country) => (
+                <option key={country.name} value={country.name}>
+                  {country.name} ({country.dial})
+                </option>
+              ))}
+            </select>
+            <input
+              name="whatsapp_number"
+              placeholder="555 123 4567"
+              value={values.whatsapp_number}
+              onChange={(e) => onValueChange("whatsapp_number", e.target.value)}
+              className={inputClass}
+              aria-label="WhatsApp number"
+            />
+          </div>
         </div>
       )}
 

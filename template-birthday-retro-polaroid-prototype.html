@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Birthday Invite — Retro Polaroid Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,700;0,800;1,400&family=Yellowtail&display=swap" rel="stylesheet" />
+<style>
+  /* Standalone prototype — matches the pattern of the other
+     template-*-prototype.html files in this repo. Vanilla HTML/CSS only,
+     no framework, so it can be reviewed in a browser before being
+     hand-translated into app/i/[slug]/_designs/*.tsx.
+
+     SOURCE: a Canva "Avery's Birthday Party" retro-polaroid invite
+     (A6 card, 105mm x 148mm). Built from the pasted raw DOM/bootstrap
+     JSON (ground truth), not a screenshot — every position/size/rotation
+     below is converted directly from that JSON's rendered pixel values
+     (relative to its 649.155 x 915 render box) into percentages of this
+     card's own box, so it scales to any width while staying true to the
+     source's exact layout.
+
+     FONTS:
+     - "Be Vietnam" (Canva) -> Be Vietnam Pro (Google Fonts). This is
+       the genuine open-source release of the same typeface family, not
+       an approximation — no substitution note needed here.
+     - "Bright Sunshine" (Canva, a paid/library script font, not on
+       Google Fonts) -> Yellowtail stands in for it: closest free bold
+       brush-script available with a similar rounded, connected-cursive
+       weight. Flagging this explicitly so nobody mistakes it for the
+       real thing — same licensing reasoning as the other prototypes in
+       this repo that substitute a Canva-only font.
+
+     ASSETS: the source has 3 raster layers. The polaroid backing card
+     ("LAYER-LAB0409201844LC") and the washi-tape strip ("White Washi
+     Tape") are both real Canva raster assets, not plain shapes CSS
+     should guess at — polaroid-frame.png and washi-tape.png are the
+     exact crops given for those two, each placed independently with its
+     own position/rotation from the source (the card and tape rotate
+     differently in the source, 3.527deg vs ~0deg, which is exactly why
+     having them as separate files instead of one combined crop matters).
+     The third raster layer, the photo itself, is always a placeholder
+     here regardless — it's a stock photo in the source, but photo_urls
+     come from the customer once this is a real template. */
+
+  * { box-sizing: border-box; }
+
+  :root {
+    --ink-orange: #d24e2a;
+    --bg-cream: #efece6;
+    --white: #ffffff;
+    --font-script: 'Yellowtail', cursive;
+    --font-body: 'Be Vietnam Pro', sans-serif;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #d8d4cc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px 64px;
+    font-family: var(--font-body);
+  }
+
+  /* container-type lets every font-size below be expressed in cqw
+     (% of the card's own current width) instead of a fixed px value —
+     so the whole card scales exactly proportionally at any size, the
+     same way the source's own percentage-based text scaling works. */
+  .stage {
+    container-type: inline-size;
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    aspect-ratio: 105 / 148;
+    background: var(--bg-cream);
+    overflow: hidden;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+  }
+
+  .el {
+    position: absolute;
+    display: flex;
+  }
+
+  /* ---------- Background "happy birthday" script rows ---------- */
+
+  .bg-script {
+    align-items: center;
+    justify-content: center;
+    color: var(--ink-orange);
+    font-family: var(--font-script);
+    font-weight: 400;
+    line-height: 1.383;
+    white-space: nowrap;
+    /* 54.2211px is the font-size Canva puts on the <p> itself, but that
+       <p> sits inside a child div carrying its own `transform:
+       scale(2.62127)` — the true rendered size is base * scale
+       (142.128px), not the raw 54.2211px I originally read off the
+       element. Missing this scale factor is why this text rendered
+       visibly smaller than the source; every text block below has the
+       same base*scale correction applied, not just this one. */
+    font-size: calc(142.128 / 649.155 * 100cqw);
+  }
+
+  .bg-script.row-1 { left: -9.180%; top: 18.966%; width: 113.702%; height: 18.379%; transform: rotate(-5.122deg); }
+  .bg-script.row-2 { left: -6.837%; top: 37.489%; width: 113.702%; height: 18.379%; transform: rotate(-5.122deg); }
+  .bg-script.row-3 { left: -4.526%; top: 55.794%; width: 113.702%; height: 18.379%; transform: rotate(-5.122deg); }
+
+  /* ---------- Polaroid photo (exact source assets, placed independently) ----------
+     Both files are now the real full-resolution Canva exports (fetched
+     directly from the URLs in the source's own bootstrap JSON, once a
+     fresh non-expired token was available) rather than small screenshot
+     crops — polaroid-frame.png is 654 x 800 (was a 187 x 256 crop),
+     washi-tape.png is 1600 x 743 (was 90 x 76). Position/rotation still
+     come from the source layout (left 28.093%, top 29.916%, width
+     43.807%, rotate 3.527deg for the frame; left 40.427%, top 26.646%,
+     width 22.629%, rotate ~0deg for the tape) — only the underlying
+     image quality changed, not where either one sits. Each element's own
+     native aspect ratio drives its rendered height (no forced stretch).
+
+     The photo placeholder sits at the exact pixel bounds of THIS file's
+     own black photo-window, re-measured directly from the new asset
+     (left 4.893%, top 6%, width 91.284%, height 72.5% of the frame's own
+     box — different numbers than the old crop's window, because this
+     real export has much thinner borders proportionally), so it still
+     inherits the frame's rotation automatically as a child.
+
+     washi-tape.png is placed as a separate element, after the frame in
+     the DOM, so it paints on top the way it visually overlaps the card's
+     top edge in the source. */
+
+  .polaroid-frame {
+    left: 28.093%;
+    top: 29.916%;
+    width: 43.807%;
+    transform: rotate(3.527deg);
+    transform-origin: center;
+  }
+
+  .polaroid-frame img { width: 100%; height: auto; display: block; }
+
+  .polaroid-photo {
+    position: absolute;
+    left: 4.893%;
+    top: 6%;
+    width: 91.284%;
+    height: 72.5%;
+    overflow: hidden;
+    background: repeating-linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.12) 10px, rgba(255,255,255,0.04) 10px, rgba(255,255,255,0.04) 20px), #000;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.55);
+    font-size: calc(13 / 649.155 * 100cqw);
+    font-weight: 600;
+    padding: 4%;
+  }
+
+  .polaroid-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .washi-tape {
+    left: 40.427%;
+    top: 26.646%;
+    width: 22.629%;
+    transform: rotate(0deg);
+    transform-origin: center;
+    z-index: 1;
+  }
+
+  .washi-tape img { width: 100%; height: auto; display: block; }
+
+  /* ---------- Text blocks ---------- */
+
+  .txt {
+    font-family: var(--font-body);
+    color: var(--ink-orange);
+    text-transform: uppercase;
+    align-items: center;
+    white-space: pre-line;
+  }
+
+  .txt-center { justify-content: center; text-align: center; }
+  .txt-left { justify-content: flex-start; text-align: left; }
+  .txt-right { justify-content: flex-end; text-align: right; }
+
+  /* Every font-size below is base-size * that block's own inner-wrapper
+     scale factor (same correction as .bg-script above — see its
+     comment). Source values, for reference: pretitle/subtitle/rsvp/
+     dresscode are 13.33px * 1.35241; headline is 28px * 1.44968; date is
+     33.33px * 1.38079; address is 14.3441px * 1.35241. */
+
+  .pretitle {
+    left: 29.454%; top: 4.836%; width: 41.090%; height: 2.265%;
+    font-weight: 700;
+    font-size: calc(18.0321 / 649.155 * 100cqw);
+    line-height: 1.05;
+  }
+
+  .subtitle {
+    left: 14.038%; top: 7.325%; width: 71.916%; height: 2.256%;
+    font-weight: 400;
+    font-size: calc(18.0321 / 649.155 * 100cqw);
+    line-height: 1.28;
+  }
+
+  .headline {
+    left: 7.124%; top: 11.303%; width: 85.752%; height: 5.196%;
+    font-weight: 800;
+    font-size: calc(40.591 / 649.155 * 100cqw);
+    line-height: 1.07;
+  }
+
+  .date {
+    left: 7.124%; top: 81.868%; width: 40.837%; height: 5.935%;
+    font-weight: 800;
+    font-size: calc(46.0263 / 649.155 * 100cqw);
+    line-height: 1.08;
+  }
+
+  .address {
+    left: 7.124%; top: 89.799%; width: 48.922%; height: 5.067%;
+    font-weight: 400;
+    font-size: calc(19.3991 / 649.155 * 100cqw);
+    line-height: 1.26;
+  }
+
+  .dresscode {
+    left: 74.199%; top: 84.050%; width: 18.677%; height: 4.788%;
+    font-weight: 800;
+    font-size: calc(18.0322 / 649.155 * 100cqw);
+    line-height: 1.28;
+  }
+
+  /* ---------- Page 2 — RSVP form ----------
+     Not from source data — a second "page" using this template's own
+     palette/type language (--ink-orange, --bg-cream, Be Vietnam Pro) so
+     it reads as part of the same invite rather than a bolted-on form.
+     container-type again drives cqw-based proportional font scaling,
+     matching the technique used on page 1, just tuned by eye instead of
+     against a source pixel canvas since there's no source for this page. */
+
+  .rsvp-page {
+    container-type: inline-size;
+    width: 100%;
+    max-width: 560px;
+    margin: 48px auto 0;
+    background: var(--bg-cream);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+    padding: 14% 12% 16%;
+    text-align: center;
+    font-family: var(--font-body);
+  }
+
+  .rsvp-eyebrow {
+    margin: 0 0 0.4em;
+    color: var(--ink-orange);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: calc(18 / 560 * 100cqw);
+  }
+
+  .rsvp-heading {
+    margin: 0 0 0.3em;
+    color: var(--ink-orange);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: calc(48 / 560 * 100cqw);
+    line-height: 1.05;
+  }
+
+  .rsvp-sub {
+    margin: 0 0 2em;
+    color: var(--ink-orange);
+    opacity: 0.85;
+    font-weight: 400;
+    font-size: calc(16 / 560 * 100cqw);
+    line-height: 1.4;
+  }
+
+  .rsvp-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6em;
+    text-align: left;
+  }
+
+  .rsvp-field { display: flex; flex-direction: column; gap: 0.5em; }
+
+  .rsvp-field span {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--ink-orange);
+    font-size: calc(12 / 560 * 100cqw);
+  }
+
+  .rsvp-field input {
+    border: none;
+    border-bottom: 2px solid rgba(210, 78, 42, 0.25);
+    background: transparent;
+    padding: 0.4em 0.1em 0.6em;
+    font-family: var(--font-body);
+    font-weight: 500;
+    color: var(--ink-orange);
+    font-size: calc(18 / 560 * 100cqw);
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .rsvp-field input:focus { border-bottom-color: var(--ink-orange); }
+  .rsvp-field input::placeholder { color: rgba(210, 78, 42, 0.4); }
+
+  .rsvp-attend-row { display: flex; gap: 0.7em; }
+
+  .rsvp-attend-btn {
+    flex: 1;
+    padding: 0.8em 1em;
+    border-radius: 999px;
+    border: 2px solid var(--ink-orange);
+    background: transparent;
+    color: var(--ink-orange);
+    font-family: var(--font-body);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: calc(13 / 560 * 100cqw);
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  }
+
+  .rsvp-attend-btn.active { background: var(--ink-orange); color: var(--bg-cream); }
+  .rsvp-attend-btn:active { transform: scale(0.97); }
+
+  .rsvp-submit-btn {
+    margin-top: 0.4em;
+    padding: 0.9em 1em;
+    border-radius: 999px;
+    border: none;
+    background: var(--ink-orange);
+    color: var(--bg-cream);
+    font-family: var(--font-body);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: calc(15 / 560 * 100cqw);
+    cursor: pointer;
+    box-shadow: 0 10px 20px rgba(210, 78, 42, 0.3);
+    transition: transform 0.15s ease;
+  }
+
+  .rsvp-submit-btn:hover { transform: translateY(-1px); }
+  .rsvp-submit-btn:active { transform: translateY(0) scale(0.98); }
+
+  .rsvp-thanks-title {
+    margin: 0 0 0.3em;
+    color: var(--ink-orange);
+    font-weight: 800;
+    text-transform: uppercase;
+    font-size: calc(32 / 560 * 100cqw);
+  }
+
+  .rsvp-thanks-body {
+    margin: 0;
+    color: var(--ink-orange);
+    opacity: 0.85;
+    font-size: calc(16 / 560 * 100cqw);
+    line-height: 1.4;
+  }
+
+  @media (max-width: 480px) {
+    .rsvp-page { padding: 18% 8% 20%; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="stage">
+
+    <div class="el bg-script row-1">happy birthday</div>
+    <div class="el bg-script row-2">happy birthday</div>
+    <div class="el bg-script row-3">happy birthday</div>
+
+    <div class="el polaroid-frame">
+      <img src="polaroid-frame.png" alt="" aria-hidden="true" />
+      <div class="polaroid-photo" data-image-slot="hero-photo">
+        <span>Photo placeholder</span>
+      </div>
+    </div>
+    <div class="el washi-tape">
+      <img src="washi-tape.png" alt="" aria-hidden="true" />
+    </div>
+
+    <div class="el txt txt-center pretitle">Hello, Olivia!</div>
+    <div class="el txt txt-center subtitle">you are invited to have a fun celebration at</div>
+    <div class="el txt txt-center headline">Avery&rsquo;s birthday party</div>
+
+    <div class="el txt txt-left date">29.01.2030</div>
+    <div class="el txt txt-left address">Start at 9 pm
+123 Anywhere St., Any City</div>
+
+    <div class="el txt txt-right dresscode">dresscode: chic retro</div>
+
+  </div>
+
+  <!-- ============ PAGE 2 — RSVP ============
+       Not part of the source Canva design (that was a single A6 card) —
+       a second page for the RSVP form every template in this app needs,
+       styled with the same palette/type/spacing language as page 1
+       (--ink-orange, --bg-cream, Be Vietnam Pro) rather than pixel-matched
+       to any source data, since there's no source for it. Same form
+       fields/interaction pattern as every other template's RSVP section
+       (guest name, attending toggle, conditional guest count, submit ->
+       thank-you swap) — see BirthdayCreamPink's RSVP for the reference
+       this was restyled from. -->
+
+  <div class="rsvp-page">
+    <p class="rsvp-eyebrow">One more thing</p>
+    <h2 class="rsvp-heading">RSVP</h2>
+    <p class="rsvp-sub">Let us know if you&rsquo;ll be celebrating with Avery!</p>
+
+    <form class="rsvp-form" id="rsvp-form">
+      <label class="rsvp-field">
+        <span>Guest Name</span>
+        <input type="text" name="guest_name" placeholder="Your name" required />
+      </label>
+
+      <div class="rsvp-attend-row" role="group" aria-label="Attending">
+        <button type="button" class="rsvp-attend-btn active" data-attend="yes">Count me in</button>
+        <button type="button" class="rsvp-attend-btn" data-attend="no">Can&rsquo;t make it</button>
+      </div>
+
+      <label class="rsvp-field" id="rsvp-guest-count-field">
+        <span>Number of Guests</span>
+        <input type="number" name="guest_count" min="1" max="10" value="1" />
+      </label>
+
+      <button type="submit" class="rsvp-submit-btn">Send RSVP</button>
+    </form>
+
+    <div class="rsvp-thanks" id="rsvp-thanks" hidden>
+      <p class="rsvp-thanks-title">Yay!</p>
+      <p class="rsvp-thanks-body">Can&rsquo;t wait to celebrate with you!</p>
+    </div>
+  </div>
+
+  <script>
+    // Client-side only for this static prototype — no backend insert.
+    // Same fields/flow as the real templates' RSVP forms; wire up to a
+    // real submit (e.g. Supabase `rsvps` insert) once this is ported
+    // into a _designs/*.tsx component.
+    (function () {
+      const form = document.getElementById('rsvp-form');
+      const thanks = document.getElementById('rsvp-thanks');
+      const thanksTitle = thanks.querySelector('.rsvp-thanks-title');
+      const thanksBody = thanks.querySelector('.rsvp-thanks-body');
+      const attendBtns = form.querySelectorAll('.rsvp-attend-btn');
+      const guestCountField = document.getElementById('rsvp-guest-count-field');
+      let attending = 'yes';
+
+      attendBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          attendBtns.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          attending = btn.dataset.attend;
+          guestCountField.hidden = attending !== 'yes';
+        });
+      });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = form.querySelector('[name="guest_name"]').value.trim() || 'friend';
+        form.hidden = true;
+        thanks.hidden = false;
+        if (attending === 'yes') {
+          thanksTitle.textContent = 'Yay!';
+          thanksBody.textContent = "Can't wait to celebrate with you, " + name + "!";
+        } else {
+          thanksTitle.textContent = "We'll miss you";
+          thanksBody.textContent = 'Thanks for letting us know, ' + name + '.';
+        }
+      });
+    })();
+  </script>
+
+</body>
+</html>

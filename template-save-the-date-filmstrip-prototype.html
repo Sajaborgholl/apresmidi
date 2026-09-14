@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Save the Date — Film Strip Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  /* Standalone prototype — matches the pattern of the other
+     template-*-prototype.html files in this repo. Recreates the exact
+     layout of a Canva design ("Red and Black Polaroid Save the Date
+     Invitation", A6, 669.02x943px canvas) using the precise element
+     positions/sizes/rotations from that design's own page data, refined
+     against a rendered reference screenshot for font weight/wrap/photo
+     styling.
+
+     Deliberately NOT included, on purpose: the original's actual stock
+     photos, its "White Paper Background" (a Canva Pro / STANDARD-licensed
+     asset), and its font ("Biro Script Plus", hotlinked from Canva's own
+     font CDN). Those are Canva-platform-licensed assets — the same category
+     of thing already flagged elsewhere in this codebase (see the "BD
+     Script" note in WeddingClassic.tsx/globals.css) as needing its own
+     license before shipping in a separate commercial product. Photo frames
+     use an original illustrated placeholder (inline SVG silhouettes over a
+     photographic-toned gradient) instead of hotlinked/fetched photos, so
+     there's no dependency on someone else's image rights or a live network
+     fetch — swap in real photos later the same way every other template
+     in this app takes `invite.photo_urls`. "Kalam" (Google Fonts) stands
+     in for "Biro Script Plus" — its bold weight has the same thick,
+     organic "ballpoint/brush" quality as the reference.
+
+     Positions are expressed as container-query units (cqw/cqh) of the
+     669.02x943 card, computed directly from the source design's own
+     translate/rotate/width/height values — not eyeballed. */
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #EAE3D6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+
+  .card {
+    position: relative;
+    width: 100%;
+    max-width: 460px;
+    aspect-ratio: 669.02 / 943;
+    container-type: size;
+    background: #FAF6EE;
+    background-image:
+      radial-gradient(circle at 15% 10%, rgba(0,0,0,0.03), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(0,0,0,0.03), transparent 45%);
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.25), 0 4px 10px rgba(0,0,0,0.15);
+  }
+
+  /* ---------- Film strip photo collage ----------
+     Source: translate(3.986px, -130.273px) rotate(-3.69883deg),
+     width 234.609px, height 1255.74px, on a 669.02x943 canvas. */
+
+  .filmstrip {
+    position: absolute;
+    left: 0.6cqw;
+    top: -13.81cqh;
+    width: 35.07cqw;
+    height: 133.16cqh;
+    transform: rotate(-3.69883deg);
+    transform-origin: center;
+    background: #161616;
+    padding: 1% 15%;
+    display: flex;
+    flex-direction: column;
+    gap: 1%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  }
+
+  /* Sprocket-hole perforations along both edges — drawn with a repeating
+     radial-gradient, no image asset needed. */
+  .filmstrip::before,
+  .filmstrip::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 15%;
+    background-image: radial-gradient(circle, #FAF6EE 34%, transparent 36%);
+    background-size: 100% 6%;
+    background-position: center;
+  }
+  .filmstrip::before { left: 0; }
+  .filmstrip::after { right: 0; }
+
+  /* Photo-style placeholder: a soft photographic-toned gradient plus a
+     simple two-person silhouette, standing in for a real engagement
+     photo. Each frame gets a slightly different tone for the same
+     "different snapshot" variety a real photo strip would have. */
+
+  .frame {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(160deg, #cfd9c3, #8a9a7a 60%, #5f6e52);
+  }
+  .frame:nth-child(2) { background: linear-gradient(160deg, #e2cdb8, #b98f6a 60%, #8a6547); }
+  .frame:nth-child(3) { background: linear-gradient(160deg, #cbd6df, #7d97a8 60%, #526779); }
+  .frame:nth-child(4) { background: linear-gradient(160deg, #e6d9c2, #c2a877 60%, #8f7443); }
+  .frame:nth-child(5) { background: linear-gradient(160deg, #d8cdd9, #a488a8 60%, #705a75); }
+
+  .frame svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 68%;
+    height: 68%;
+    opacity: 0.9;
+  }
+
+  /* ---------- Diagonal red headline ----------
+     Source: translate(138.175px, 116.694px) rotate(-17.8389deg),
+     width 561.88px, height 425.691px, color #bd0605, text-align center.
+     Forced line breaks (rather than natural wrap) to match the reference
+     render's one-word-per-line stacking exactly. */
+
+  .headline {
+    position: absolute;
+    left: 20.65cqw;
+    top: 12.37cqh;
+    width: 84cqw;
+    height: 45.14cqh;
+    margin: 0;
+    font-family: 'Kalam', cursive;
+    font-weight: 700;
+    font-size: 15.5cqw;
+    line-height: 1.05;
+    color: #BD0605;
+    text-align: center;
+    transform: rotate(-17.8389deg);
+    transform-origin: center;
+  }
+
+  /* ---------- Date ----------
+     Source: translate(278.856px, 593.115px), width 348.734px,
+     height 84.0851px, color #000, text-align center. */
+
+  .date {
+    position: absolute;
+    left: 41.68cqw;
+    top: 62.9cqh;
+    width: 52.13cqw;
+    height: 8.92cqh;
+    margin: 0;
+    font-family: 'Kalam', cursive;
+    font-weight: 700;
+    font-size: 9.5cqw;
+    line-height: 1.04;
+    color: #000;
+    text-align: center;
+  }
+
+  /* ---------- Announcement block ----------
+     Source: translate(265.954px, 689.726px), width 374.537px,
+     height 150.192px, color #000, text-align center. */
+
+  .announce {
+    position: absolute;
+    left: 39.75cqw;
+    top: 73.14cqh;
+    width: 55.98cqw;
+    height: 15.93cqh;
+    font-family: 'Kalam', cursive;
+    font-weight: 400;
+    color: #000;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  .announce p {
+    margin: 0;
+    font-size: 6.4cqw;
+  }
+
+  .announce .names {
+    font-weight: 700;
+  }
+
+  /* ---------- Caption ----------
+     Source: translate(365.335px, 872.912px), width 175.776px,
+     height 25.8027px, color #000, text-align center. */
+
+  .caption {
+    position: absolute;
+    left: 54.6cqw;
+    top: 92.56cqh;
+    width: 26.27cqw;
+    height: 2.74cqh;
+    margin: 0;
+    font-family: 'Kalam', cursive;
+    font-weight: 400;
+    font-size: 3.1cqw;
+    color: #000;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="filmstrip">
+    <div class="frame">
+      <svg viewBox="0 0 100 90" aria-hidden="true"><circle cx="34" cy="24" r="16" fill="#00000055"/><circle cx="66" cy="30" r="14" fill="#00000055"/><path d="M6,90 C6,58 20,48 34,48 C48,48 54,58 54,90 Z" fill="#00000055"/><path d="M42,90 C42,62 54,52 66,52 C82,52 96,62 96,90 Z" fill="#00000055"/></svg>
+    </div>
+    <div class="frame">
+      <svg viewBox="0 0 100 90" aria-hidden="true"><circle cx="34" cy="24" r="16" fill="#00000055"/><circle cx="66" cy="30" r="14" fill="#00000055"/><path d="M6,90 C6,58 20,48 34,48 C48,48 54,58 54,90 Z" fill="#00000055"/><path d="M42,90 C42,62 54,52 66,52 C82,52 96,62 96,90 Z" fill="#00000055"/></svg>
+    </div>
+    <div class="frame">
+      <svg viewBox="0 0 100 90" aria-hidden="true"><circle cx="34" cy="24" r="16" fill="#00000055"/><circle cx="66" cy="30" r="14" fill="#00000055"/><path d="M6,90 C6,58 20,48 34,48 C48,48 54,58 54,90 Z" fill="#00000055"/><path d="M42,90 C42,62 54,52 66,52 C82,52 96,62 96,90 Z" fill="#00000055"/></svg>
+    </div>
+    <div class="frame">
+      <svg viewBox="0 0 100 90" aria-hidden="true"><circle cx="34" cy="24" r="16" fill="#00000055"/><circle cx="66" cy="30" r="14" fill="#00000055"/><path d="M6,90 C6,58 20,48 34,48 C48,48 54,58 54,90 Z" fill="#00000055"/><path d="M42,90 C42,62 54,52 66,52 C82,52 96,62 96,90 Z" fill="#00000055"/></svg>
+    </div>
+    <div class="frame">
+      <svg viewBox="0 0 100 90" aria-hidden="true"><circle cx="34" cy="24" r="16" fill="#00000055"/><circle cx="66" cy="30" r="14" fill="#00000055"/><path d="M6,90 C6,58 20,48 34,48 C48,48 54,58 54,90 Z" fill="#00000055"/><path d="M42,90 C42,62 54,52 66,52 C82,52 96,62 96,90 Z" fill="#00000055"/></svg>
+    </div>
+  </div>
+
+  <h1 class="headline">we're<br>getting<br>married!</h1>
+
+  <p class="date">06.30.25</p>
+
+  <div class="announce">
+    <p>Save the date for</p>
+    <p class="names">OLIVIA &amp; CHAD'S</p>
+    <p>wedding day</p>
+  </div>
+
+  <p class="caption">Invitation to follow.</p>
+</div>
+
+</body>
+</html>

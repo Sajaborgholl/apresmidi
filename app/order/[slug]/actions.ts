@@ -7,7 +7,8 @@ import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 import { sendInviteReadyEmail } from "@/lib/email";
 import { createWhishPayment } from "@/lib/whish";
-import { MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { buildWhatsappNumber, MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { dialCodeForCountry } from "@/lib/countryCodes";
 
 const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 
@@ -40,7 +41,11 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
   const eventDate = String(formData.get("event_date") ?? "").trim();
   const venueName = String(formData.get("venue_name") ?? "").trim();
   const venueMapUrl = String(formData.get("venue_map_url") ?? "").trim();
-  const whatsappNumber = String(formData.get("whatsapp_number") ?? "").trim();
+  const whatsappCountry = String(formData.get("whatsapp_country") ?? "").trim();
+  const whatsappNumber = buildWhatsappNumber(
+    dialCodeForCountry(whatsappCountry),
+    String(formData.get("whatsapp_number") ?? "")
+  );
 
   if (!hostNames) {
     throw new Error("Host names are required.");
@@ -124,7 +129,7 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
     event_date: eventDate || null,
     venue_name: venueName || null,
     venue_map_url: venueMapUrl || null,
-    whatsapp_number: whatsappNumber || null,
+    whatsapp_number: whatsappNumber,
     photo_urls: photoUrls.length > 0 ? photoUrls : null,
     status: "draft",
   });
