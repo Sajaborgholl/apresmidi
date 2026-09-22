@@ -11,6 +11,7 @@ import Pricing from "./_components/Pricing";
 import FeatureShowcase from "./_components/FeatureShowcase";
 import TypewriterText from "./_components/TypewriterText";
 import RequestCategorySection from "./_components/RequestCategorySection";
+import EnvelopeScrollHero from "./_components/EnvelopeScrollHero";
 
 export const dynamic = "force-dynamic";
 
@@ -113,7 +114,7 @@ export default async function Home() {
 
   return (
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
-      <nav className="flex items-center justify-between px-6 md:px-12 py-5">
+      <nav className="site-nav flex items-center justify-between px-6 md:px-12 py-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="Après-midi" className="h-8 w-auto" />
         <div className="hidden md:flex gap-8 text-sm font-medium">
@@ -132,6 +133,8 @@ export default async function Home() {
           Browse templates
         </a>
       </nav>
+
+      <EnvelopeScrollHero />
 
       <section className="relative px-6 md:px-12 pt-8 pb-20 overflow-hidden">
         <h1 className="display font-bold leading-[0.85] tracking-tight select-none" style={{ fontSize: "clamp(3rem,10vw,9rem)" }}>

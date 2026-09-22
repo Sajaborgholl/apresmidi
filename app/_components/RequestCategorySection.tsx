@@ -22,12 +22,18 @@ import Reveal from "./Reveal";
 //     design px) because their tiles differ, but all three are 3.6355% of
 //     their own tile's width.
 //
-// Font substitutes (none of the source's fonts are on Google Fonts):
-//   - "Helvetica World" (headline/captions) -> Helvetica, Arial (system).
-//   - "Times New Roman MT Condensed" (italic subhead) -> plain Times New
-//     Roman — not condensed, since no condensed cut is a system font.
-//   - "HK Grotesk Pro" ("Get Premium" label) -> Poppins, already loaded.
-// The eyebrow line is Inter 400 by explicit request, not a source match.
+// Typography is deliberately NOT a match for the source here. The site is
+// held to three faces — Space Grotesk, Inter, Caveat — so the source's own
+// fonts are mapped onto that palette by role rather than by appearance:
+//   - "Helvetica World" headline      -> Space Grotesk 700 (site display face)
+//   - "Helvetica World" captions      -> Inter (site body face)
+//   - "Times New Roman MT Condensed"  -> Caveat (site expressive face)
+//   - "HK Grotesk Pro" button label   -> Inter 500 (matches site buttons)
+//   - eyebrow                         -> Inter 400
+// Consequence: text widths no longer match the source's, so the geometry
+// below (which is still source-exact) and the type no longer line up as
+// tightly as they did — most visibly where the blue badge sits under the
+// eyebrow. Everything else — positions, photo boxes, assets — is unchanged.
 
 const ASSETS = "/homepage/request-category";
 
@@ -135,7 +141,7 @@ const CSS = `
   left: 3.1992%;
   width: 27.4735%;
   text-align: center;
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: Inter, sans-serif;
   font-weight: 700;
   font-size: 3.6355cqw;
   line-height: 1.27;
@@ -173,7 +179,7 @@ const CSS = `
   left: 0;
   width: 100%;
   text-align: center;
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: Inter, sans-serif;
   font-weight: 400;
   font-size: 12.727cqw;
   line-height: 1.35;
@@ -192,9 +198,13 @@ const CSS = `
 .rc-blue-badge { width: 100%; height: 100%; object-fit: fill; display: block; }
 
 .rc-eyebrow, .rc-headline, .rc-subhead { text-align: center; margin: 0; color: #000; line-height: 1.2; }
-.rc-eyebrow { font-family: Inter, Helvetica, Arial, sans-serif; font-weight: 400; letter-spacing: -0.03em; font-size: calc(26.667 / 1366 * 100cqw); }
-.rc-headline { font-family: Helvetica, Arial, sans-serif; font-weight: 700; letter-spacing: -0.03em; font-size: calc(101.311 / 1366 * 100cqw); }
-.rc-subhead { font-family: "Times New Roman", Times, serif; font-style: italic; font-size: calc(93.333 / 1366 * 100cqw); }
+.rc-eyebrow { font-family: Inter, sans-serif; font-weight: 400; letter-spacing: -0.03em; font-size: calc(26.667 / 1366 * 100cqw); }
+.rc-headline { font-family: "Space Grotesk", sans-serif; font-weight: 700; letter-spacing: -0.03em; font-size: calc(101.311 / 1366 * 100cqw); }
+/* Caveat carries the expressive line the source set in Times italic. No
+   font-style: italic — Caveat has no true italic and a synthesised oblique
+   on a handwriting face looks wrong; it already slants. This also matches
+   the mobile fallback below, which was always .script/Caveat. */
+.rc-subhead { font-family: Caveat, cursive; font-weight: 700; font-size: calc(93.333 / 1366 * 100cqw); }
 
 .rc-cursor-icon, .rc-arrow-icon { width: 100%; height: 100%; object-fit: contain; display: block; }
 
@@ -220,7 +230,7 @@ const CSS = `
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: Poppins, Helvetica, Arial, sans-serif;
+  font-family: Inter, sans-serif;
   font-weight: 500;
   color: #fff;
   font-size: calc(21.333 / 1366 * 100cqw);

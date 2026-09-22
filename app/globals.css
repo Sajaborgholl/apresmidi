@@ -204,5 +204,75 @@
 body {
   background: var(--cream);
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, sans-serif;
+}
+
+/* ---------------------------------------------------------------------------
+   Scroll-scrubbed envelope hero — see app/_components/EnvelopeScrollHero.tsx.
+
+   --envelope-scroll-height is the scrub speed dial: it is how much scroll the
+   whole clip is spread over, so a smaller value runs the envelope open in
+   less scrolling. Nothing else needs to change with it.
+
+   The scroll layout is the default. Static mode — a single screen showing one
+   still frame of the opened envelope — is reached by redefining the two
+   --envelope-* switches below, and nothing else. Two places do that: the
+   reduced-motion query at the bottom of this block, and the <noscript> style
+   in the component (without JS there is nothing to drive all that scroll).
+   Keep those two in sync.
+--------------------------------------------------------------------------- */
+.envelope-hero {
+  --envelope-scroll-height: 700vh;
+
+  --envelope-height: var(--envelope-scroll-height);
+  --envelope-stage-position: sticky;
+
+  position: relative;
+  height: var(--envelope-height);
+  background: var(--ink);
+}
+
+.envelope-stage {
+  position: var(--envelope-stage-position);
+  top: 0;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.envelope-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Phones: less scroll to get through the whole sequence. */
+@media (max-width: 599px) {
+  .envelope-hero {
+    --envelope-scroll-height: 480vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .envelope-hero {
+    --envelope-height: 100svh;
+    --envelope-stage-position: static;
+  }
+}
+
+/* Homepage nav. Fixed rather than sticky for two reasons: it floats over the
+   envelope hero as a blurred pane rather than sitting in a band above it,
+   and taking it out of flow puts the hero's top edge at the document top —
+   which is what lets the scroll scrub start on the very first pixel of
+   scroll instead of after the nav's height. Background stays fully
+   transparent; the only treatment is the backdrop blur. */
+.site-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: transparent;
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }

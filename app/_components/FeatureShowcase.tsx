@@ -39,7 +39,7 @@ const TILES = [
   {
     Icon: Images,
     label: "Add your photos",
-    copy: "Upload up to three photos and see them in the design instantly.",
+    copy: "Upload up to six photos and see them in the design instantly.",
     bg: "var(--blue)",
     iconBg: "#fff",
     iconColor: "var(--ink)",
@@ -96,7 +96,7 @@ export default function FeatureShowcase() {
             <div className="p-6">
               <p className="font-semibold">Watch RSVPs roll in</p>
               <p className="mt-1 text-[13.5px] opacity-70">
-                A private dashboard that updates itself — accepted, declined, and total responses, live.
+                Private to you — accepted, declined, and total responses, live.
               </p>
             </div>
           </div>

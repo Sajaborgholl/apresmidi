@@ -16,8 +16,8 @@ type Step = {
 const STEPS: Step[] = [
   {
     title: ["Pick a", "Template"],
-    body: "Browse wedding, birthday, and baptism designs, and pick the one that matches your event.",
-    tags: ["Wedding", "Birthday", "Baptism", "Bachelorette"],
+    body: "Browse wedding, birthday, and bachelorette designs, and pick the one that matches your event.",
+    tags: ["Wedding", "Birthday", "Bachelorette"],
     bg: "var(--ink)",
     fg: "var(--cream)",
     tagBg: "rgba(255,255,255,0.14)",
