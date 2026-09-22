@@ -68,6 +68,12 @@ const SEEK_EPSILON = 1 / 60;
 // dropped completion event does not strand the scrub for a visible beat.
 const SEEK_WATCHDOG_MS = 400;
 
+// How long the in-memory copy gets to produce a frame before the plain URL is
+// used instead. Long enough to decode a first frame on a slow phone, short
+// enough that a browser which quietly refuses blob: media does not leave the
+// section stuck on its poster.
+const BLOB_SOURCE_TIMEOUT_MS = 4000;
+
 // The static layout, as the two --envelope-* switches globals.css defines.
 // This is the no-JS fallback; the prefers-reduced-motion copy of it lives in
 // globals.css, and the two must stay in sync.
@@ -238,6 +244,8 @@ export default function EnvelopeScrollHero() {
       unlocked = true;
       const done = () => {
         video.pause();
+        // Safe before bindScrub: render() no-ops until there is a decoded
+        // frame, and bindScrub does its own initial onScroll once there is.
         onScroll();
       };
       const started = video.play();
@@ -245,13 +253,26 @@ export default function EnvelopeScrollHero() {
       else done();
     };
 
+    // Armed as soon as the section mounts, NOT from bindScrub. iOS may decline
+    // to load media at all until a user gesture, and bindScrub only runs once
+    // loadeddata has fired — so arming the unlock there is a deadlock: no load
+    // without a gesture, no gesture handler without a load, and the phone sits
+    // on the poster forever. These listeners are idempotent and self-removing.
+    const armUnlock = () => {
+      window.addEventListener("touchstart", unlock, { passive: true, once: true });
+      window.addEventListener("pointerdown", unlock, { passive: true, once: true });
+    };
+
+    const disarmUnlock = () => {
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("pointerdown", unlock);
+    };
+
     const bindScrub = () => {
       if (bound) return;
       bound = true;
       measure();
       onScroll();
-      window.addEventListener("touchstart", unlock, { passive: true, once: true });
-      window.addEventListener("pointerdown", unlock, { passive: true, once: true });
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onResize);
       window.addEventListener("orientationchange", onResize);
@@ -267,8 +288,6 @@ export default function EnvelopeScrollHero() {
       if (!bound) return;
       bound = false;
       window.clearTimeout(resizeTimer);
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);
@@ -306,6 +325,11 @@ export default function EnvelopeScrollHero() {
         const blob = await response.blob();
         if (controller.signal.aborted) return;
         objectUrl = URL.createObjectURL(blob);
+        // Safari is the weak spot for blob: on a media element — it can accept
+        // the assignment and then never produce a frame. The fetch already
+        // succeeded by this point, so its catch below cannot see that; the
+        // error listener installed with the source is what recovers.
+        swapToStreamingOnFailure();
         video.src = objectUrl;
       } catch {
         if (controller.signal.aborted) return;
@@ -321,9 +345,35 @@ export default function EnvelopeScrollHero() {
       video.src = VIDEO_SRC;
     };
 
+    // Blob source did not come up: drop to the plain URL, which every browser
+    // can play. Scrubbing over the network is coarser, but a coarse envelope
+    // beats a poster that never moves. Fires on an explicit media error, or on
+    // a timeout for the browsers that simply go quiet.
+    let swapped = false;
+    let blobTimer: number | undefined;
+    const swapToStreaming = () => {
+      if (swapped || controller.signal.aborted) return;
+      if (video.readyState >= 2) return;
+      swapped = true;
+      window.clearTimeout(blobTimer);
+      video.removeEventListener("error", swapToStreaming);
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        objectUrl = null;
+      }
+      video.src = VIDEO_SRC;
+      video.load();
+    };
+
+    const swapToStreamingOnFailure = () => {
+      video.addEventListener("error", swapToStreaming);
+      blobTimer = window.setTimeout(swapToStreaming, BLOB_SOURCE_TIMEOUT_MS);
+    };
+
     const applyMode = () => {
       if (reduceMotion.matches) {
         unbindScrub();
+        disarmUnlock();
         video.removeEventListener("loadeddata", onLoadedData);
         // One still frame needs one range request, not the whole file.
         attachStreamingSource();
@@ -331,6 +381,7 @@ export default function EnvelopeScrollHero() {
         return;
       }
       video.addEventListener("loadeddata", onLoadedData);
+      armUnlock();
       if (video.readyState >= 2) bindScrub();
       void attachBufferedSource();
     };
@@ -344,7 +395,10 @@ export default function EnvelopeScrollHero() {
       reduceMotion.removeEventListener("change", applyMode);
       video.removeEventListener("loadeddata", onLoadedData);
       video.removeEventListener("seeked", onSeeked);
+      video.removeEventListener("error", swapToStreaming);
+      window.clearTimeout(blobTimer);
       disarm();
+      disarmUnlock();
       unbindScrub();
     };
   }, []);

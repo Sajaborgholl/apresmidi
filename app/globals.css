@@ -51,15 +51,6 @@
   scrollbar-width: none;
 }
 
-@keyframes floaty {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-
-.float {
-  animation: floaty 4s ease-in-out infinite;
-}
-
 .reveal {
   opacity: 0;
   transform: translateY(28px);
@@ -88,10 +79,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .float {
-    animation: none;
-  }
-
   .reveal {
     opacity: 1;
     transform: none;

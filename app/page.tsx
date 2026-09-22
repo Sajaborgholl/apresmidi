@@ -99,11 +99,6 @@ export default async function Home() {
     demoSlug: demoSlugByTemplateId[t.id] ?? null,
   }));
 
-  const { count: liveInviteCount } = await supabaseAdmin
-    .from("invites")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "live");
-
   const { data: recentInvitesRaw } = await supabaseAdmin
     .from("invites")
     .select("slug, host_names, event_date, templates(name)")
@@ -160,16 +155,6 @@ export default async function Home() {
 
         <div className="mt-10">
           <HeroCarousel templates={carouselTemplates} />
-
-          <div
-            className="float mt-4 flex max-w-xs flex-col justify-between rounded-2xl p-4 md:p-5"
-            style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
-          >
-            <span className="text-xs font-medium" style={{ color: "var(--blue-dark)" }}>Live now</span>
-            <span className="display font-bold text-2xl">
-              {liveInviteCount ?? 0} invite{(liveInviteCount ?? 0) === 1 ? "" : "s"} sent
-            </span>
-          </div>
         </div>
         </section>
 
