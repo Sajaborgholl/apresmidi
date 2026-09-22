@@ -123,6 +123,7 @@ export default function EnvelopeScrollHero() {
     let seekInFlight = false;
     let watchdog: number | undefined;
     let frameHandle: number | undefined;
+    let seekGen = 0;
 
     const useRvfc = typeof video.requestVideoFrameCallback === "function";
 
@@ -139,7 +140,12 @@ export default function EnvelopeScrollHero() {
     // flushSeek can stay an arrow: TypeScript drops the outer null-narrowing of
     // `video` inside a function declaration (it could be called before the
     // guard ran), and flushSeek is the half that touches it.
-    function settle() {
+    // gen is the seek a completion belongs to. Several signals can report the
+    // same seek, and `seeked` is a persistent listener that can arrive a seek
+    // late — unguarded, that stale call would disarm the seek now in flight and
+    // drop its frame.
+    function settle(gen: number) {
+      if (gen !== seekGen) return;
       disarm();
       seekInFlight = false;
       flushSeek();
@@ -156,16 +162,21 @@ export default function EnvelopeScrollHero() {
         seekInFlight = false;
         return;
       }
+      disarm();
+      const gen = ++seekGen;
       seekInFlight = true;
       video.currentTime = t;
-      disarm();
-      if (useRvfc) frameHandle = video.requestVideoFrameCallback(() => settle());
-      watchdog = window.setTimeout(settle, SEEK_WATCHDOG_MS);
+      if (useRvfc) frameHandle = video.requestVideoFrameCallback(() => settle(gen));
+      watchdog = window.setTimeout(() => settle(gen), SEEK_WATCHDOG_MS);
     };
 
-    const onSeeked = () => {
-      if (!useRvfc) settle();
-    };
+    // Whichever completion arrives first wins. rVFC is the accurate one, but
+    // Safari has not reliably fired it for a *paused* element, and this video
+    // is never played — so `seeked` stays armed everywhere instead of only
+    // standing in where rVFC is missing. Trusting rVFC alone would mean that,
+    // wherever it stays silent, only the watchdog frees the slot and the scrub
+    // crawls at one frame per SEEK_WATCHDOG_MS.
+    const onSeeked = () => settle(seekGen);
     video.addEventListener("seeked", onSeeked);
 
     const render = (p: number) => {
@@ -208,11 +219,33 @@ export default function EnvelopeScrollHero() {
       }, 150);
     };
 
+    // iOS Safari will not paint a frame for a <video> that has never played:
+    // currentTime writes are accepted and readyState climbs, but the element
+    // goes on showing the poster, so the section looks like a still image that
+    // ignores scrolling. One muted play()/pause() unlocks decoding for the rest
+    // of the page. It only counts inside a real user gesture — called on load
+    // it is rejected — so it is armed on the first touch, and re-renders
+    // afterwards because play() moves currentTime off the scrubbed frame.
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      const done = () => {
+        video.pause();
+        onScroll();
+      };
+      const started = video.play();
+      if (started && typeof started.then === "function") started.then(done).catch(() => {});
+      else done();
+    };
+
     const bindScrub = () => {
       if (bound) return;
       bound = true;
       measure();
       onScroll();
+      window.addEventListener("touchstart", unlock, { passive: true, once: true });
+      window.addEventListener("pointerdown", unlock, { passive: true, once: true });
       window.addEventListener("scroll", onScroll, { passive: true });
       window.addEventListener("resize", onResize);
       window.addEventListener("orientationchange", onResize);
@@ -228,6 +261,8 @@ export default function EnvelopeScrollHero() {
       if (!bound) return;
       bound = false;
       window.clearTimeout(resizeTimer);
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("pointerdown", unlock);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("orientationchange", onResize);

@@ -227,6 +227,10 @@ body {
   --envelope-height: var(--envelope-scroll-height);
   --envelope-stage-position: sticky;
 
+  /* How tall the picture is inside the stage. Full bleed on wide screens; a
+     portrait phone has to shrink it — see the media query below. */
+  --envelope-video-height: 100%;
+
   position: relative;
   height: var(--envelope-height);
   background: var(--ink);
@@ -237,19 +241,34 @@ body {
   top: 0;
   height: 100svh;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .envelope-video {
   display: block;
   width: 100%;
-  height: 100%;
+  height: var(--envelope-video-height);
   object-fit: cover;
 }
 
-/* Phones: less scroll to get through the whole sequence. */
+/* Phones: less scroll to get through the whole sequence, and a shorter
+   picture.
+
+   The clip is 16:9 and the envelope sits in the middle ~30% of it, so
+   object-fit: cover on a portrait screen binds on height: it scales the
+   1280x720 frame up until it is as tall as the viewport, then shows only the
+   middle 333px of its width — 26% of the picture, a 3.8x blow-up that cuts
+   both edges off the envelope. Cropping the file would not help, because cover
+   would still bind on height and show the same middle strip; shrinking the
+   picture is what widens it. At 60svh, 555px of the frame fit across, which
+   holds the whole envelope with room to spare. The stage stays 100svh so the
+   scroll geometry is untouched, and the ink background reads as letterboxing. */
 @media (max-width: 599px) {
   .envelope-hero {
     --envelope-scroll-height: 480vh;
+    --envelope-video-height: 60svh;
   }
 }
 
