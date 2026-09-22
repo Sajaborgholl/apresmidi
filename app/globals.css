@@ -283,20 +283,53 @@ body {
 }
 
 @media (max-width: 599px) and (prefers-reduced-motion: no-preference) {
+  /* flow-root, not plain block. The travel a sticky element gets is measured
+     from its container, and here that travel IS the section's bottom margin —
+     which, on a plain block wrapper, collapses straight through the bottom
+     edge instead of adding height. The wrapper then stayed 1144px against a
+     2436px hero, sticky got zero travel, and the section scrolled in parallel
+     as though it were never sticky at all. A block formatting context keeps
+     the margin inside. It does not create a scroll container, so sticky still
+     resolves against this element. */
+  .envelope-pin-group {
+    display: flow-root;
+  }
+
   .envelope-hero {
     /* What belongs below the pinned picture is the next section, not ink. And
-       the hero now overlaps that section for its whole scroll height, so it
-       must not swallow taps meant for the links underneath — nothing in here
-       is interactive anyway (the video is aria-hidden). */
+       the hero overlaps that section for its whole scroll height, so it must
+       not swallow taps meant for the links underneath — nothing in here is
+       interactive anyway (the video is aria-hidden). */
     background: transparent;
     pointer-events: none;
     z-index: 1;
   }
 
+  /* Two phases, not one. The picture and the section under it are BOTH pinned
+     for the length of the scrub, so while the envelope opens nothing on screen
+     travels; only once the sequence finishes do the two release together and
+     the page scrolls normally. Pinning only the picture is what made them move
+     in parallel — the section was in normal flow and slid up the whole time.
+
+     The pieces that have to agree, or the release is ragged:
+       margin-top   puts the section directly under the picture
+       top          holds it there while pinned
+       the spacer   is the travel, and times the release to the end of the
+                    scrub. It is a sibling rather than margin-bottom on the
+                    section because a sticky box is constrained to its
+                    container's content box INSET BY ITS OWN MARGINS — so a
+                    bottom margin shrinks the constraint by exactly what it
+                    adds, leaving zero travel and a section that scrolls as if
+                    it were never sticky. */
   .envelope-hero + section {
-    position: relative;
+    position: sticky;
+    top: var(--envelope-stage-height);
     z-index: 0;
     margin-top: calc(var(--envelope-stage-height) - var(--envelope-scroll-height));
+  }
+
+  .envelope-pin-spacer {
+    height: calc(var(--envelope-scroll-height) - var(--envelope-stage-height));
   }
 }
 

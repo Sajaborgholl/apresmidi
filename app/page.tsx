@@ -134,9 +134,15 @@ export default async function Home() {
         </a>
       </nav>
 
-      <EnvelopeScrollHero />
+      {/* The hero and the section under it are wrapped together so that, on
+          phones, both can be pinned for the length of the scrub — see the
+          .envelope-pin-group rules in globals.css. A sticky element is bounded
+          by its parent, so without this wrapper the section below would pin
+          against the whole page and never let go. */}
+      <div className="envelope-pin-group">
+        <EnvelopeScrollHero />
 
-      <section className="relative px-6 md:px-12 pt-8 pb-20 overflow-hidden">
+        <section className="relative px-6 md:px-12 pt-8 pb-20 overflow-hidden">
         <h1 className="display font-bold leading-[0.85] tracking-tight select-none" style={{ fontSize: "clamp(3rem,10vw,9rem)" }}>
           <span className="block">Invitations</span>
           <span className="block -mt-2 md:-mt-6" style={{ marginLeft: "8%" }}>
@@ -165,7 +171,15 @@ export default async function Home() {
             </span>
           </div>
         </div>
-      </section>
+        </section>
+
+        {/* Gives the sticky section above its travel. It has to be a sibling:
+            a sticky box's constraint rectangle is its container's content box
+            inset by the box's OWN margins, so padding the travel onto the
+            section as margin-bottom shrinks the room it was meant to create
+            and the section cannot move at all. Zero height off phones. */}
+        <div className="envelope-pin-spacer" aria-hidden="true" />
+      </div>
 
       <HowItWorks />
 

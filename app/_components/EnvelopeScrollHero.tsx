@@ -26,11 +26,17 @@ const POSTER_SRC = "/videos/envelope-poster.jpg";
 // percentile, and reads as the picture lagging the scroll and skipping ahead.
 // If this clip is ever re-cut, re-encode it the same way:
 //
-//   ffmpeg -i in.mp4 -an -vf fps=30,format=yuv420p -c:v libx264 -preset slow //     -crf 22 -g 1 -keyint_min 1 -sc_threshold 0 -bf 0 -movflags +faststart out.mp4
+//   ffmpeg -i in.mp4 -an -vf fps=30,format=yuv420p -c:v libx264 -preset slow //     -crf 26 -g 1 -keyint_min 1 -sc_threshold 0 -bf 0 -movflags +faststart out.mp4
 //
 // All-intra costs size at a given quality, so it is also why the clip is kept
 // short and 720p. Lower -crf for more fidelity, raise it for a smaller file:
 // the whole file is downloaded before the scrub goes live, so size is latency.
+//
+// Do not swap in a file compressed by a general-purpose tool, however small it
+// comes out. Those optimise for playback and stretch the GOP: a 4.03MB version
+// of this clip with two keyframes in 240 frames measured 27.5ms per seek
+// against 2.4ms here, worse even than the untouched CapCut export. Re-encode
+// from the master with the command above instead, and raise -crf to hit a size.
 //
 // 1280x720, 8.033s, 241 frames. Progress 0 maps to
 // VIDEO_START_TIME, progress 1 to the last frame. This clip opens straight
