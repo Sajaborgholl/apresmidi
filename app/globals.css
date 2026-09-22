@@ -221,15 +221,19 @@ body {
    in the component (without JS there is nothing to drive all that scroll).
    Keep those two in sync.
 --------------------------------------------------------------------------- */
-.envelope-hero {
+:root {
+  /* Envelope hero geometry. These sit here rather than on .envelope-hero
+     because the section after the hero has to read them too: on phones it is
+     pulled up under the pinned picture, and how far it moves is derived from
+     these. Custom properties inherit to descendants, never to siblings. */
   --envelope-scroll-height: 700vh;
+  --envelope-stage-height: 100svh;
+  --envelope-video-height: 100%;
+}
 
+.envelope-hero {
   --envelope-height: var(--envelope-scroll-height);
   --envelope-stage-position: sticky;
-
-  /* How tall the picture is inside the stage. Full bleed on wide screens; a
-     portrait phone has to shrink it — see the media query below. */
-  --envelope-video-height: 100%;
 
   position: relative;
   height: var(--envelope-height);
@@ -239,7 +243,7 @@ body {
 .envelope-stage {
   position: var(--envelope-stage-position);
   top: 0;
-  height: 100svh;
+  height: var(--envelope-stage-height);
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -253,8 +257,7 @@ body {
   object-fit: cover;
 }
 
-/* Phones: less scroll to get through the whole sequence, and a shorter
-   picture.
+/* Phones.
 
    The clip is 16:9 and the envelope sits in the middle ~30% of it, so
    object-fit: cover on a portrait screen binds on height: it scales the
@@ -263,12 +266,37 @@ body {
    both edges off the envelope. Cropping the file would not help, because cover
    would still bind on height and show the same middle strip; shrinking the
    picture is what widens it. At 60svh, 555px of the frame fit across, which
-   holds the whole envelope with room to spare. The stage stays 100svh so the
-   scroll geometry is untouched, and the ink background reads as letterboxing. */
+   holds the whole envelope with room to spare.
+
+   Full bleed and an uncropped envelope are mutually exclusive here — filling a
+   portrait screen IS the 3.8x blow-up — so the picture is shortened and the
+   space under it is given to the next section instead of to letterboxing. The
+   stage is exactly the picture (no bands), and the section that follows is
+   pulled up to start directly beneath it and sits behind the hero, so it
+   slides under the pinned picture as the sequence scrubs. */
 @media (max-width: 599px) {
+  :root {
+    --envelope-scroll-height: 300vh;
+    --envelope-stage-height: 60svh;
+    --envelope-video-height: 100%;
+  }
+}
+
+@media (max-width: 599px) and (prefers-reduced-motion: no-preference) {
   .envelope-hero {
-    --envelope-scroll-height: 480vh;
-    --envelope-video-height: 60svh;
+    /* What belongs below the pinned picture is the next section, not ink. And
+       the hero now overlaps that section for its whole scroll height, so it
+       must not swallow taps meant for the links underneath — nothing in here
+       is interactive anyway (the video is aria-hidden). */
+    background: transparent;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .envelope-hero + section {
+    position: relative;
+    z-index: 0;
+    margin-top: calc(var(--envelope-stage-height) - var(--envelope-scroll-height));
   }
 }
 

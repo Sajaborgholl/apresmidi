@@ -345,6 +345,19 @@ export default function EnvelopeScrollHero() {
 
   return (
     <>
+      {/* The scroll layout is the CSS default and reduced motion opts out of
+          it via media query, which leaves only the no-JS case: without the
+          scrub there's nothing to drive all that scroll, so fall back to the
+          same static layout. Done as <noscript><style> rather than a pre-paint
+          script writing an attribute — React owns both <html> and this
+          section, so any such write is a hydration mismatch.
+
+          It goes BEFORE the section, not after: the phone layout in
+          globals.css pulls the hero's next sibling up under the pinned
+          picture with `.envelope-hero + section`, and a noscript sitting in
+          between makes that selector match nothing. */}
+      <noscript dangerouslySetInnerHTML={{ __html: `<style>${STATIC_LAYOUT_CSS}</style>` }} />
+
       <section ref={sectionRef} className="envelope-hero" aria-label="Your invitation, opening">
         <div ref={stageRef} className="envelope-stage">
           <video
@@ -359,14 +372,6 @@ export default function EnvelopeScrollHero() {
           />
         </div>
       </section>
-
-      {/* The scroll layout is the CSS default and reduced motion opts out of
-          it via media query, which leaves only the no-JS case: without the
-          scrub there's nothing to drive all that scroll, so fall back to the
-          same static layout. Done as <noscript><style> rather than a pre-paint
-          script writing an attribute — React owns both <html> and this
-          section, so any such write is a hydration mismatch. */}
-      <noscript dangerouslySetInnerHTML={{ __html: `<style>${STATIC_LAYOUT_CSS}</style>` }} />
     </>
   );
 }
