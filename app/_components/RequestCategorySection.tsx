@@ -237,16 +237,88 @@ const CSS = `
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .rc-cta-trigger { transition: none; }
+/* The collage assembles on arrival: each photo starts shifted out toward its
+   nearest screen edge and scaled up, then travels to the position the Canva
+   source defines. Everything above stays the final state — nothing here moves
+   where a tile ends up, only where it comes from.
+
+   Driven off .reveal-visible, which the Reveal wrapper already adds when the
+   section enters the viewport, so this needs no observer of its own.
+
+   Only transform is animated: it skips layout and paint and runs on the GPU,
+   which matters with six photos moving at once. */
+.rc-section { overflow-x: clip; }
+
+/* Reveal's own fade-and-lift is cancelled here. Left on, the wrapper lifts the
+   whole block while six tiles fly in underneath it — two motions competing to
+   say the same thing. Two classes, so this beats .reveal on specificity. */
+.reveal.rc-reveal {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rc-tile-anim {
+    transform: translateX(var(--rc-from-x)) scale(var(--rc-from-scale));
+    /* Grow away from the middle, so a scaled-up tile stays pinned to the edge
+       it came from instead of creeping back toward centre. */
+    transform-origin: var(--rc-origin) center;
+    transition: transform 900ms cubic-bezier(0.23, 1, 0.32, 1);
+    transition-delay: var(--rc-delay);
+  }
+
+  .reveal-visible .rc-tile-anim {
+    transform: none;
+  }
 }
 `;
 
+// Where a tile travels from. Side is read off the position the collage
+// already defines rather than stored again — a tile past the halfway mark
+// belongs to the right group. Every tile on a side shifts by the same amount,
+// which is what keeps the group's spacing intact on the way in: the collage
+// starts wide and loose, not piled up at the edge.
+//
+// The shift is viewport-relative so it tracks the screen edge, but clamped:
+// the stage caps at 1100px and centres, so an unbounded vw would fling tiles
+// far past the edge on a wide monitor and barely move them on a small laptop.
+const SHIFT = "clamp(120px, 14vw, 320px)";
+const STAGGER_MS = 70;
+
+// The cascade sweeps left to right across the composition, rather than
+// following the order the two arrays happen to be declared in — that order
+// interleaves the sides (big left, right, right, then three small left) and
+// reads as random rather than choreographed. Ranking by the horizontal
+// position the collage already defines costs no extra data.
+const STAGGER_RANK = new Map<string, number>(
+  [...WINDOW_TILES, ...POLAROID_TILES]
+    .map((t) => t.left)
+    .sort((a, b) => parseFloat(a) - parseFloat(b))
+    .map((left, i) => [left, i] as const),
+);
+
+function fromEdge(left: string): CSSProperties {
+  const isLeft = parseFloat(left) < 50;
+  return {
+    "--rc-from-x": isLeft ? `calc(-1 * ${SHIFT})` : SHIFT,
+    "--rc-from-scale": "1.25",
+    "--rc-origin": isLeft ? "left" : "right",
+    "--rc-delay": `${(STAGGER_RANK.get(left) ?? 0) * STAGGER_MS}ms`,
+  } as CSSProperties;
+}
+
 export default function RequestCategorySection() {
   return (
-    <section className="px-6 md:px-12 py-16 md:py-20" style={{ background: "#fff5dc" }}>
+    <section className="rc-section px-6 md:px-12 py-16 md:py-20" style={{ background: "#fff5dc" }}>
       <style>{CSS}</style>
-      <Reveal>
+      {/* Held back from the bottom edge so the spread-out start state is
+          actually seen before it resolves. At -40% the tiles move once the
+          collage's top edge reaches mid-screen, with about three-quarters of
+          it in view; -22% fired with barely half on screen, so the spread was
+          only glimpsed. A fraction of the screen, so the fire point stays at
+          much the same place on any window height. */}
+      <Reveal className="rc-reveal" rootMargin="0px 0px -40% 0px">
         <div className="mx-auto max-w-5xl">
           {/* Desktop: the full photo-collage design. Hidden below md — at
               phone widths this 1366x768 wide-aspect collage would squash
@@ -256,8 +328,8 @@ export default function RequestCategorySection() {
             {WINDOW_TILES.map((t) => (
               <div
                 key={t.src}
-                className="rc-el rc-tile"
-                style={{ top: t.top, left: t.left, width: t.width, height: t.height, "--r": t.radius } as CSSProperties}
+                className="rc-el rc-tile rc-tile-anim"
+                style={{ top: t.top, left: t.left, width: t.width, height: t.height, "--r": t.radius, ...fromEdge(t.left) } as CSSProperties}
               >
                 <div className="rc-window-card" style={{ height: t.cardHeight }} />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -276,8 +348,8 @@ export default function RequestCategorySection() {
             {POLAROID_TILES.map((t) => (
               <div
                 key={t.src}
-                className="rc-el rc-tile"
-                style={{ top: t.top, left: t.left, width: t.width, height: t.height, "--frame": t.frame } as CSSProperties}
+                className="rc-el rc-tile rc-tile-anim"
+                style={{ top: t.top, left: t.left, width: t.width, height: t.height, "--frame": t.frame, ...fromEdge(t.left) } as CSSProperties}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img

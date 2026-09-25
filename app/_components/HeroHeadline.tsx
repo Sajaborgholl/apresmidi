@@ -47,6 +47,8 @@ export default function HeroHeadline() {
     style: delay ? { transitionDelay: `${delay}ms` } : undefined,
   });
 
+  const worth = word("right", 110);
+
   return (
     <h1
       ref={ref}
@@ -57,9 +59,28 @@ export default function HeroHeadline() {
         <span {...word("left", 0)}>Invitations</span>
       </span>
       <span className="block -mt-2 md:-mt-6" style={{ marginLeft: "8%" }}>
+        {/* Set like "included" in FeatureShowcase's "Everything's included":
+            Caveat at regular weight, normal tracking, 1.25x its display-face
+            neighbour. All four are needed, not just the family — this span
+            otherwise inherits the h1's bold and tight tracking, which turn
+            Caveat chunky and crowded. The 1.25 is that heading's own measured
+            script-to-display ratio; Caveat is a compact handwriting face and
+            reads noticeably smaller than Space Grotesk at the same size. In em
+            so it tracks the h1's clamp() at every width.
+
+            Line height is deliberately left as the h1's own, and the second
+            line grows about 22px to fit the word. That growth is the point:
+            Caveat's ascenders run taller than Space Grotesk's, so the "h" and
+            "t" need the room. Pinning the line to its old height was tried
+            and puts them straight into "Invitations" above — measured at 232
+            overlapping pixels, against 26 in the original bold design and 12
+            with the natural height. Leaving it to the browser also means the
+            clearance comes from the real font metrics at every width, where a
+            pinned value would only be right at one. */}
         <span
-          {...word("right", 110)}
-          style={{ ...word("right", 110).style, color: "var(--blue-dark)" }}
+          {...worth}
+          className={`${worth.className} script font-normal tracking-normal`}
+          style={{ ...worth.style, color: "var(--blue-dark)", fontSize: "1.25em" }}
         >
           worth
         </span>{" "}

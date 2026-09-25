@@ -13,10 +13,18 @@ export default function Reveal({
   children,
   className = "",
   delay = 0,
+  rootMargin,
 }: {
   children: ReactNode;
   className?: string;
   delay?: number;
+  // Shrinks the area that counts as "on screen", so the reveal can be held
+  // until the content is properly in view rather than firing the moment it
+  // clears the bottom edge. A fraction of the screen, unlike threshold, which
+  // is a fraction of the element and so means something different for a short
+  // caption and a tall collage. Optional: omitted, this behaves exactly as it
+  // always has, so existing callers are untouched.
+  rootMargin?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -31,11 +39,13 @@ export default function Reveal({
           observer.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.15, rootMargin }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+    // rootMargin is part of how the observer is built, so a change to it has
+    // to rebuild the observer rather than be silently ignored.
+  }, [rootMargin]);
 
   const style: CSSProperties = delay ? { transitionDelay: `${delay}ms` } : {};
 
