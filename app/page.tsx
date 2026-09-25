@@ -12,6 +12,7 @@ import FeatureShowcase from "./_components/FeatureShowcase";
 import TypewriterText from "./_components/TypewriterText";
 import RequestCategorySection from "./_components/RequestCategorySection";
 import EnvelopeScrollHero from "./_components/EnvelopeScrollHero";
+import HeroHeadline from "./_components/HeroHeadline";
 
 export const dynamic = "force-dynamic";
 
@@ -138,12 +139,7 @@ export default async function Home() {
         <EnvelopeScrollHero />
 
         <section className="relative px-6 md:px-12 pt-8 pb-20 overflow-hidden">
-        <h1 className="display font-bold leading-[0.85] tracking-tight select-none" style={{ fontSize: "clamp(3rem,10vw,9rem)" }}>
-          <span className="block">Invitations</span>
-          <span className="block -mt-2 md:-mt-6" style={{ marginLeft: "8%" }}>
-            <span style={{ color: "var(--blue-dark)" }}>worth</span> opening
-          </span>
-        </h1>
+        <HeroHeadline />
 
         <a
           href="#occasions"
