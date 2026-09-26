@@ -13,6 +13,28 @@ import ReloadOnBfcacheRestore from "@/app/_components/ReloadOnBfcacheRestore";
 
 const FORM_ID = "customize-form";
 
+// The preview renders the template on a real screen size and scales the whole
+// thing down to fit, rather than laying it out in whatever box is left over.
+// A template only knows the size of its own frame: in the old 720px-wide box
+// it was below the 768px breakpoint, so the Desktop tab was really showing the
+// phone layout, just stretched. Scaling a real-size screen keeps every
+// breakpoint, every 100vh section and every script that measures the window
+// (the Bachelorette flipbook sizes itself from it) exactly as on the device.
+//
+// Desktop is the customer's own window, so the preview looks the way the
+// invite will on the screen they're using — but never narrower than 1280px,
+// or a narrow window would drop templates back into their tablet layout.
+// Mobile is a real phone screen (390×844) instead of a box whose height
+// depended on the window.
+const DESKTOP_MIN_WIDTH = 1280;
+const DESKTOP_MIN_HEIGHT = 600;
+const PHONE_SCREEN = { width: 390, height: 844 };
+// Keeps the scaled preview within the window even when a long form stretches
+// the column taller than the screen (the old box used 75vh for the same job).
+const MAX_PREVIEW_HEIGHT_OF_WINDOW = 0.8;
+
+type PreviewStage = { width: number; height: number; windowWidth: number; windowHeight: number; wide: boolean };
+
 // Derived from the same NEXT_PUBLIC_SITE_URL that already drives every real
 // link this app generates (actions.ts, confirmation/page.tsx, dashboard) —
 // this is only ever a display preview of what the guest link will look
@@ -41,14 +63,10 @@ export default function CustomizePanel({
   slug,
   category,
   fields,
-  templateName,
-  priceLabel,
 }: {
   slug: string;
   category: string;
   fields: TemplateFieldManifest;
-  templateName: string;
-  priceLabel: string | null;
 }) {
   // isPending covers the whole round trip — photo uploads to Supabase plus
   // the invite insert — which can take a few seconds now that photos can
@@ -71,6 +89,10 @@ export default function CustomizePanel({
   // for the desktop/mobile preview toggle to do there either.
   const [previewSheetOpen, setPreviewSheetOpen] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  // The docked preview column's inner size (and the window's), measured so
+  // the simulated screen can be scaled to fit it. null until first measured.
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stage, setStage] = useState<PreviewStage | null>(null);
 
   function handleValueChange(name: keyof CustomizeValues, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
@@ -113,6 +135,52 @@ export default function CustomizePanel({
   // the server action uses for the base portion.
   const baseSlugPreview = slugify(values.host_names) || "your-invite";
 
+  // Measures the preview column. A ResizeObserver catches the column itself
+  // changing; the window listener catches the window changing size without
+  // the column doing so (the Desktop screen tracks the window's height too).
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const wide = window.matchMedia("(min-width: 768px)");
+    const read = () => {
+      const cs = getComputedStyle(el);
+      setStage({
+        width: el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
+        height: el.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom),
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
+        wide: wide.matches,
+      });
+    };
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    window.addEventListener("resize", read);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", read);
+    };
+  }, []);
+
+  // The simulated screen and how far to shrink it. Only on the docked layout
+  // (md and up): below that the page is already on a phone, and the preview
+  // sheet shows the template at its true size with nothing to simulate.
+  const fit = (() => {
+    if (!stage?.wide) return null;
+    const screen =
+      device === "mobile"
+        ? PHONE_SCREEN
+        : {
+            width: Math.max(DESKTOP_MIN_WIDTH, stage.windowWidth),
+            height: Math.max(DESKTOP_MIN_HEIGHT, stage.windowHeight),
+          };
+    const room = Math.min(stage.height, stage.windowHeight * MAX_PREVIEW_HEIGHT_OF_WINDOW);
+    // Never enlarge: a phone that fits at full size is shown at full size.
+    const scale = Math.min(stage.width / screen.width, room / screen.height, 1);
+    // Floored so the box can never come out a pixel taller than the room it
+    // was fitted to, which would grow the column and re-trigger the observer.
+    return { ...screen, scale, boxWidth: Math.floor(screen.width * scale), boxHeight: Math.floor(screen.height * scale) };
+  })();
+
   // Listens for the preview iframe announcing it's mounted and ready.
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
@@ -137,7 +205,10 @@ export default function CustomizePanel({
 
   return (
     <div
-      className="rounded-2xl overflow-hidden bg-white"
+      // Full page, edge to edge: min-h-dvh keeps the white filling the screen
+      // even when the form is short, and flex-col lets the main grid below
+      // take the remaining height so the preview column reaches the bottom.
+      className="flex min-h-dvh flex-col bg-white"
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
     >
       <ReloadOnBfcacheRestore />
@@ -201,7 +272,7 @@ export default function CustomizePanel({
       </div>
 
       {/* ---------- Main layout ---------- */}
-      <div className="grid md:grid-cols-[minmax(0,2.3fr)_minmax(340px,1fr)]">
+      <div className="grid flex-1 md:grid-cols-[minmax(0,2.3fr)_minmax(340px,1fr)]">
         {/* Backdrop for the mobile preview sheet — desktop never shows it
             (the preview is always visible there, docked in its own
             column), so this only renders/matters below md. */}
@@ -218,6 +289,7 @@ export default function CustomizePanel({
             same iframe/ref either way, just repositioned by breakpoint, so
             there's only ever one live preview instance to keep in sync. */}
         <div
+          ref={stageRef}
           className={`order-preview-sheet fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.25)] transition-transform duration-300 ease-out ${
             previewSheetOpen ? "is-open" : ""
           } md:relative md:z-auto md:flex md:h-auto md:min-h-[600px] md:flex-row md:items-center md:justify-center md:rounded-none md:bg-[rgba(31,36,48,0.05)] md:p-8 md:shadow-none md:transition-none`}
@@ -244,16 +316,33 @@ export default function CustomizePanel({
             Updating live
           </span>
 
+          {/* The box is the scaled screen's on-screen size; the iframe inside
+              is the full real screen, shrunk by transform from its top-left.
+              Hidden on the docked layout until first measured, so it never
+              flashes at the browser's default iframe size. No size transition:
+              the box would animate while the iframe's scale snapped, and the
+              two would visibly disagree for the length of it. */}
           <div
-            className={`flex-1 overflow-hidden bg-white transition-all md:flex-none md:rounded-2xl md:shadow-[0_30px_70px_rgba(0,0,0,0.18)] ${
-              device === "mobile" ? "md:w-[390px] md:h-[720px] md:max-h-[75vh]" : "md:w-full md:h-[75vh] md:max-w-[720px]"
+            className={`flex-1 overflow-hidden bg-white md:flex-none md:rounded-2xl md:shadow-[0_30px_70px_rgba(0,0,0,0.18)] ${
+              fit ? "" : "md:invisible"
             }`}
+            style={fit ? { width: fit.boxWidth, height: fit.boxHeight } : undefined}
           >
             <iframe
               ref={iframeRef}
               src={`/order/${slug}/preview`}
               title="Live invite preview"
               className="h-full w-full"
+              style={
+                fit
+                  ? {
+                      width: fit.width,
+                      height: fit.height,
+                      transform: `scale(${fit.scale})`,
+                      transformOrigin: "0 0",
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -261,8 +350,7 @@ export default function CustomizePanel({
         <form id={FORM_ID} action={formAction} className="p-7 pb-28 md:pb-7">
           <h2 className="display text-lg font-bold">Customize your invite</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
-            {templateName}
-            {priceLabel ? ` · ${priceLabel}` : ""}. Everything updates on the left as you type.
+            Everything updates on the left as you type.
           </p>
 
           <CustomizeForm

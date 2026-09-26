@@ -27,7 +27,7 @@ export default async function OrderPage({
 
   const { data: template } = await supabaseAdmin
     .from("templates")
-    .select("id, slug, name, category")
+    .select("id, slug, category")
     .eq("slug", slug)
     .single();
 
@@ -36,17 +36,10 @@ export default async function OrderPage({
   const registryEntry = getTemplateBySlug(template.slug);
   const fields = registryEntry?.fields ?? EMPTY_FIELDS;
 
+  // No wrapper padding or max-width: the panel covers the whole page.
   return (
-    <div className="min-h-dvh" style={{ background: "var(--cream)" }}>
-      <main className="mx-auto max-w-[1400px] px-6 py-8">
-        <CustomizePanel
-          slug={template.slug}
-          category={template.category}
-          fields={fields}
-          templateName={template.name}
-          priceLabel="$80"
-        />
-      </main>
-    </div>
+    <main>
+      <CustomizePanel slug={template.slug} category={template.category} fields={fields} />
+    </main>
   );
 }

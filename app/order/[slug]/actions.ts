@@ -207,8 +207,9 @@ export async function confirmInvitePayment(
   return { dashboardUrl, guestUrl };
 }
 
-// Matches the fixed "$80" priceLabel shown on app/order/[slug]/page.tsx —
-// there's only the one Standard price point right now, nothing per-template.
+// Must match the $80 the customer is shown before paying: the confirmation
+// page's "Pay with Whish — $80" button and the Standard plan in Pricing.tsx.
+// There's only the one Standard price point right now, nothing per-template.
 const STANDARD_PRICE_USD = "80.00";
 
 // Kicks off a real Whish payment and returns the hosted collectUrl to send

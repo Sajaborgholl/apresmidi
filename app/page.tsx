@@ -8,7 +8,7 @@ import HeroCarousel, { type CarouselTemplate } from "./_components/HeroCarousel"
 import Reveal from "./_components/Reveal";
 import HowItWorks from "./_components/HowItWorks";
 import Pricing from "./_components/Pricing";
-import FeatureShowcase from "./_components/FeatureShowcase";
+import FeatureScroll from "./_components/FeatureScroll";
 import TypewriterText from "./_components/TypewriterText";
 import RequestCategorySection from "./_components/RequestCategorySection";
 import EnvelopeScrollHero from "./_components/EnvelopeScrollHero";
@@ -92,13 +92,16 @@ export default async function Home() {
 
   // Flat list (all categories combined) for the hero carousel, which
   // showcases templates generally rather than grouped by occasion.
-  const carouselTemplates: CarouselTemplate[] = (templateRows ?? []).map((t) => ({
-    id: t.id,
-    name: t.name,
-    thumbnail_url: t.thumbnail_url,
-    video_url: t.video_url,
-    demoSlug: demoSlugByTemplateId[t.id] ?? null,
-  }));
+  //
+  // Only templates with a recorded clip. The carousel loops each one like a
+  // GIF with no play button, so a template without a video would have nothing
+  // to show (none has a thumbnail to fall back on either). Giving a template a
+  // video_url is all it takes to put it in.
+  const carouselTemplates: CarouselTemplate[] = (templateRows ?? []).flatMap((t) =>
+    t.video_url
+      ? [{ id: t.id, name: t.name, thumbnail_url: t.thumbnail_url, video_url: t.video_url }]
+      : [],
+  );
 
   const { data: recentInvitesRaw } = await supabaseAdmin
     .from("invites")
@@ -300,7 +303,7 @@ export default async function Home() {
       </section>
       )}
 
-      <FeatureShowcase />
+      <FeatureScroll />
 
       <section className="px-6 md:px-12 py-14">
         <Reveal>

@@ -53,18 +53,25 @@ export default function HeroHeadline() {
     <h1
       ref={ref}
       className="display font-bold leading-[0.85] tracking-tight select-none"
-      style={{ fontSize: "clamp(3rem,10vw,9rem)" }}
+      style={{ fontSize: "clamp(2.5rem,8.5vw,7.5rem)" }}
     >
       <span className="block">
         <span {...word("left", 0)}>Invitations</span>
       </span>
-      <span className="block -mt-2 md:-mt-6" style={{ marginLeft: "8%" }}>
-        {/* Set like "included" in FeatureShowcase's "Everything's included":
+      {/* The pull-up between the two lines is in em so it scales with the
+          clamp()ed font. It used to be a fixed -mt-2 / md:-mt-6 (8px / 24px):
+          that was a sensible bite at the size it was tuned for, but once the
+          title was made smaller, 24px against 65px type at tablet widths
+          dragged the ascenders of "worth" into "Invitations" (111 overlapping
+          pixels). 0.2em reproduces the old 8px on phones and 24px at 1600
+          exactly, and keeps every width in between at the same proportion. */}
+      <span className="block" style={{ marginLeft: "8%", marginTop: "-0.2em" }}>
+        {/* Set in the brand's script emphasis (as in FeatureScroll's headlines):
             Caveat at regular weight, normal tracking, 1.25x its display-face
             neighbour. All four are needed, not just the family — this span
             otherwise inherits the h1's bold and tight tracking, which turn
-            Caveat chunky and crowded. The 1.25 is that heading's own measured
-            script-to-display ratio; Caveat is a compact handwriting face and
+            Caveat chunky and crowded. The 1.25 is the brand's script-to-display
+            ratio, measured off the old "Everything's included" heading; Caveat is a compact handwriting face and
             reads noticeably smaller than Space Grotesk at the same size. In em
             so it tracks the h1's clamp() at every width.
 

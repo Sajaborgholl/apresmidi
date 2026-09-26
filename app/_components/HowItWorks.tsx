@@ -5,7 +5,7 @@
 // staggered `top` offsets are what let each earlier card's rounded top
 // edge keep peeking out above the one stacked over it.
 // The /dist/ssr entry, like the other Server Components that use Phosphor
-// (FeatureShowcase, Pricing, the dashboard page). Importing from the package
+// (Pricing, the dashboard page). Importing from the package
 // root instead would pull in its client runtime and force this section to
 // become a Client Component for nothing but four static glyphs.
 //

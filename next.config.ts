@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Hides the floating "N" dev-tools badge that `next dev` draws in the
+  // corner. It only ever appears in development — production builds never
+  // include it — so this just keeps it from sitting over the page locally.
+  // Build and runtime errors still surface in the full-screen overlay.
+  devIndicators: false,
   experimental: {
     // Server Actions default to a 1MB request body limit — too small for
     // real photo uploads (createOrder in app/order/[slug]/actions.ts takes
