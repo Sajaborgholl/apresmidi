@@ -115,7 +115,7 @@ export default async function Home() {
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
       <nav className="site-nav flex items-center justify-between px-6 md:px-12 py-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="Après-midi" className="h-8 w-auto" />
+        <img src="/logo.svg" alt="Après-midi" className="h-8 w-auto" />
         <div className="hidden md:flex gap-8 text-sm font-medium">
           {categories.slice(0, 3).map((cat) => (
             <a key={cat.slug} href={`#occasion-${cat.slug}`} className="hover:opacity-70">
@@ -168,6 +168,12 @@ export default async function Home() {
       <HowItWorks />
 
       <section id="occasions" className="px-6 md:px-12 py-14">
+        {/* Capped and centred, like How it Works. The cards have no size of
+            their own — each is a third of this width at 4:5 — so without a
+            cap they grew with the screen (about 435 x 543 at 1440, and near
+            600 wide on a 1920 monitor). Wrapping the heading, grid and See all
+            together keeps all three aligned to the same edges. */}
+        <div className="mx-auto max-w-5xl">
         <h2 className="display font-bold text-2xl md:text-3xl mb-8">Browse by occasion</h2>
         {categories.length > 0 ? (
           <div className="flex flex-col gap-10">
@@ -247,6 +253,7 @@ export default async function Home() {
         ) : (
           <p className="text-neutral-500">Categories coming soon.</p>
         )}
+        </div>
       </section>
 
       <RequestCategorySection />
@@ -384,7 +391,7 @@ export default async function Home() {
         </Reveal>
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-10 pt-6 border-t" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="Après-midi" className="h-7 w-auto" />
+          <img src="/logo.svg" alt="Après-midi" className="h-7 w-auto" />
           <div className="flex gap-6 text-sm">
             {categories.slice(0, 3).map((cat) => (
               <Link key={cat.slug} href={`/templates/${cat.slug}`}>

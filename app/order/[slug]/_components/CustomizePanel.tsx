@@ -35,6 +35,18 @@ const MAX_PREVIEW_HEIGHT_OF_WINDOW = 0.8;
 
 type PreviewStage = { width: number; height: number; windowWidth: number; windowHeight: number; wide: boolean };
 
+// Set when the panel is reused from the host dashboard to edit an invite
+// that's already live (app/dashboard/[token]/edit). The form starts from the
+// invite's saved values, submits to updateInvite instead of createOrder, and
+// the checkout wording is swapped for "save changes" wording.
+export type CustomizeEditMode = {
+  action: (prevState: unknown, formData: FormData) => Promise<unknown>;
+  initialValues: CustomizeValues;
+  initialPhotoUrls: string[];
+  backHref: string;
+  guestUrl: string;
+};
+
 // Derived from the same NEXT_PUBLIC_SITE_URL that already drives every real
 // link this app generates (actions.ts, confirmation/page.tsx, dashboard) —
 // this is only ever a display preview of what the guest link will look
@@ -63,10 +75,12 @@ export default function CustomizePanel({
   slug,
   category,
   fields,
+  edit,
 }: {
   slug: string;
   category: string;
   fields: TemplateFieldManifest;
+  edit?: CustomizeEditMode;
 }) {
   // isPending covers the whole round trip — photo uploads to Supabase plus
   // the invite insert — which can take a few seconds now that photos can
@@ -74,10 +88,14 @@ export default function CustomizePanel({
   // below (desktop top chrome + mobile sticky bar) read it to disable
   // themselves and show they're working instead of sitting there looking
   // clickable while nothing visibly happens.
-  const [, formAction, isPending] = useActionState(createOrder.bind(null, slug), null);
-  const [values, setValues] = useState<CustomizeValues>(EMPTY_VALUES);
+  const [, formAction, isPending] = useActionState(edit?.action ?? createOrder.bind(null, slug), null);
+  const [values, setValues] = useState<CustomizeValues>(edit?.initialValues ?? EMPTY_VALUES);
+  // In edit mode each slot starts on the invite's saved photo, and falls
+  // back to it again if a newly picked file is cleared — updateInvite keeps
+  // the saved photo for any slot that doesn't submit a new file.
+  const savedPhoto = (index: number) => edit?.initialPhotoUrls[index] || undefined;
   const [photoPreviews, setPhotoPreviews] = useState<(string | undefined)[]>(
-    Array.from({ length: fields.photoCount }, () => undefined)
+    Array.from({ length: fields.photoCount }, (_, i) => savedPhoto(i))
   );
   const [previewReady, setPreviewReady] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -103,7 +121,7 @@ export default function CustomizePanel({
       const next = [...prev];
       // Local-only preview via a temporary browser URL — nothing is
       // uploaded anywhere until the form is actually submitted.
-      next[index] = file ? URL.createObjectURL(file) : undefined;
+      next[index] = file ? URL.createObjectURL(file) : savedPhoto(index);
       return next;
     });
   }
@@ -214,7 +232,7 @@ export default function CustomizePanel({
       <ReloadOnBfcacheRestore />
       {/* ---------- Top chrome ---------- */}
       <div className="flex items-center justify-between gap-4 px-6 py-3.5">
-        <Link href={`/#occasion-${category}`} className="text-sm font-semibold transition hover:opacity-70">
+        <Link href={edit?.backHref ?? `/#occasion-${category}`} className="text-sm font-semibold transition hover:opacity-70">
           &#8592; Back
         </Link>
 
@@ -255,20 +273,33 @@ export default function CustomizePanel({
           className="hidden rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97] disabled:opacity-60 md:inline-flex"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
-          {isPending ? "Creating your invite…" : "Continue to payment"}
+          {edit ? (isPending ? "Saving…" : "Save changes") : isPending ? "Creating your invite…" : "Continue to payment"}
         </button>
       </div>
 
       {/* ---------- Live URL strip ---------- */}
       <div className="flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] text-[var(--ink)]/70 bg-[var(--blue-light)]/40">
         <Lock size={13} weight="regular" className="opacity-55" />
-        <span>Nothing&apos;s saved yet. Your link will be</span>
-        <strong
-          className="font-semibold text-[var(--ink)]"
-          title="A few random characters are added when your invite is created, so guests can't guess someone else's link."
-        >
-          {SITE_HOST}/{baseSlugPreview}-••••••
-        </strong>
+        {edit ? (
+          <>
+            {/* The guest link never changes on edit, even if the names do, so
+                links the host already sent keep working. */}
+            <span>Editing your live invite. Guests see changes once you save.</span>
+            <strong className="hidden font-semibold text-[var(--ink)] sm:inline">
+              {edit.guestUrl.replace(/^https?:\/\//, "")}
+            </strong>
+          </>
+        ) : (
+          <>
+            <span>Nothing&apos;s saved yet. Your link will be</span>
+            <strong
+              className="font-semibold text-[var(--ink)]"
+              title="A few random characters are added when your invite is created, so guests can't guess someone else's link."
+            >
+              {SITE_HOST}/{baseSlugPreview}-••••••
+            </strong>
+          </>
+        )}
       </div>
 
       {/* ---------- Main layout ---------- */}
@@ -348,7 +379,7 @@ export default function CustomizePanel({
         </div>
 
         <form id={FORM_ID} action={formAction} className="p-7 pb-28 md:pb-7">
-          <h2 className="display text-lg font-bold">Customize your invite</h2>
+          <h2 className="display text-lg font-bold">{edit ? "Edit your invite" : "Customize your invite"}</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
             Everything updates on the left as you type.
           </p>
@@ -356,6 +387,7 @@ export default function CustomizePanel({
           <CustomizeForm
             fields={fields}
             category={category}
+            hideEmail={Boolean(edit)}
             values={values}
             onValueChange={handleValueChange}
             photoPreviews={photoPreviews}
@@ -388,7 +420,7 @@ export default function CustomizePanel({
           className="flex-[1.4] rounded-full py-3 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-60"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
-          {isPending ? "Creating…" : "Continue to payment"}
+          {edit ? (isPending ? "Saving…" : "Save changes") : isPending ? "Creating…" : "Continue to payment"}
         </button>
       </div>
     </div>

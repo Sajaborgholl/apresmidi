@@ -48,6 +48,7 @@ const labelClass = "mb-1.5 block text-[12.5px] font-semibold text-[var(--ink)]/6
 export default function CustomizeForm({
   fields,
   category,
+  hideEmail,
   values,
   onValueChange,
   photoPreviews,
@@ -55,6 +56,9 @@ export default function CustomizeForm({
 }: {
   fields: TemplateFieldManifest;
   category: string;
+  // Editing a live invite from the dashboard: the owner email is checkout
+  // info that's already on file, not something edited here.
+  hideEmail?: boolean;
   values: CustomizeValues;
   onValueChange: (name: keyof CustomizeValues, value: string) => void;
   photoPreviews: (string | undefined)[];
@@ -97,24 +101,26 @@ export default function CustomizeForm({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Unconditional — every order needs this regardless of the
-          template's field manifest, since it's checkout-level contact
-          info (receipt + dashboard link), not invite content. */}
-      <div>
-        <label className={labelClass}>Your email *</label>
-        <input
-          name="owner_email"
-          type="email"
-          required
-          placeholder="you@email.com"
-          value={values.owner_email}
-          onChange={(e) => onValueChange("owner_email", e.target.value)}
-          className={inputClass}
-        />
-        <p className="mt-1 text-[11px] text-[var(--ink)]/45">
-          We&apos;ll send your dashboard and guest links here once payment is confirmed.
-        </p>
-      </div>
+      {/* Every new order needs this regardless of the template's field
+          manifest, since it's checkout-level contact info (receipt +
+          dashboard link), not invite content. Hidden only when editing. */}
+      {!hideEmail && (
+        <div>
+          <label className={labelClass}>Your email *</label>
+          <input
+            name="owner_email"
+            type="email"
+            required
+            placeholder="you@email.com"
+            value={values.owner_email}
+            onChange={(e) => onValueChange("owner_email", e.target.value)}
+            className={inputClass}
+          />
+          <p className="mt-1 text-[11px] text-[var(--ink)]/45">
+            We&apos;ll send your dashboard and guest links here once payment is confirmed.
+          </p>
+        </div>
+      )}
 
       {fields.host_names && (
         <div>

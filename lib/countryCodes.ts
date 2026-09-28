@@ -18,6 +18,24 @@ export function dialCodeForCountry(name: string): string {
   return COUNTRY_CODES.find((c) => c.name === name)?.dial ?? "";
 }
 
+// The reverse of buildWhatsappNumber, for prefilling the dashboard's edit
+// form: invites store the number as bare digits (dial code + local number
+// joined), so this finds the longest dial code the digits start with. When
+// several countries share it (+1), the first in the list is picked; the
+// stored digits come out the same either way. If nothing matches, the
+// whole number goes in the number field with no country, which still
+// rebuilds to the same digits since dialCodeForCountry("") is "".
+export function splitWhatsappNumber(digits: string | null): { country: string; number: string } {
+  if (!digits) return { country: "", number: "" };
+  let best: CountryCode | undefined;
+  for (const c of COUNTRY_CODES) {
+    const dial = c.dial.replace(/\D/g, "");
+    if (digits.startsWith(dial) && dial.length > (best?.dial.replace(/\D/g, "").length ?? 0)) best = c;
+  }
+  if (!best) return { country: "", number: digits };
+  return { country: best.name, number: digits.slice(best.dial.replace(/\D/g, "").length) };
+}
+
 export const COUNTRY_CODES: CountryCode[] = [
   { name: "Afghanistan", dial: "+93" },
   { name: "Albania", dial: "+355" },

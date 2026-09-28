@@ -7,10 +7,9 @@ import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 import { sendInviteReadyEmail } from "@/lib/email";
 import { createWhishPayment } from "@/lib/whish";
-import { buildWhatsappNumber, MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { buildWhatsappNumber } from "@/lib/types";
 import { dialCodeForCountry } from "@/lib/countryCodes";
-
-const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
+import { uploadInvitePhotos } from "@/lib/invitePhotos";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -83,43 +82,11 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
     inviteSlug = `${baseSlug}-${randomSlugSuffix()}`;
   }
 
-  // Upload any photos that came with the submission (CustomizeForm names
-  // them photo_1, photo_2, ... up to the template's manifest photoCount).
-  // Uploaded to the invite-photos bucket from setup-photo-storage.sql.
-  // Position is preserved with "" for any slot that's empty or fails to
-  // upload, since templates read photos by fixed index (photo_urls[0],
-  // [1], [2]) and skipping a slot shouldn't shift the ones after it.
+  // Upload any photos that came with the submission — see
+  // lib/invitePhotos.ts for the slot/position rules.
   const registryEntry = getTemplateBySlug(templateSlug);
   const photoCount = registryEntry?.fields.photoCount ?? 0;
-  const photoUrls: string[] = [];
-
-  for (let i = 1; i <= photoCount; i++) {
-    const file = formData.get(`photo_${i}`);
-    let url = "";
-
-    if (file instanceof File && file.size > 0) {
-      // Backstop for the client-side check in CustomizeForm.tsx (which
-      // already clears an oversized file before it can be submitted) —
-      // this only fires if that was somehow bypassed (JS disabled,
-      // tampering), so a thrown Error here is an acceptable fallback
-      // rather than a friendly inline message.
-      if (file.size > MAX_PHOTO_SIZE_BYTES) {
-        throw new Error(`Photo ${i} exceeds the ${MAX_PHOTO_SIZE_MB}MB limit.`);
-      }
-
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${inviteSlug}-${i}.${ext}`;
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("invite-photos")
-        .upload(path, file, { upsert: true, contentType: file.type || undefined });
-
-      if (!uploadError) {
-        url = supabaseAdmin.storage.from("invite-photos").getPublicUrl(path).data.publicUrl;
-      }
-    }
-
-    photoUrls.push(url);
-  }
+  const photoUrls = await uploadInvitePhotos(supabaseAdmin, formData, inviteSlug, photoCount);
 
   const { error: insertError } = await supabaseAdmin.from("invites").insert({
     slug: inviteSlug,

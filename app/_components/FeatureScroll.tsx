@@ -82,7 +82,7 @@ const FEATURES: Feature[] = [
     copy: "Send your private link by text, WhatsApp, or email — that's it.",
     bg: "#B4C4E5", // --blue
     fg: "#2C251D", // --ink
-    image: null,
+    image: "/homepage/features/share.webp",
   },
 ];
 
