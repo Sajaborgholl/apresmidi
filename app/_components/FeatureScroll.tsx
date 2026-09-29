@@ -186,7 +186,8 @@ export default function FeatureScroll() {
   }
 
   return (
-    <section aria-labelledby="features-heading">
+    // id="what-we-offer" is the homepage nav's "What we offer" link target.
+    <section id="what-we-offer" aria-labelledby="features-heading">
       <style>{CSS}</style>
       {/* The reference layout opens straight into its first feature with no
           heading, but the page outline still needs one for screen readers. */}

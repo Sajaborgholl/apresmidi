@@ -2,11 +2,17 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendPremiumInquiryNotification } from "@/lib/email";
+import { PLUS_ADDONS, type InquiryPlan } from "@/lib/plans";
+import { dialCodeForCountry } from "@/lib/countryCodes";
+
+// Cap on the optional notes box — matches the textarea's maxLength in
+// PlanRequestDialog.tsx, enforced here too since the form can be bypassed.
+const NOTES_MAX_LENGTH = 1000;
 
 export type PremiumInquiryState = { error: string } | { success: true } | null;
 
-// Runs when the "Get Premium" form on the homepage pricing section
-// (app/_components/PremiumInquiryForm.tsx) is submitted, via useActionState
+// Runs when the "Get Plus" or "Get Premium" form on the homepage pricing section
+// (the request window in app/_components/PlanRequestDialog.tsx) is submitted, via useActionState
 // — returns a result object instead of throwing, so the form can show
 // inline validation/success states without a full error-boundary crash.
 // Inserts via the admin/service-role client — same reason premium_inquiries
@@ -18,7 +24,20 @@ export async function submitPremiumInquiry(
 ): Promise<PremiumInquiryState> {
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
-  const phone = String(formData.get("phone") ?? "").trim();
+  // The form sends the country (by name — see PlanRequestDialog.tsx) and the
+  // local number separately; they're saved together as one readable string,
+  // e.g. "+44 7700 900123", in the existing phone column.
+  const dialCode = dialCodeForCountry(String(formData.get("phone_country") ?? ""));
+  const localNumber = String(formData.get("phone") ?? "").trim();
+  // Optional, on both Plus and Premium. Empty is saved as null, not "".
+  const notes = String(formData.get("notes") ?? "").trim().slice(0, NOTES_MAX_LENGTH) || null;
+  const plan: InquiryPlan = formData.get("plan") === "plus" ? "plus" : "premium";
+  // Only Plus offers add-ons, and only names from the shared list are kept,
+  // so a tampered form can't write arbitrary text into the row or the email.
+  const addons =
+    plan === "plus"
+      ? PLUS_ADDONS.filter((a) => formData.getAll("addons").includes(a))
+      : [];
 
   if (!name) {
     return { error: "Name is required." };
@@ -29,12 +48,27 @@ export async function submitPremiumInquiry(
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { error: "A valid email address is required." };
   }
-  if (!phone) {
+  if (!dialCode) {
+    return { error: "Please choose your country code." };
+  }
+  if (!localNumber) {
     return { error: "Phone number is required." };
   }
+  const phone = `${dialCode} ${localNumber}`;
 
   const supabaseAdmin = getSupabaseAdmin();
-  const { error: insertError } = await supabaseAdmin.from("premium_inquiries").insert({ name, email, phone });
+  let { error: insertError } = await supabaseAdmin
+    .from("premium_inquiries")
+    .insert({ name, email, phone, plan, addons, notes });
+
+  // PGRST204 is PostgREST's "column not found": the plan/addons/notes columns
+  // from supabase/add-inquiry-plan-fields.sql haven't been added yet. Save
+  // the lead without them rather than lose it; the email below still carries
+  // the plan, the add-ons and the notes.
+  if (insertError?.code === "PGRST204") {
+    console.warn("submitPremiumInquiry: plan/addons/notes columns missing — run supabase/add-inquiry-plan-fields.sql");
+    ({ error: insertError } = await supabaseAdmin.from("premium_inquiries").insert({ name, email, phone }));
+  }
 
   if (insertError) {
     return { error: `Could not save your info: ${insertError.message}` };
@@ -42,7 +76,7 @@ export async function submitPremiumInquiry(
 
   // Never let a failed notification undo the lead we already saved above.
   try {
-    await sendPremiumInquiryNotification({ name, email, phone });
+    await sendPremiumInquiryNotification({ name, email, phone, plan, addons, notes });
   } catch (err) {
     console.error("submitPremiumInquiry: failed to send notification email", err);
   }

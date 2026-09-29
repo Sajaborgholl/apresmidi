@@ -116,13 +116,18 @@ export default async function Home() {
       <nav className="site-nav flex items-center justify-between px-6 md:px-12 py-5">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.svg" alt="Après-midi" className="h-8 w-auto" />
-        <div className="hidden md:flex gap-8 text-sm font-medium">
+        {/* Six links need about 1000px beside the logo and button, so the
+            three occasion links only join from lg; between md and lg the
+            page's own "Browse by occasion" section covers them. */}
+        <div className="hidden md:flex gap-6 whitespace-nowrap text-sm font-medium xl:gap-8">
           {categories.slice(0, 3).map((cat) => (
-            <a key={cat.slug} href={`#occasion-${cat.slug}`} className="hover:opacity-70">
+            <a key={cat.slug} href={`#occasion-${cat.slug}`} className="hidden hover:opacity-70 lg:inline">
               {cat.name}
             </a>
           ))}
           <a href="#how-it-works" className="hover:opacity-70">How it works</a>
+          <a href="#what-we-offer" className="hover:opacity-70">What we offer</a>
+          <a href="#pricing" className="hover:opacity-70">Plans</a>
         </div>
         <a
           href="#occasions"

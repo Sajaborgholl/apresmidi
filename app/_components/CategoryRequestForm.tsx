@@ -5,14 +5,14 @@ import { CheckCircle } from "@phosphor-icons/react";
 import { submitCategoryRequest, type CategoryRequestState } from "../_actions/category-request";
 
 // Matches the input/label classes already established in
-// app/_components/PremiumInquiryForm.tsx, for visual consistency with the
+// app/_components/PlanRequestDialog.tsx, for visual consistency with the
 // only other lead-capture form in this app.
 const inputClass =
   "w-full rounded-xl border-[1.5px] border-black/15 bg-white px-3.5 py-2.5 text-[14.5px] text-[var(--ink)] outline-none transition focus:border-[var(--blue-dark)]";
 const labelClass = "mb-1.5 block text-[12.5px] font-semibold text-[var(--ink)]/65";
 
-// Fades + slides in on mount — same technique as PremiumInquiryForm.tsx's
-// own FadeIn (a plain mount-triggered CSS transition, no library).
+// Fades + slides in on mount — same technique as app/_components/Reveal.tsx
+// (a plain mount-triggered CSS transition, no library).
 function FadeIn({ children }: { children: React.ReactNode }) {
   const [visible, setVisible] = useState(false);
 

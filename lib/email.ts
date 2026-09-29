@@ -49,28 +49,45 @@ export async function sendInviteReadyEmail({
   });
 }
 
-// Notifies the team of a new "Get Premium" lead from the homepage pricing
-// section. Same noop-when-unconfigured / let-the-caller-catch-failures
+// Notifies the team of a new "Get Plus" or "Get Premium" lead from the
+// homepage pricing section. Same noop-when-unconfigured / let-the-caller-catch-failures
 // pattern as sendInviteReadyEmail above — a failed notification must never
 // block the inquiry from being saved (submitPremiumInquiry already commits
 // the row before calling this).
+// Everything the customer typed is escaped before it goes into the HTML
+// body — the notes box is free text, so it must not be able to inject markup
+// into the team's inbox.
+function escapeHtml(value: string) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
 export async function sendPremiumInquiryNotification({
   name,
   email,
   phone,
+  plan,
+  addons,
+  notes,
 }: {
   name: string;
   email: string;
   phone: string;
+  plan: "plus" | "premium";
+  addons: string[];
+  notes: string | null;
 }) {
   const to = "saja.borgholl@hotmail.com";
-  const subject = `New Premium inquiry: ${name}`;
+  const planName = plan === "plus" ? "Plus" : "Premium";
+  const addonsLine = plan === "plus" ? `Add-ons: ${addons.length ? addons.join(", ") : "none picked yet"}` : null;
+  const subject = `New ${planName} inquiry: ${name}`;
   const text = [
-    "New Premium plan inquiry from the homepage.",
+    `New ${planName} plan inquiry from the homepage.`,
     "",
     `Name: ${name}`,
     `Email: ${email}`,
     `Phone: ${phone}`,
+    ...(addonsLine ? [addonsLine] : []),
+    ...(notes ? ["", "Notes:", notes] : []),
     "",
     "Follow up within 48 hours.",
   ].join("\n");
@@ -88,10 +105,12 @@ export async function sendPremiumInquiryNotification({
     subject,
     text,
     html: `
-      <p>New Premium plan inquiry from the homepage.</p>
-      <p><strong>Name:</strong> ${name}<br/>
-      <strong>Email:</strong> ${email}<br/>
-      <strong>Phone:</strong> ${phone}</p>
+      <p>New ${planName} plan inquiry from the homepage.</p>
+      <p><strong>Name:</strong> ${escapeHtml(name)}<br/>
+      <strong>Email:</strong> ${escapeHtml(email)}<br/>
+      <strong>Phone:</strong> ${escapeHtml(phone)}${addonsLine ? `<br/>
+      <strong>Add-ons:</strong> ${addons.length ? addons.join(", ") : "none picked yet"}` : ""}</p>
+      ${notes ? `<p><strong>Notes:</strong><br/>${escapeHtml(notes).replace(/\n/g, "<br/>")}</p>` : ""}
       <p>Follow up within 48 hours.</p>
     `,
   });

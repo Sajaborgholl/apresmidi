@@ -25,7 +25,6 @@ type PhosphorIcon = typeof SquaresFourIcon;
 
 type Step = {
   title: [string, string];
-  body: string;
   bg: string;
   fg: string;
   // Tint behind the step icon. Per-card because the cards alternate dark and
@@ -51,7 +50,6 @@ type Step = {
 const STEPS: Step[] = [
   {
     title: ["Pick a", "Template"],
-    body: "Browse wedding, birthday, and bachelorette designs, and pick the one that matches your event.",
     bg: "var(--ink)",
     fg: "var(--cream)",
     iconBg: "rgba(255,255,255,0.14)",
@@ -61,7 +59,6 @@ const STEPS: Step[] = [
   },
   {
     title: ["Customize", "It"],
-    body: "Add your names, date, venue, and photos. Watch the preview update as you type.",
     bg: "var(--blue)",
     fg: "var(--ink)",
     iconBg: "rgba(31,36,48,0.08)",
@@ -71,7 +68,6 @@ const STEPS: Step[] = [
   },
   {
     title: ["Share the", "Link"],
-    body: "Get a private link for your invite and send it however you already reach your guests.",
     bg: "var(--yellow)",
     fg: "var(--ink)",
     iconBg: "rgba(31,36,48,0.08)",
@@ -81,7 +77,6 @@ const STEPS: Step[] = [
   },
   {
     title: ["Watch RSVPs", "Come In"],
-    body: "Guests tap RSVP right on the page. You see who's coming, no spreadsheet required.",
     bg: "var(--ink)",
     fg: "var(--cream)",
     iconBg: "rgba(255,255,255,0.14)",
@@ -139,7 +134,6 @@ export default function HowItWorks() {
                   {step.title[1]}
                 </span>
               </h3>
-              <p className="mt-4 max-w-[46ch] text-[15.5px] leading-relaxed opacity-75">{step.body}</p>
             </div>
           ))}
         </div>

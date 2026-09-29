@@ -400,7 +400,7 @@ export default function RequestCategorySection() {
             </div>
 
             {/* Jumps to the Premium plan in the pricing section and opens its
-                inquiry form (PremiumInquiryForm auto-expands at #premium). */}
+                inquiry form (PlanRequestDialog opens its window at #premium). */}
             <a
               className="rc-el rc-cta-trigger"
               href="#premium"

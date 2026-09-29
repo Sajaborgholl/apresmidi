@@ -423,3 +423,70 @@ body {
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
+
+/* The Plus / Premium request window (app/_components/PlanRequestDialog.tsx),
+   a native <dialog> opened with showModal(). The browser's own dialog
+   styles (border, padding, a max size a few pixels inside the viewport) are
+   reset here. It opens with a short fade and scale via @starting-style;
+   browsers without it simply open instantly. There is no close animation, so
+   closing always feels immediate. */
+.plan-dialog {
+  width: min(640px, calc(100% - 32px));
+  max-width: none;
+  max-height: min(90dvh, 880px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 30px 80px rgba(44, 37, 29, 0.28);
+}
+
+.plan-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.plan-dialog::backdrop {
+  background: rgba(44, 37, 29, 0.45); /* --ink at 45% */
+  opacity: 1;
+  transition: opacity 200ms ease-out;
+}
+
+@starting-style {
+  .plan-dialog[open] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  .plan-dialog[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+/* Phones: a full-screen sheet, so the fixed header and footer leave the
+   whole middle of the screen for the form. */
+@media (max-width: 639px) {
+  .plan-dialog {
+    width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-dialog[open],
+  .plan-dialog::backdrop {
+    transition: none;
+  }
+}
+
+/* The page behind the open window doesn't scroll. */
+html:has(.plan-dialog[open]) {
+  overflow: hidden;
+}
