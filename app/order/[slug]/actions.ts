@@ -202,7 +202,12 @@ export async function startWhishPayment(
     throw new Error("This invite has already been paid for.");
   }
 
-  const confirmationUrl = `${BASE_URL}/order/${templateSlug}/confirmation?invite=${encodeURIComponent(inviteSlug)}`;
+  // Path form, not ?invite=…: Whish's browser redirect drops query strings,
+  // which left customers on a bare /confirmation page that 404'd. See
+  // confirmation/[invite]/[[...result]]/page.tsx, which turns this back into
+  // the query form. (The server-to-server callbacks below keep their query
+  // strings — Whish documents that it forwards those unchanged.)
+  const confirmationUrl = `${BASE_URL}/order/${templateSlug}/confirmation/${encodeURIComponent(inviteSlug)}`;
 
   // externalId = the invite slug itself (already globally unique) — Whish
   // treats a repeated externalId as a safe retry rather than a double
@@ -222,8 +227,8 @@ export async function startWhishPayment(
     // this shows a "Confirming your payment…" state instead of the normal
     // pick-a-payment-method one, without changing how fast AutoRefresh
     // itself polls for the real status flip.
-    successRedirectUrl: `${confirmationUrl}&result=processing`,
-    failureRedirectUrl: `${confirmationUrl}&result=failure`,
+    successRedirectUrl: `${confirmationUrl}/processing`,
+    failureRedirectUrl: `${confirmationUrl}/failure`,
   });
 
   return collectUrl;

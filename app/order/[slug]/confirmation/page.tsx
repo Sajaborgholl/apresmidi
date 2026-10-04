@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CheckCircle, WarningCircle, Sparkle, CircleNotch } from "@phosphor-icons/react/dist/ssr";
 import AutoRefresh from "../../../_components/AutoRefresh";
@@ -28,7 +29,50 @@ export default async function OrderConfirmationPage({
   const { slug: templateSlug } = await params;
   const { invite: inviteSlug, result } = await searchParams;
 
-  if (!inviteSlug) notFound();
+  // No order reference in the URL. This used to be a bare 404, which is what
+  // customers saw when Whish's redirect dropped the ?invite= query string
+  // (Whish now returns to the path form instead — see
+  // ./[invite]/[[...result]]/page.tsx). Anyone who still lands here, from an
+  // old link or a stripped URL, gets told what happens next rather than a
+  // dead end: the payment callback runs server to server and keeps its own
+  // reference, so a real payment is still confirmed and emailed.
+  if (!inviteSlug) {
+    return (
+      <main
+        className="flex min-h-dvh items-center justify-center px-6 py-16"
+        style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
+      >
+        <div
+          className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
+          style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}
+        >
+          <div
+            className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full"
+            style={{ background: "var(--blue)" }}
+          >
+            <Sparkle size={26} weight="fill" style={{ color: "var(--ink)" }} />
+          </div>
+          <h1 className="display text-2xl font-bold md:text-[26px]">We couldn&apos;t open your order here</h1>
+          <p className="mt-3 text-[14.5px] opacity-65">
+            If you&apos;ve just paid, your payment is still being confirmed. We&apos;ll email your invite link and
+            dashboard link to the address you gave us as soon as it goes through.
+          </p>
+          <a
+            href={`https://wa.me/${BUSINESS_WHATSAPP_NUMBER}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-7 inline-flex w-full items-center justify-center rounded-full py-3 text-sm font-semibold transition active:scale-[0.97]"
+            style={{ background: "var(--ink)", color: "var(--cream)" }}
+          >
+            Message us on WhatsApp
+          </a>
+          <Link href="/" className="mt-3 inline-block text-sm font-medium underline underline-offset-4 opacity-70">
+            Back to the homepage
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const supabaseAdmin = getSupabaseAdmin();
   const { data: invite } = await supabaseAdmin
