@@ -63,21 +63,25 @@ export default function HeroHeadline() {
           that was a sensible bite at the size it was tuned for, but once the
           title was made smaller, 24px against 65px type at tablet widths
           dragged the ascenders of "worth" into "Invitations" (111 overlapping
-          pixels). 0.2em reproduces the old 8px on phones and 24px at 1600
-          exactly, and keeps every width in between at the same proportion. */}
-      <span className="block" style={{ marginLeft: "8%", marginTop: "-0.2em" }}>
+          pixels). It was -0.2em with Caveat; Ms Madi's taller ascenders on
+          the "h" and "t" of "worth" need more room. A pixel-overlap check
+          (both words drawn where they sit, overlapping ink counted) found 77
+          touching pixels at -0.2em, 12 at -0.15em on a 1024px screen, and
+          none at -0.12em at 375, 768, 1024 or 1440. */}
+      <span className="block" style={{ marginLeft: "8%", marginTop: "-0.12em" }}>
         {/* Set in the brand's script emphasis (as in FeatureScroll's headlines):
-            Caveat at regular weight, normal tracking, 1.25x its display-face
+            Ms Madi at its one (regular) weight, normal tracking, 1.5x its display-face
             neighbour. All four are needed, not just the family — this span
             otherwise inherits the h1's bold and tight tracking, which turn
-            Caveat chunky and crowded. The 1.25 is the brand's script-to-display
-            ratio, measured off the old "Everything's included" heading; Caveat is a compact handwriting face and
-            reads noticeably smaller than Space Grotesk at the same size. In em
+            the fine script faux-bold and crowded. The 1.5 is the brand's
+            script-to-display ratio for Ms Madi, whose small lowercase reads
+            much smaller than Space Grotesk at the same size (it was 1.25 for
+            Caveat, the face this replaced). In em
             so it tracks the h1's clamp() at every width.
 
             Line height is deliberately left as the h1's own, and the second
             line grows about 22px to fit the word. That growth is the point:
-            Caveat's ascenders run taller than Space Grotesk's, so the "h" and
+            Ms Madi's ascenders run taller than Space Grotesk's, so the "h" and
             "t" need the room. Pinning the line to its old height was tried
             and puts them straight into "Invitations" above — measured at 232
             overlapping pixels, against 26 in the original bold design and 12
@@ -87,7 +91,7 @@ export default function HeroHeadline() {
         <span
           {...worth}
           className={`${worth.className} script font-normal tracking-normal`}
-          style={{ ...worth.style, color: "var(--blue-dark)", fontSize: "1.25em" }}
+          style={{ ...worth.style, color: "var(--blue-dark)", fontSize: "1.5em" }}
         >
           worth
         </span>{" "}

@@ -9,6 +9,15 @@
 // $180 is a floor and each request is priced after seeing what was picked.
 export type InquiryPlan = "plus" | "premium";
 
+// The one self-serve plan, shown on the homepage price card and on every
+// template detail page. Its price must match STANDARD_PRICE_USD in
+// app/order/[slug]/actions.ts, which is what Whish actually charges.
+export const STANDARD_PLAN = {
+  name: "Standard",
+  price: "$80",
+  features: ["Your chosen template, exactly as designed", "Live guest RSVP page", "Private RSVP dashboard"],
+};
+
 export const REQUEST_PLANS: Record<InquiryPlan, { name: string; price: string; intro: string }> = {
   plus: {
     name: "Plus",

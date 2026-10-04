@@ -14,8 +14,17 @@
   font-family: "Space Grotesk", sans-serif;
 }
 
+/* The homepage's expressive accent face: Ms Madi, a thin signature-style
+   script (free, Google Fonts, SIL OFL). It replaced Caveat, which the
+   invitation templates still use through their own styles. Ms Madi ships
+   one weight only, so font-synthesis is off — a bold utility on a .script
+   element must never smear the fine strokes into a faux bold. Its lowercase
+   is small next to Space Grotesk, so call sites set it at about 1.5x the
+   display face rather than Caveat's 1.25x. */
 .script {
-  font-family: "Caveat", cursive;
+  font-family: "Ms Madi", cursive;
+  font-weight: 400;
+  font-synthesis: none;
 }
 
 /* "BD Script" — the script font used by the Wedding Classic template.

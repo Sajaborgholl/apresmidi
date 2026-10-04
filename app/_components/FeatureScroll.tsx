@@ -79,7 +79,7 @@ const FEATURES: Feature[] = [
     slug: "share",
     label: "Share it anywhere",
     headline: ["One private link,", "sent anywhere"],
-    copy: "Send your private link by text, WhatsApp, or email — that's it.",
+    copy: "Send your private link by text, WhatsApp, or email.",
     bg: "#B4C4E5", // --blue
     fg: "#2C251D", // --ink
     image: "/homepage/features/share.webp",
@@ -227,10 +227,10 @@ export default function FeatureScroll() {
                   style={{ fontSize: "clamp(2.25rem, 4.2vw, 5.25rem)", lineHeight: 1.02 }}
                 >
                   <span className="block">{f.headline[0]}</span>
-                  {/* 1.25em: the brand's script-to-display ratio. Caveat 600
-                      because that's the weight actually loaded; normal
+                  {/* 1.5em: the brand's script-to-display ratio for Ms Madi,
+                      whose lowercase is small beside Space Grotesk. Normal
                       tracking, since the tight display tracking crowds it. */}
-                  <span className="script block font-semibold tracking-normal" style={{ fontSize: "1.25em" }}>
+                  <span className="script block font-normal tracking-normal" style={{ fontSize: "1.5em" }}>
                     {f.headline[1]}
                   </span>
                 </h3>

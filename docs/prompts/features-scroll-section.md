@@ -27,7 +27,7 @@ Each subsection is `min-height: 100vh`, content vertically centred, in two parts
   radius used across the site), `object-fit: cover`.
 - **Text** (right of the image, gap `clamp(2rem, 3.5vw, 4rem)`), vertically centred on the image:
   - **Headline**: plain words in **Space Grotesk 500**, then emphasis words on their own line
-    in **Caveat 600** at `1.25em`, the same script-to-display ratio as "Everything's included".
+    in **Ms Madi 400** at `1.5em` (the site's script face; it replaced Caveat at `1.25em`).
     `font-size: clamp(2.25rem, 4.2vw, 5.25rem)`, `line-height: 1.02`.
   - **Description**: **Inter 400**, `font-size: clamp(1rem, 1.5vw, 1.625rem)`,
     `line-height: 1.6`, `max-width: 36ch`, `margin-top: clamp(1.25rem, 3vw, 4rem)`.
@@ -91,13 +91,13 @@ Real features only. Keep the constraint in `FeatureShowcase.tsx`'s header commen
 or reservations, no guest-generated links, no background music, no guest messages. The product
 does none of those.
 
-| # | Title list label | Headline (plain / *Caveat emphasis*) | Description |
+| # | Title list label | Headline (plain / *script emphasis*) | Description |
 |---|---|---|---|
 | 1 | Watch RSVPs roll in | Watch every RSVP / *roll in* | Private to you — accepted, declined, and total responses, live. |
 | 2 | Venue on the map | One tap to / *the venue* | One tap opens Google Maps to the exact venue. |
 | 3 | Accept or decline | Guests reply / *right on the page* | Guests RSVP right on the page and say how many are coming. |
 | 4 | Add your photos | Make it yours with / *your photos* | Upload up to six photos and see them in the design instantly. |
-| 5 | Share it anywhere | One private link, / *sent anywhere* | Send your private link by text, WhatsApp, or email — that's it. |
+| 5 | Share it anywhere | One private link, / *sent anywhere* | Send your private link by text, WhatsApp, or email. |
 
 Descriptions are the existing section's copy, unchanged.
 

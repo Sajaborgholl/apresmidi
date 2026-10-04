@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Olivia's Bachelorette Weekend — Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Both fonts are the real ones from the Canva source (Noto Serif Display
+     ExtraCondensed = Noto Serif Display at wdth 62.5; Pinyon Script), and
+     both are free on Google Fonts — no stand-ins needed. -->
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Display:ital,wdth,wght@0,62.5,400;1,62.5,400&family=Pinyon+Script&display=swap" rel="stylesheet" />
+<style>
+  /*
+   * Every position below comes straight from the Canva scene data, on its
+   * 726.486 × 1024 canvas: left/width as % of 726.486, top/height as % of
+   * 1024. Font sizes are Canva's font-size × the scale() wrapper it renders
+   * text inside (×1.83063, or ×2.02429 for the script block), expressed in
+   * cqw so the whole card scales as one piece.
+   */
+  :root {
+    --bm-cream: #fff5e8;
+    --bm-ink: #000000;
+    --bm-serif: 'Noto Serif Display', serif;
+    --bm-script: 'Pinyon Script', cursive;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bm-cream);
+    color: var(--bm-ink);
+    font-family: var(--bm-serif);
+    font-stretch: 62.5%;
+  }
+
+  /* ---------- The card ---------- */
+  .bm-card {
+    position: relative;
+    width: min(100%, 480px);
+    aspect-ratio: 726.486 / 1024;
+    margin: 0 auto;
+    background: var(--bm-cream);
+    container-type: inline-size;
+    overflow: hidden;
+  }
+  .bm-el { position: absolute; }
+  .bm-el img { display: block; width: 100%; height: 100%; }
+
+  /* Placeholder until the real Canva exports arrive — never a CSS redraw. */
+  .bm-placeholder {
+    width: 100%; height: 100%;
+    border: 1px dashed rgba(0,0,0,0.35);
+    display: flex; align-items: center; justify-content: center;
+    font: 2.2cqw/1.2 system-ui, sans-serif;
+    color: rgba(0,0,0,0.45);
+    text-align: center;
+  }
+
+  .bm-bride  { left: 8.1426%;  top: 7.0946%;  width: 49.743%; height: 40.506%; }
+  .bm-coupes { left: 57.093%;  top: 73.629%;  width: 30.121%; height: 20.007%; }
+
+  /* Star doodle — one asset reused three times here. Stars a–c from the
+     source live inside the bride export's own box, so they come with it. */
+  .bm-star-d { left: 35.154%; top: 75.649%; width: 11.217%; height: 9.795%; }
+  .bm-star-e { left: 12.131%; top: 63.678%; width: 7.985%;  height: 6.972%; transform: rotate(-71.5207deg); }
+  .bm-star-f { left: 78.643%; top: 63.678%; width: 7.985%;  height: 6.972%; transform: rotate(-71.5207deg); }
+
+  /* Text layers. Inner offsets start from Canva's translate() inside each box,
+     then nudged (≤0.6cqw) after a pixel diff against the Canva export to
+     absorb browser-vs-Canva font metric differences. */
+  .bm-text { margin: 0; white-space: nowrap; }
+  .bm-cond {
+    font-family: var(--bm-serif);
+    font-stretch: 62.5%;
+    font-weight: 400;
+    letter-spacing: -0.087em;
+    text-transform: uppercase;
+  }
+
+  .bm-name {
+    left: 51.412%; top: 13.015%; width: 35.524%; height: 8.396%;
+    transform: rotate(-2.92388deg);
+    text-align: center;
+  }
+  .bm-name .bm-text {
+    font-style: italic;
+    font-size: 9.901cqw;
+    line-height: 11.34cqw;
+    transform: translate(-0.591cqw, 0.008cqw);
+  }
+
+  .bm-tagline {
+    left: 46.187%; top: 22.431%; width: 45.972%; height: 27.078%;
+    transform: rotate(-2.92388deg);
+    text-align: center;
+  }
+  .bm-tagline .bm-text {
+    font-family: var(--bm-script);
+    font-size: 10.999cqw;
+    line-height: 12.539cqw;
+    transform: translate(-0.4cqw, -0.13cqw);
+  }
+
+  .bm-title {
+    left: 10%; top: 51.387%; width: 80%; height: 20.101%;
+    text-align: center;
+  }
+  .bm-title .bm-text {
+    white-space: normal; /* single string in the source — let it wrap */
+    font-kerning: none; /* source sets font-kerning: none on this layer */
+    font-style: italic;
+    font-size: 12.431cqw;
+    line-height: 13.607cqw;
+    transform: translate(-0.62cqw, 0.24cqw);
+  }
+
+  .bm-day     { left: 10%; top: 73.629%; width: 49.616%; height: 9.164%; }
+  .bm-day .bm-text     { font-size: 10.942cqw; line-height: 21.67cqw;  transform: translate(-0.08cqw, -4.62cqw); }
+  .bm-month   { left: 10%; top: 83.065%; width: 49.616%; height: 4.757%; }
+  .bm-month .bm-text   { font-size: 5.793cqw;  line-height: 11.339cqw; transform: translate(-0.08cqw, -2.48cqw); }
+  .bm-address { left: 10%; top: 88.615%; width: 49.616%; height: 4.291%; }
+  .bm-address .bm-text { font-kerning: none; font-size: 5.040cqw;  line-height: 7.056cqw;  transform: translate(-0.08cqw, -0.82cqw); }
+
+  /* ---------- RSVP (below the card) ---------- */
+  .bm-rsvp {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 48px 28px 72px;
+    text-align: center;
+    border-top: 1px solid var(--bm-ink);
+    /* The card's -0.087em tracking only works at display sizes; at form
+       sizes it fuses words together, so the RSVP opens it back up. */
+    letter-spacing: 0.02em;
+  }
+  .bm-rsvp h2 {
+    margin: 0;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 64px;
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+  .bm-rsvp .bm-when {
+    margin: 10px 0 2px;
+    font-size: 22px;
+  }
+  .bm-rsvp .bm-when span { white-space: nowrap; }
+  .bm-rsvp .bm-where {
+    margin: 0 0 32px;
+    font-size: 18px;
+  }
+  .bm-rsvp .bm-script-note {
+    font-family: var(--bm-script);
+    font-size: 30px;
+    margin: 0 0 24px;
+  }
+  .bm-form { display: grid; gap: 22px; text-align: left; }
+  .bm-label {
+    display: block;
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .bm-input {
+    width: 100%;
+    border: 0;
+    border-bottom: 1px solid var(--bm-ink);
+    background: transparent;
+    padding: 8px 2px;
+    font: 400 22px var(--bm-serif);
+    font-stretch: 62.5%;
+    color: var(--bm-ink);
+    outline: none;
+    border-radius: 0;
+  }
+  .bm-input:focus-visible { border-bottom-width: 2px; padding-bottom: 7px; }
+  .bm-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .bm-choice button, .bm-stepper button, .bm-submit {
+    font-family: var(--bm-serif);
+    font-stretch: 62.5%;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--bm-ink);
+    background: transparent;
+    border: 1px solid var(--bm-ink);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease, color 160ms ease;
+  }
+  .bm-choice button { padding: 12px 8px; font-size: 18px; }
+  .bm-choice button[aria-pressed="true"] { background: var(--bm-ink); color: var(--bm-cream); }
+  .bm-stepper { display: flex; align-items: center; gap: 18px; }
+  .bm-stepper button { width: 40px; height: 40px; font: 300 20px/1 system-ui, sans-serif; padding: 0; }
+  .bm-stepper output { font-size: 30px; min-width: 24px; text-align: center; }
+  .bm-submit {
+    margin-top: 6px;
+    padding: 15px;
+    font-size: 22px;
+    background: var(--bm-ink);
+    color: var(--bm-cream);
+  }
+  .bm-choice button:active, .bm-stepper button:active, .bm-submit:active { transform: scale(0.97); }
+  .bm-thanks { font-family: var(--bm-script); font-size: 40px; margin: 8px 0 0; }
+
+  /* ---------- Motion ---------- */
+  .bm-in {
+    opacity: 0;
+    translate: 0 10px;
+    animation: bm-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 60ms + 80ms);
+  }
+  @keyframes bm-rise { to { opacity: 1; translate: 0 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .bm-in { translate: 0 0; animation-name: bm-fade; }
+    @keyframes bm-fade { to { opacity: 1; } }
+  }
+</style>
+</head>
+<body>
+
+<main>
+  <section class="bm-card" aria-label="Invitation">
+    <div class="bm-el bm-bride bm-in" style="--i:0"><img src="public/templates/bachelorette-martini/bride-martini.svg" alt="" /></div>
+
+
+    <div class="bm-el bm-name bm-in" style="--i:1"><p class="bm-text bm-cond">Olivia’s</p></div>
+    <div class="bm-el bm-tagline bm-in" style="--i:2"><p class="bm-text">Last Fling<br/>Before<br/>The Ring</p></div>
+
+    <div class="bm-el bm-title bm-in" style="--i:3"><h1 class="bm-text bm-cond">Bachelorette weekend</h1></div>
+
+    <div class="bm-el bm-star-e bm-in" style="--i:6"><img src="public/templates/bachelorette-martini/star-doodle.svg" alt="" /></div>
+    <div class="bm-el bm-star-f bm-in" style="--i:6"><img src="public/templates/bachelorette-martini/star-doodle.svg" alt="" /></div>
+
+    <div class="bm-el bm-day bm-in" style="--i:4"><p class="bm-text bm-cond">7th</p></div>
+    <div class="bm-el bm-star-d bm-in" style="--i:6"><img src="public/templates/bachelorette-martini/star-doodle.svg" alt="" /></div>
+    <div class="bm-el bm-month bm-in" style="--i:4"><p class="bm-text bm-cond">August</p></div>
+    <div class="bm-el bm-address bm-in" style="--i:4"><p class="bm-text bm-cond">123 Anywhere St., any city</p></div>
+
+    <div class="bm-el bm-coupes bm-in" style="--i:5"><img src="public/templates/bachelorette-martini/coupe-glasses.svg" alt="" /></div>
+  </section>
+
+  <section class="bm-rsvp bm-cond" aria-labelledby="bm-rsvp-title">
+    <h2 id="bm-rsvp-title">RSVP</h2>
+    <p class="bm-when"><span>Saturday, August 7, 2027</span> <span>· 9:00 PM</span></p>
+    <p class="bm-where">123 Anywhere St., any city</p>
+    <p class="bm-script-note" style="text-transform:none;letter-spacing:0">Will you be there?</p>
+
+    <form class="bm-form" id="bm-form">
+      <div>
+        <label class="bm-label" for="bm-name">Your name</label>
+        <input class="bm-input" id="bm-name" required autocomplete="name" />
+      </div>
+      <div>
+        <span class="bm-label">Attending</span>
+        <div class="bm-choice">
+          <button type="button" aria-pressed="true" data-v="yes">Count me in</button>
+          <button type="button" aria-pressed="false" data-v="no">Can’t make it</button>
+        </div>
+      </div>
+      <div id="bm-guests-wrap">
+        <span class="bm-label">Guests</span>
+        <div class="bm-stepper">
+          <button type="button" id="bm-minus" aria-label="Fewer guests">−</button>
+          <output id="bm-count">1</output>
+          <button type="button" id="bm-plus" aria-label="More guests">+</button>
+        </div>
+      </div>
+      <button class="bm-submit" type="submit">Send RSVP</button>
+    </form>
+    <p class="bm-thanks" id="bm-thanks" hidden style="text-transform:none;letter-spacing:0">See you there!</p>
+  </section>
+</main>
+
+<script>
+  let count = 1, attending = 'yes';
+  const out = document.getElementById('bm-count');
+  document.getElementById('bm-minus').onclick = () => { count = Math.max(1, count - 1); out.textContent = count; };
+  document.getElementById('bm-plus').onclick  = () => { count = Math.min(6, count + 1); out.textContent = count; };
+  document.querySelectorAll('.bm-choice button').forEach(b => b.onclick = () => {
+    attending = b.dataset.v;
+    document.querySelectorAll('.bm-choice button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    document.getElementById('bm-guests-wrap').hidden = attending !== 'yes';
+  });
+  document.getElementById('bm-form').onsubmit = e => {
+    e.preventDefault();
+    e.target.hidden = true;
+    const t = document.getElementById('bm-thanks');
+    t.textContent = attending === 'yes' ? 'See you there!' : 'You’ll be missed!';
+    t.hidden = false;
+  };
+</script>
+</body>
+</html>

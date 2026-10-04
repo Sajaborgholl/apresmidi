@@ -13,6 +13,9 @@ import TypewriterText from "./_components/TypewriterText";
 import RequestCategorySection from "./_components/RequestCategorySection";
 import EnvelopeScrollHero from "./_components/EnvelopeScrollHero";
 import HeroHeadline from "./_components/HeroHeadline";
+import SiteHeader from "./_components/SiteHeader";
+import SiteFooter from "./_components/SiteFooter";
+import { CARD_COLORS, getVisibleCategories } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -39,10 +42,6 @@ type TemplateRow = {
   video_url: string | null;
 };
 
-// Cycles through the site's three accent colors for any number of
-// categories/cards, so this still looks right if a category is added later.
-const CARD_COLORS = ["var(--blue)", "var(--yellow)", "var(--blue-light)"];
-
 // Temporarily hides the "Recently designed" section — flip back to true to
 // restore it. Left in place (rather than deleting the section) so it's a
 // one-line change either way.
@@ -56,14 +55,8 @@ function templateName(templates: RecentInviteRow["templates"]) {
 export default async function Home() {
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: categoryRows } = await supabaseAdmin
-    .from("categories")
-    .select("slug, name, price, sort_order")
-    .order("sort_order", { ascending: true });
-  // Temporarily hides the "Baptism" occasion (no templates ready for it yet)
-  // from the nav, the occasions grid, and the footer. Remove this filter to
-  // bring it back once there's at least one baptism template.
-  const categories: CategoryRow[] = (categoryRows ?? []).filter((c) => c.slug !== "baptism");
+  // Hides Baptism for now (see lib/categories.ts); the template pages share it.
+  const categories: CategoryRow[] = await getVisibleCategories(supabaseAdmin);
 
   const { data: templateRows } = await supabaseAdmin
     .from("templates")
@@ -113,30 +106,7 @@ export default async function Home() {
 
   return (
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
-      <nav className="site-nav flex items-center justify-between px-6 md:px-12 py-5">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.svg" alt="Après-midi" className="h-8 w-auto" />
-        {/* Six links need about 1000px beside the logo and button, so the
-            three occasion links only join from lg; between md and lg the
-            page's own "Browse by occasion" section covers them. */}
-        <div className="hidden md:flex gap-6 whitespace-nowrap text-sm font-medium xl:gap-8">
-          {categories.slice(0, 3).map((cat) => (
-            <a key={cat.slug} href={`#occasion-${cat.slug}`} className="hidden hover:opacity-70 lg:inline">
-              {cat.name}
-            </a>
-          ))}
-          <a href="#how-it-works" className="hover:opacity-70">How it works</a>
-          <a href="#what-we-offer" className="hover:opacity-70">What we offer</a>
-          <a href="#pricing" className="hover:opacity-70">Plans</a>
-        </div>
-        <a
-          href="#occasions"
-          className="rounded-full px-5 py-2 text-sm font-medium transition active:scale-[0.97]"
-          style={{ background: "var(--ink)", color: "var(--cream)" }}
-        >
-          Browse templates
-        </a>
-      </nav>
+      <SiteHeader categories={categories} onHome />
 
       {/* The hero and the section under it are wrapped together so that, on
           phones, both can be pinned for the length of the scrub — see the
@@ -200,20 +170,34 @@ export default async function Home() {
                           className="occasion-card folded-card block aspect-[4/5] rounded-3xl transition"
                           style={{ background: CARD_COLORS[(catIndex + cardIndex) % CARD_COLORS.length] }}
                         >
-                          {demoSlugByTemplateId[template.id] ? (
+                          {/* A screenshot first, when the template has one: a still
+                              image costs a fraction of a live HeroPreview, which
+                              loads the whole invitation (scripts, fonts, photos)
+                              inside the card. Anchored to the top, because that's
+                              where every invitation opens — the screenshots run a
+                              little taller than the card, so cover trims the
+                              bottom. The live demo stays one tap away through the
+                              expand button and the "Preview" pill. Templates
+                              without a screenshot keep the live preview. */}
+                          {template.thumbnail_url ? (
                             <>
-                              <HeroPreview slug={demoSlugByTemplateId[template.id]} />
-                              <ExpandPreviewButton slug={demoSlugByTemplateId[template.id]} />
-                            </>
-                          ) : (
-                            template.thumbnail_url && (
-                              // eslint-disable-next-line @next/next/no-img-element
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img
                                 src={template.thumbnail_url}
                                 alt={template.name}
                                 loading="lazy"
-                                className="absolute inset-0 h-full w-full object-cover"
+                                className="absolute inset-0 h-full w-full object-cover object-top"
                               />
+                              {demoSlugByTemplateId[template.id] && (
+                                <ExpandPreviewButton slug={demoSlugByTemplateId[template.id]} />
+                              )}
+                            </>
+                          ) : (
+                            demoSlugByTemplateId[template.id] && (
+                              <>
+                                <HeroPreview slug={demoSlugByTemplateId[template.id]} />
+                                <ExpandPreviewButton slug={demoSlugByTemplateId[template.id]} />
+                              </>
                             )
                           )}
                           <div
@@ -283,7 +267,7 @@ export default async function Home() {
                   {templateName(invite.templates)}
                 </span>
                 <div>
-                  <p className="script text-3xl leading-tight">{invite.host_names}</p>
+                  <p className="script text-4xl leading-tight">{invite.host_names}</p>
                   {invite.event_date && (
                     <p className="text-sm mt-2 opacity-70">
                       {new Date(invite.event_date).toLocaleDateString("en-US", {
@@ -374,42 +358,7 @@ export default async function Home() {
 
       <Pricing />
 
-      <footer className="px-6 md:px-12 py-14 mt-8" style={{ background: "var(--blue)" }}>
-        <Reveal>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <h3 className="display font-bold text-2xl md:text-3xl max-w-md">Get notified when we add new templates</h3>
-          <div className="flex gap-3">
-            <input
-              type="email"
-              placeholder="you@email.com"
-              className="rounded-full px-5 py-3 w-64"
-              style={{ border: "1px solid rgba(0,0,0,0.15)", background: "#fff", color: "var(--ink)" }}
-            />
-            <button
-              className="rounded-full px-6 py-3 font-medium transition active:scale-[0.97]"
-              style={{ background: "var(--ink)", color: "var(--cream)" }}
-            >
-              Subscribe
-            </button>
-          </div>
-        </div>
-        </Reveal>
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-10 pt-6 border-t" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Après-midi" className="h-7 w-auto" />
-          <div className="flex gap-6 text-sm">
-            {categories.slice(0, 3).map((cat) => (
-              <Link key={cat.slug} href={`/templates/${cat.slug}`}>
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-          <div className="flex gap-4 text-sm">
-            <a href="#">Instagram</a>
-            <a href="#">WhatsApp</a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter categories={categories} />
     </div>
   );
 }

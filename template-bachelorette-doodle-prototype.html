@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Sarina's Bachelorette — Doodle Prototype</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Both are the real fonts from the Canva source and free on Google Fonts. -->
+<link href="https://fonts.googleapis.com/css2?family=Beth+Ellen&family=Walter+Turncoat&display=swap" rel="stylesheet" />
+<style>
+  /*
+   * Canva canvas is 726.486 × 1024. left/width are % of 726.486, top/height
+   * % of 1024. Art boxes were measured by sliding each SVG export over
+   * Canva's own page render until its lines landed exactly (see the doodle
+   * template notes) — so they include each export's padding. Text sizes are
+   * Canva's font-size × its 1.51351 scale wrapper, in cqw of the card.
+   */
+  :root {
+    --bb-blue: #6694ee;
+    --bb-white: #ffffff;
+    --bb-script: 'Beth Ellen', cursive;
+    --bb-hand: 'Walter Turncoat', cursive;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bb-white); }
+
+  .bb-wrap { width: min(100%, 480px); margin: 0 auto; container-type: inline-size; }
+  .bb-card { position: relative; width: 100%; aspect-ratio: 726.486 / 1024; overflow: hidden; }
+  .bb-card-1 { background: var(--bb-white); color: var(--bb-blue); }
+  .bb-card-2 { background: var(--bb-blue); color: var(--bb-white); }
+  .bb-el { position: absolute; }
+  .bb-el img { display: block; width: 100%; height: 100%; }
+  .bb-placeholder {
+    width: 100%; height: 100%;
+    border: 1px dashed currentColor; opacity: 0.55;
+    display: flex; align-items: center; justify-content: center;
+    font: 1.6cqw/1 system-ui, sans-serif; text-align: center;
+  }
+
+  /* ---------- Page 1 art (fitted) ---------- */
+  .bb-p1-disco-ball { left: 50.645%; top: -4.063%; width: 46.936%; height: 31.296%; }
+  .bb-p1-clink-glasses { left: -7.338%; top: -2.976%; width: 52.662%; height: 26.776%; }
+  .bb-p1-martini { left: -7.984%; top: 33.185%; width: 26.452%; height: 23.630%; }
+  .bb-p1-woman { left: -16.613%; top: 63.908%; width: 50.081%; height: 33.928%; }
+  .bb-p1-wine-toast { left: 39.597%; top: 82.847%; width: 16.371%; height: 16.821%; }
+  .bb-p1-moon { left: 59.596%; top: 83.991%; width: 13.710%; height: 17.450%; }
+  .bb-p1-man-wine { left: 78.065%; top: 84.792%; width: 32.500%; height: 25.918%; }
+  .bb-p1-bikini { left: 72.903%; top: 54.125%; width: 36.290%; height: 30.953%; }
+  .bb-p1-pouring-wine { left: 76.855%; top: 21.341%; width: 64.838%; height: 32.955%; }
+  /* Awaiting exports — Canva element boxes + rotations */
+  .bb-p1-rings { left: 12.774%; top: 23.625%; width: 12.123%; height: 5.945%; transform: rotate(13.5908deg); }
+  .bb-p1-kitsch-star { left: 5.647%; top: 24.807%; width: 4.353%; height: 3.199%; transform: rotate(-11.4674deg); }
+  .bb-p1-heart-a { left: 87.872%; top: 24.900%; width: 6.325%; height: 3.394%; transform: rotate(26.6628deg); }
+  .bb-p1-heart-b { left: 33.234%; top: 82.856%; width: 4.402%; height: 2.362%; transform: rotate(26.5671deg); }
+  .bb-p1-heart-c { left: 35.947%; top: 2.041%; width: 4.402%; height: 2.362%; transform: rotate(26.5671deg); }
+  .bb-p1-star-a { left: 68.147%; top: 80.675%; width: 9.575%; height: 8.530%; }
+  .bb-p1-star-b { left: 3.036%; top: 55.979%; width: 6.964%; height: 6.204%; transform: scaleX(-1); }
+
+  /* ---------- Page 1 text ---------- */
+  .bb-text { margin: 0; text-align: center; font-kerning: none; }
+  .bb-tilt { transform: rotate(-5.35298deg); }
+  .bb-hand { font-family: var(--bb-hand); text-transform: uppercase; font-weight: 400; }
+  .bb-scr  { font-family: var(--bb-script); font-weight: 400; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0, "clig" 0; }
+
+  .bb-join  { left: 33.359%; top: 20.700%; width: 33.282%; height: 3.547%; }
+  .bb-name  { left: 21.554%; top: 26.214%; width: 56.892%; height: 8.849%; }
+  .bb-title { left: 12.462%; top: 39.258%; width: 75.077%; height: 8.849%; }
+  .bb-date  { left: 16.198%; top: 54.330%; width: 69.633%; height: 3.547%; }
+  .bb-addr  { left: 28.311%; top: 63.201%; width: 47.723%; height: 6.582%; }
+  .bb-note  { left: 29.668%; top: 73.481%; width: 47.723%; height: 6.582%; }
+
+  .bb-join .bb-text, .bb-date .bb-text { font-size: 4.167cqw; line-height: 5.834cqw; transform: translate(-0.08cqw, -0.657cqw); white-space: nowrap; }
+  .bb-name .bb-text, .bb-title .bb-text { font-size: 10.556cqw; line-height: 14.584cqw; white-space: nowrap; }
+  .bb-name .bb-text { transform: translate(-0.08cqw, -1.786cqw); }
+  .bb-title .bb-text { transform: translate(-0.08cqw, -1.866cqw); }
+  .bb-addr .bb-text, .bb-note .bb-text { font-size: 3.611cqw; line-height: 5cqw; transform: translateY(-0.681cqw); }
+
+  /* ---------- Page 2 ---------- */
+  .bb-p2-disco-ball { left: 50.645%; top: -4.063%; width: 46.936%; height: 31.296%; }
+  .bb-p2-pouring-wine { left: 70.807%; top: 63.222%; width: 71.935%; height: 36.560%; }
+  .bb-p2-heart { left: 87.872%; top: 24.900%; width: 6.325%; height: 3.394%; transform: rotate(26.6628deg); }
+  .bb-p2-star { left: 67.781%; top: 75.504%; width: 9.575%; height: 8.530%; }
+
+  .bb-h-small-1 { left: 14.727%; top: 6.007%; width: 26.538%; height: 4.680%; }
+  .bb-h-big     { left: -6.671%; top: 10.530%; width: 69.333%; height: 8.849%; }
+  .bb-h-small-2 { left: 14.727%; top: 20.635%; width: 26.538%; height: 4.680%; }
+  .bb-h-small-1 .bb-text, .bb-h-small-2 .bb-text { font-size: 5.556cqw; line-height: 7.708cqw; transform: translateY(-0.556cqw); white-space: nowrap; }
+  .bb-h-big .bb-text { font-size: 10.556cqw; line-height: 14.584cqw; transform: translateY(-1.056cqw); white-space: nowrap; }
+
+  /* The RSVP sits where the schedule was (x 22–520, y 360+ on the canvas),
+     in normal flow so the card grows rather than clipping if it ever needs
+     more room than the 726:1024 shape gives it. */
+  .bb-card-2 { aspect-ratio: auto; min-height: calc(100cqw * 1024 / 726.486); }
+  .bb-rsvp {
+    position: relative; z-index: 1;
+    margin-left: 4.2cqw; width: 64cqw;
+    padding: 50cqw 0 12cqw;
+    font-family: var(--bb-hand);
+    text-transform: uppercase;
+  }
+  .bb-form { display: grid; gap: 5.2cqw; }
+  .bb-label { display: block; font-size: 3.4cqw; letter-spacing: 0.04em; margin-bottom: 1.4cqw; }
+  .bb-input {
+    width: 100%; border: 0; border-bottom: 2px solid var(--bb-white); border-radius: 0;
+    background: transparent; color: var(--bb-white);
+    font: 400 max(16px, 4.6cqw) var(--bb-hand);
+    padding: 1.2cqw 0.4cqw; outline: none;
+  }
+  .bb-input::placeholder { color: rgba(255,255,255,0.6); }
+  .bb-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 2.4cqw; }
+  .bb-btn {
+    font-family: var(--bb-hand); text-transform: uppercase; letter-spacing: 0.03em;
+    color: var(--bb-white); background: transparent;
+    border: 2px solid var(--bb-white); border-radius: 999px;
+    cursor: pointer;
+    transition: transform 160ms cubic-bezier(0.22, 1, 0.36, 1), background-color 160ms ease, color 160ms ease;
+  }
+  .bb-choice .bb-btn { padding: 2.6cqw 1.6cqw; font-size: 3.4cqw; }
+  .bb-btn[aria-pressed="true"] { background: var(--bb-white); color: var(--bb-blue); }
+  .bb-stepper { display: flex; align-items: center; gap: 4cqw; }
+  .bb-stepper .bb-btn { width: 9cqw; height: 9cqw; padding: 0; font: 400 5cqw/1 system-ui, sans-serif; }
+  .bb-stepper output { font-size: 6cqw; min-width: 5cqw; text-align: center; }
+  .bb-submit { padding: 3.2cqw; font-size: 4.4cqw; background: var(--bb-white); color: var(--bb-blue); }
+  .bb-btn:active { transform: scale(0.97); }
+  .bb-thanks { text-transform: none; }
+  .bb-thanks-script { font-family: var(--bb-script); font-size: 10cqw; line-height: 1.3; margin: 0; }
+  .bb-thanks-body { font-size: 4cqw; margin: 2cqw 0 0; text-transform: uppercase; }
+
+  /* ---------- Motion ---------- */
+  .bb-in { opacity: 0; translate: 0 8px; animation: bb-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  @keyframes bb-rise { to { opacity: 1; translate: 0 0; } }
+  @keyframes bb-fade { to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .bb-in { translate: 0 0; animation-name: bb-fade; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="bb-wrap">
+    <section class="bb-card bb-card-1" aria-label="Invitation">
+      <div class="bb-el bb-p1-clink-glasses bb-in" style="animation-delay:60ms"><img src="public/templates/bachelorette-doodle/clink-glasses.svg" alt="" /></div>
+      <div class="bb-el bb-p1-rings bb-in" style="animation-delay:120ms"><div class="bb-placeholder">rings</div></div>
+      <div class="bb-el bb-p1-disco-ball bb-in" style="animation-delay:90ms"><img src="public/templates/bachelorette-doodle/disco-ball.svg" alt="" /></div>
+      <div class="bb-el bb-p1-man-wine bb-in" style="animation-delay:300ms"><img src="public/templates/bachelorette-doodle/man-wine.svg" alt="" /></div>
+      <div class="bb-el bb-p1-bikini bb-in" style="animation-delay:240ms"><img src="public/templates/bachelorette-doodle/bikini.svg" alt="" /></div>
+      <div class="bb-el bb-p1-star-a bb-in" style="animation-delay:340ms"><div class="bb-placeholder">✦</div></div>
+      <div class="bb-el bb-p1-moon bb-in" style="animation-delay:320ms"><img src="public/templates/bachelorette-doodle/moon.svg" alt="" /></div>
+      <div class="bb-el bb-p1-wine-toast bb-in" style="animation-delay:300ms"><img src="public/templates/bachelorette-doodle/wine-toast.svg" alt="" /></div>
+      <div class="bb-el bb-p1-kitsch-star bb-in" style="animation-delay:150ms"><div class="bb-placeholder">☆</div></div>
+      <div class="bb-el bb-p1-heart-a bb-in" style="animation-delay:180ms"><div class="bb-placeholder">♥</div></div>
+      <div class="bb-el bb-p1-heart-b bb-in" style="animation-delay:340ms"><div class="bb-placeholder">♥</div></div>
+      <div class="bb-el bb-p1-star-b bb-in" style="animation-delay:220ms"><div class="bb-placeholder">✦</div></div>
+      <div class="bb-el bb-p1-heart-c bb-in" style="animation-delay:100ms"><div class="bb-placeholder">♥</div></div>
+      <div class="bb-el bb-p1-martini bb-in" style="animation-delay:200ms"><img src="public/templates/bachelorette-doodle/martini.svg" alt="" /></div>
+      <div class="bb-el bb-p1-pouring-wine bb-in" style="animation-delay:220ms"><img src="public/templates/bachelorette-doodle/pouring-wine.svg" alt="" /></div>
+      <div class="bb-el bb-p1-woman bb-in" style="animation-delay:280ms"><img src="public/templates/bachelorette-doodle/woman.svg" alt="" /></div>
+
+      <div class="bb-el bb-join bb-tilt bb-in" style="animation-delay:120ms"><p class="bb-text bb-hand">Join us for</p></div>
+      <div class="bb-el bb-name bb-tilt bb-in" style="animation-delay:180ms"><p class="bb-text bb-scr">Sarina’s</p></div>
+      <div class="bb-el bb-title bb-tilt bb-in" style="animation-delay:240ms"><h1 class="bb-text bb-scr">Bachelorette</h1></div>
+      <div class="bb-el bb-date bb-tilt bb-in" style="animation-delay:300ms"><p class="bb-text bb-hand">August 4th, 2024</p></div>
+      <div class="bb-el bb-addr bb-tilt bb-in" style="animation-delay:340ms"><p class="bb-text bb-hand">123 any where st., any city</p></div>
+      <div class="bb-el bb-note bb-tilt bb-in" style="animation-delay:380ms"><p class="bb-text bb-hand">Kindly RSVP below</p></div>
+    </section>
+  </div>
+
+  <div class="bb-wrap">
+    <section class="bb-card bb-card-2" aria-labelledby="bb-rsvp-title">
+      <div class="bb-el bb-p2-disco-ball"><img src="public/templates/bachelorette-doodle/disco-ball-white.svg" alt="" /></div>
+      <div class="bb-el bb-p2-heart"><div class="bb-placeholder">♥</div></div>
+      <div class="bb-el bb-p2-star"><div class="bb-placeholder">✦</div></div>
+      <div class="bb-el bb-p2-pouring-wine"><img src="public/templates/bachelorette-doodle/pouring-wine-white.svg" alt="" /></div>
+
+      <div class="bb-el bb-h-small-1 bb-tilt"><p class="bb-text bb-hand">Will you</p></div>
+      <div class="bb-el bb-h-big bb-tilt"><h2 class="bb-text bb-scr" id="bb-rsvp-title">Join us</h2></div>
+      <div class="bb-el bb-h-small-2 bb-tilt"><p class="bb-text bb-hand">?</p></div>
+
+      <div class="bb-rsvp">
+        <form class="bb-form" id="bb-form">
+          <div>
+            <label class="bb-label" for="bb-guest">Your name</label>
+            <input class="bb-input" id="bb-guest" required autocomplete="name" />
+          </div>
+          <div>
+            <span class="bb-label">Attending</span>
+            <div class="bb-choice">
+              <button type="button" class="bb-btn" aria-pressed="true" data-v="yes">Count me in</button>
+              <button type="button" class="bb-btn" aria-pressed="false" data-v="no">Can’t make it</button>
+            </div>
+          </div>
+          <div id="bb-guests">
+            <span class="bb-label">Guests</span>
+            <div class="bb-stepper">
+              <button type="button" class="bb-btn" id="bb-minus" aria-label="Fewer guests">−</button>
+              <output id="bb-count">1</output>
+              <button type="button" class="bb-btn" id="bb-plus" aria-label="More guests">+</button>
+            </div>
+          </div>
+          <button class="bb-btn bb-submit" type="submit">Send RSVP</button>
+        </form>
+        <div class="bb-thanks" id="bb-thanks" hidden>
+          <p class="bb-thanks-script">See you there!</p>
+          <p class="bb-thanks-body">Your RSVP is in.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+<script>
+  let count = 1, attending = 'yes';
+  const out = document.getElementById('bb-count');
+  document.getElementById('bb-minus').onclick = () => { count = Math.max(1, count - 1); out.textContent = count; };
+  document.getElementById('bb-plus').onclick = () => { count = Math.min(6, count + 1); out.textContent = count; };
+  document.querySelectorAll('.bb-choice .bb-btn').forEach(b => b.onclick = () => {
+    attending = b.dataset.v;
+    document.querySelectorAll('.bb-choice .bb-btn').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    document.getElementById('bb-guests').hidden = attending !== 'yes';
+  });
+  document.getElementById('bb-form').onsubmit = e => {
+    e.preventDefault(); e.target.hidden = true;
+    document.getElementById('bb-thanks').hidden = false;
+  };
+</script>
+</body>
+</html>

@@ -4,6 +4,8 @@ import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
+import BacheloretteMartini from "@/app/i/[slug]/_designs/BacheloretteMartini";
+import BacheloretteDoodle from "@/app/i/[slug]/_designs/BacheloretteDoodle";
 import BirthdayDisco from "@/app/i/[slug]/_designs/BirthdayDisco";
 import BirthdayCreamPink from "@/app/i/[slug]/_designs/BirthdayCreamPink";
 import BirthdayRetroPolaroid from "@/app/i/[slug]/_designs/BirthdayRetroPolaroid";
@@ -105,6 +107,36 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     category: "bachelorette",
     component: BacheloretteCoastal,
     previewBackground: "#EDE7DD",
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: false,
+      whatsapp_number: false,
+      photoCount: 0,
+    },
+  },
+  {
+    slug: "bachelorette-martini",
+    name: "Martini Bachelorette",
+    category: "bachelorette",
+    component: BacheloretteMartini,
+    previewBackground: "#fff5e8",
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: false,
+      whatsapp_number: false,
+      photoCount: 0,
+    },
+  },
+  {
+    slug: "bachelorette-doodle",
+    name: "Doodle Bachelorette",
+    category: "bachelorette",
+    component: BacheloretteDoodle,
+    previewBackground: "#ffffff",
     fields: {
       host_names: true,
       event_date: true,
