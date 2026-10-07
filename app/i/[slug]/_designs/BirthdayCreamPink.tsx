@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
 
 // Birthday Cream & Pink — ported from the approved static mockup
@@ -117,7 +117,7 @@ export default function BirthdayCreamPink({ invite }: { invite: Invite }) {
     setLoading(true);
     setError("");
 
-    const { error: insertError } = await supabase.from("rsvps").insert({
+    const { error: insertError } = await submitRsvp({
       invite_id: invite.id,
       guest_name: guestName.trim(),
       attending: attending === "accept",

@@ -9,6 +9,7 @@ import { createWhishPayment } from "@/lib/whish";
 import { buildWhatsappNumber } from "@/lib/types";
 import { dialCodeForCountry } from "@/lib/countryCodes";
 import { uploadInvitePhotos } from "@/lib/invitePhotos";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -32,6 +33,11 @@ function randomSlugSuffix(): string {
 // take a few seconds). It never actually returns a state: every path
 // either throws or calls redirect().
 export async function createOrder(templateSlug: string, _prevState: unknown, formData: FormData) {
+  // Checked before anything is uploaded: each order can carry up to 3 photos.
+  if (!(await rateLimit("create-order", await clientIp(), 10, 60 * 60))) {
+    throw new Error("Too many orders from your connection — please try again in an hour.");
+  }
+
   const supabaseAdmin = getSupabaseAdmin();
 
   const hostNames = String(formData.get("host_names") ?? "").trim();
@@ -94,6 +100,10 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
   const { error: insertError } = await supabaseAdmin.from("invites").insert({
     slug: inviteSlug,
     order_token: orderToken,
+    // Created now, not at payment time, so every confirmation of this order
+    // (including duplicate callbacks) emails the same, working link. Safe on
+    // a draft: the dashboard only opens for live invites.
+    dashboard_token: randomUUID(),
     template_id: template.id,
     host_names: hostNames,
     owner_email: ownerEmail,
@@ -133,6 +143,11 @@ export async function startWhishPayment(
   templateSlug: string,
   inviteSlug: string
 ): Promise<string> {
+  // Each call is an outbound request to Whish's API.
+  if (!(await rateLimit("start-payment", await clientIp(), 10, 10 * 60))) {
+    throw new Error("Too many payment attempts — please wait a few minutes and try again.");
+  }
+
   const supabaseAdmin = getSupabaseAdmin();
 
   const { data: invite } = await supabaseAdmin

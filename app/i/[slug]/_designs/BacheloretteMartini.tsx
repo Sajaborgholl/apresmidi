@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
 import Reveal from "@/app/_components/Reveal";
 
@@ -88,7 +88,7 @@ export default function BacheloretteMartini({ invite }: { invite: Invite }) {
     setLoading(true);
     setError("");
 
-    const { error: insertError } = await supabase.from("rsvps").insert({
+    const { error: insertError } = await submitRsvp({
       invite_id: invite.id,
       guest_name: name.trim(),
       attending: attending === "yes",

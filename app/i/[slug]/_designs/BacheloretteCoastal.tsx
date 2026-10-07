@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { forwardRef, useEffect, useRef, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
 
 // react-pageflip renders a real canvas/DOM paper-curl (proper curved fold,
@@ -249,7 +249,7 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ i
     setLoading(true);
     setError("");
 
-    const { error: insertError } = await supabase.from("rsvps").insert({
+    const { error: insertError } = await submitRsvp({
       invite_id: invite.id,
       guest_name: name.trim(),
       attending: attending === "yes",

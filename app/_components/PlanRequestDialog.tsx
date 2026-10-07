@@ -6,6 +6,7 @@ import { CheckCircle, X } from "@phosphor-icons/react";
 import { submitPremiumInquiry, type PremiumInquiryState } from "../_actions/premium-inquiry";
 import { PLUS_ADDON_GROUPS, REQUEST_PLANS, type InquiryPlan } from "@/lib/plans";
 import { COUNTRY_CODES } from "@/lib/countryCodes";
+import HoneypotField from "./HoneypotField";
 
 // The request window for the Plus and Premium plans: the card's button, plus
 // a native <dialog> opened with showModal(). Native rather than a hand-built
@@ -188,6 +189,7 @@ function RequestForm({
   return (
     <form action={formAction} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
       <input type="hidden" name="plan" value={plan} />
+      <HoneypotField />
 
       {/* Only this middle part scrolls; the header above and the footer
           below stay put, so the send button is always in reach. */}

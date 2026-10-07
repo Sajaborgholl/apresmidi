@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Image as ImageIcon } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
-import { MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_SIZE_MB } from "@/lib/types";
 import { COUNTRY_CODES } from "@/lib/countryCodes";
 
 const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
@@ -76,14 +76,24 @@ export default function CustomizeForm({
   function handlePhotoInputChange(index: number, e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
 
-    if (file && file.size > MAX_PHOTO_SIZE_BYTES) {
+    // The server re-checks the real format from the file's bytes; this is
+    // just so a host hears about it here, not as a failed submission.
+    const error = !file
+      ? undefined
+      : !(ALLOWED_PHOTO_TYPES as readonly string[]).includes(file.type)
+        ? "Please use a JPG, PNG or WebP photo."
+        : file.size > MAX_PHOTO_SIZE_BYTES
+          ? `That photo is too large — please choose one under ${MAX_PHOTO_SIZE_MB}MB.`
+          : undefined;
+
+    if (error) {
       setPhotoErrors((prev) => {
         const next = [...prev];
-        next[index] = `That photo is too large — please choose one under ${MAX_PHOTO_SIZE_MB}MB.`;
+        next[index] = error;
         return next;
       });
       // Clears the input's own file list too, not just our preview state —
-      // otherwise the oversized file would still ride along when the real
+      // otherwise the rejected file would still ride along when the real
       // <form> is submitted, since that reads straight from the browser's
       // native FormData rather than from onPhotoChange's argument.
       e.target.value = "";
@@ -209,7 +219,9 @@ export default function CustomizeForm({
       {fields.photoCount > 0 && (
         <div>
           <label className={labelClass}>Photos</label>
-          <p className="mb-2 -mt-1 text-[11px] text-[var(--ink)]/45">Max {MAX_PHOTO_SIZE_MB}MB per photo.</p>
+          <p className="mb-2 -mt-1 text-[11px] text-[var(--ink)]/45">
+            JPG, PNG or WebP, max {MAX_PHOTO_SIZE_MB}MB per photo.
+          </p>
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: fields.photoCount }, (_, i) => {
               const preview = photoPreviews[i];
@@ -233,7 +245,7 @@ export default function CustomizeForm({
                       id={inputId}
                       name={`photo_${i + 1}`}
                       type="file"
-                      accept="image/*"
+                      accept={ALLOWED_PHOTO_TYPES.join(",")}
                       onChange={(e) => handlePhotoInputChange(i, e)}
                       className="absolute h-0 w-0 opacity-0"
                     />

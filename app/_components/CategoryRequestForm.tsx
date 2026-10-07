@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { CheckCircle } from "@phosphor-icons/react";
 import { submitCategoryRequest, type CategoryRequestState } from "../_actions/category-request";
+import HoneypotField from "./HoneypotField";
 
 // Matches the input/label classes already established in
 // app/_components/PlanRequestDialog.tsx, for visual consistency with the
@@ -72,6 +73,7 @@ export default function CategoryRequestForm() {
         className="flex flex-col gap-3 rounded-xl p-5 max-w-sm"
         style={{ background: "#fff", boxShadow: "0 8px 20px rgba(31,36,48,0.14)" }}
       >
+        <HoneypotField />
         <div>
           <label className={labelClass}>Name</label>
           <input name="name" required placeholder="Your name" className={inputClass} />

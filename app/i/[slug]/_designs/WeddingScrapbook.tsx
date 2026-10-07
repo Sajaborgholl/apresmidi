@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
 
 type IconKey = "heart" | "star" | "rings";
@@ -91,7 +91,7 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
     }
     const finalName = name.trim() || "Friend";
 
-    const { error: insertError } = await supabase.from("rsvps").insert({
+    const { error: insertError } = await submitRsvp({
       invite_id: invite.id,
       guest_name: finalName,
       attending,

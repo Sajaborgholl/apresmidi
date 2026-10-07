@@ -3,6 +3,13 @@
 // number, so the two can never silently drift apart.
 export const MAX_PHOTO_SIZE_MB = 8;
 
+// Photo formats every guest's browser can display. Same sharing as above:
+// the form's picker/check and the server's byte-level check
+// (lib/invitePhotos.ts) both read this, and supabase/restrict-photo-uploads.sql
+// sets the same list on the storage bucket. HEIC/TIFF/BMP/SVG are left out
+// on purpose — HEIC doesn't render in Chrome or Android, SVG can carry script.
+export const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
+
 // Shared data shape for an invite, used by every template component.
 // This is the one place the field names are defined — templates import
 // this instead of each declaring their own version, so they can never

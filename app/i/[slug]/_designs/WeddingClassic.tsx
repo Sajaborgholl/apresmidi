@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
 
 // Wedding Classic — replaced with the black-and-white editorial design
@@ -53,7 +53,7 @@ export default function WeddingClassic({ invite }: { invite: Invite }) {
     setLoading(true);
     setError("");
 
-    const { error: insertError } = await supabase.from("rsvps").insert({
+    const { error: insertError } = await submitRsvp({
       invite_id: invite.id,
       guest_name: name.trim(),
       attending: attending === "accept",

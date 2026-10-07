@@ -2,6 +2,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendCategoryRequestNotification } from "@/lib/email";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 export type CategoryRequestState = { error: string } | { success: true } | null;
 
@@ -18,6 +19,11 @@ export async function submitCategoryRequest(
   const email = String(formData.get("email") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
 
+  // Honeypot — same as submitPremiumInquiry (see CategoryRequestForm.tsx).
+  if (String(formData.get("website") ?? "")) {
+    return { success: true };
+  }
+
   if (!name) {
     return { error: "Name is required." };
   }
@@ -27,6 +33,11 @@ export async function submitCategoryRequest(
   }
   if (!category) {
     return { error: "Tell us what occasion you have in mind." };
+  }
+
+  // Each request emails the team inbox, so this caps how fast it can be flooded.
+  if (!(await rateLimit("category-request", await clientIp(), 5, 60 * 60))) {
+    return { error: "We've received several requests from you already — please try again later." };
   }
 
   const supabaseAdmin = getSupabaseAdmin();

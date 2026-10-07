@@ -24,9 +24,13 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 // redirect-back flow needs a server-side status lookup against Whish,
 // never just trusting what the redirect URL claims.
 //
-// Idempotent: safe to call more than once for the same invite (webhook
-// retries, accidental double-calls) — a second call reuses the existing
-// dashboard_token/paid_at and skips re-sending the email.
+// Idempotent, including under concurrency: safe to call more than once for
+// the same invite, even at the same moment (Whish retrying a slow callback).
+// The flip to 'live' is a single conditional UPDATE, so exactly one call
+// wins it; only that call sends the email, and every call returns the one
+// dashboard_token that was actually saved. (It used to read, then write a
+// fresh random token — two overlapping calls each saved and emailed their
+// own token, and the overwritten one's emailed link 404'd.)
 export async function confirmInvitePayment(
   inviteSlug: string
 ): Promise<{ dashboardUrl: string; guestUrl: string }> {
@@ -34,7 +38,7 @@ export async function confirmInvitePayment(
 
   const { data: invite } = await supabaseAdmin
     .from("invites")
-    .select("id, owner_email, dashboard_token, status")
+    .select("id, owner_email, dashboard_token")
     .eq("slug", inviteSlug)
     .single();
 
@@ -42,24 +46,43 @@ export async function confirmInvitePayment(
     throw new Error(`confirmInvitePayment: no invite found for slug "${inviteSlug}"`);
   }
 
-  const alreadyConfirmed = invite.status === "live" && Boolean(invite.dashboard_token);
-  const dashboardToken = invite.dashboard_token ?? randomUUID();
+  // createOrder sets dashboard_token up front; this fallback only covers
+  // invites created before it did.
+  const { data: flipped, error: flipError } = await supabaseAdmin
+    .from("invites")
+    .update({
+      status: "live",
+      dashboard_token: invite.dashboard_token ?? randomUUID(),
+      paid_at: new Date().toISOString(),
+    })
+    .eq("id", invite.id)
+    // "Not confirmed yet". Postgres re-checks this on the latest row version
+    // when two UPDATEs race, so the second one matches nothing.
+    .or("status.neq.live,dashboard_token.is.null")
+    .select("dashboard_token");
 
-  if (!alreadyConfirmed) {
-    await supabaseAdmin
+  if (flipError) {
+    // Thrown, not swallowed: the callback answers 500, so Whish can retry.
+    throw new Error(`confirmInvitePayment: could not mark "${inviteSlug}" paid: ${flipError.message}`);
+  }
+
+  const wonFlip = (flipped?.length ?? 0) > 0;
+  let dashboardToken: string | null = flipped?.[0]?.dashboard_token ?? null;
+
+  if (!wonFlip) {
+    // Already confirmed (by an earlier or concurrent call) — use its token.
+    const { data: current } = await supabaseAdmin
       .from("invites")
-      .update({
-        status: "live",
-        dashboard_token: dashboardToken,
-        paid_at: new Date().toISOString(),
-      })
-      .eq("id", invite.id);
+      .select("dashboard_token")
+      .eq("id", invite.id)
+      .single();
+    dashboardToken = current?.dashboard_token ?? null;
   }
 
   const guestUrl = `${BASE_URL}/i/${inviteSlug}`;
   const dashboardUrl = `${BASE_URL}/dashboard/${dashboardToken}`;
 
-  if (!alreadyConfirmed) {
+  if (wonFlip) {
     // Never let an email failure block the payment confirmation itself —
     // the status flip above has already committed by this point.
     try {

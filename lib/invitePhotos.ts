@@ -1,7 +1,24 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { MAX_PHOTO_SIZE_MB } from "@/lib/types";
+import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_SIZE_MB } from "@/lib/types";
 
 const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
+
+type PhotoType = { mime: (typeof ALLOWED_PHOTO_TYPES)[number]; ext: string };
+
+// Identifies the real format from the file's first bytes (its "magic
+// number"), never from its name or the browser-supplied type — both are
+// whatever the uploader says they are. Anything that isn't one of
+// ALLOWED_PHOTO_TYPES comes back null.
+async function detectPhotoType(file: File): Promise<PhotoType | null> {
+  const b = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+  const at = (offset: number, bytes: number[]) => bytes.every((byte, i) => b[offset + i] === byte);
+
+  if (at(0, [0xff, 0xd8, 0xff])) return { mime: "image/jpeg", ext: "jpg" };
+  if (at(0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return { mime: "image/png", ext: "png" };
+  // "RIFF" .... "WEBP"
+  if (at(0, [0x52, 0x49, 0x46, 0x46]) && at(8, [0x57, 0x45, 0x42, 0x50])) return { mime: "image/webp", ext: "webp" };
+  return null;
+}
 
 // Shared by createOrder (app/order/[slug]/actions.ts) and updateInvite
 // (app/dashboard/[token]/actions.ts). Reads photo_1, photo_2, ... up to the
@@ -40,11 +57,19 @@ export async function uploadInvitePhotos(
         throw new Error(`Photo ${i} exceeds the ${MAX_PHOTO_SIZE_MB}MB limit.`);
       }
 
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = versioned ? `${inviteSlug}-${i}-${Date.now()}.${ext}` : `${inviteSlug}-${i}.${ext}`;
+      // Same backstop role as the size check: the form already refuses
+      // other formats, so only a bypassed form reaches this.
+      const type = await detectPhotoType(file);
+      if (!type) {
+        throw new Error(`Photo ${i} must be a JPG, PNG or WebP image.`);
+      }
+
+      // Extension and content type come from the detected format, so a file
+      // named "x.html" or "x.exe" can never be stored or served as one.
+      const path = versioned ? `${inviteSlug}-${i}-${Date.now()}.${type.ext}` : `${inviteSlug}-${i}.${type.ext}`;
       const { error: uploadError } = await supabaseAdmin.storage
         .from("invite-photos")
-        .upload(path, file, { upsert: true, contentType: file.type || undefined });
+        .upload(path, file, { upsert: true, contentType: type.mime });
 
       if (!uploadError) {
         url = supabaseAdmin.storage.from("invite-photos").getPublicUrl(path).data.publicUrl;

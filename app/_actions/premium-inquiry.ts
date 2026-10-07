@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendPremiumInquiryNotification } from "@/lib/email";
 import { PLUS_ADDONS, type InquiryPlan } from "@/lib/plans";
 import { dialCodeForCountry } from "@/lib/countryCodes";
+import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 // Cap on the optional notes box — matches the textarea's maxLength in
 // PlanRequestDialog.tsx, enforced here too since the form can be bypassed.
@@ -39,6 +40,13 @@ export async function submitPremiumInquiry(
       ? PLUS_ADDONS.filter((a) => formData.getAll("addons").includes(a))
       : [];
 
+  // Honeypot: a field people never see (see PlanRequestDialog.tsx). Only a
+  // bot fills it — it gets the normal success response, but nothing is
+  // saved or emailed.
+  if (String(formData.get("website") ?? "")) {
+    return { success: true };
+  }
+
   if (!name) {
     return { error: "Name is required." };
   }
@@ -55,6 +63,11 @@ export async function submitPremiumInquiry(
     return { error: "Phone number is required." };
   }
   const phone = `${dialCode} ${localNumber}`;
+
+  // Each inquiry emails the team inbox, so this caps how fast it can be flooded.
+  if (!(await rateLimit("premium-inquiry", await clientIp(), 5, 60 * 60))) {
+    return { error: "We've received several requests from you already — please try again later." };
+  }
 
   const supabaseAdmin = getSupabaseAdmin();
   let { error: insertError } = await supabaseAdmin
