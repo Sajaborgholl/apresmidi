@@ -5,7 +5,6 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTemplateBySlug } from "@/lib/templates/registry";
 import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
-import { sendInviteReadyEmail } from "@/lib/email";
 import { createWhishPayment } from "@/lib/whish";
 import { buildWhatsappNumber } from "@/lib/types";
 import { dialCodeForCountry } from "@/lib/countryCodes";
@@ -24,7 +23,7 @@ function randomSlugSuffix(): string {
 // Runs when the intake form on /order/[slug] is submitted. Creates the
 // invite as a DRAFT (not publicly visible — see the status/is_demo check
 // in app/i/[slug]/page.tsx). It only flips to 'live' via
-// confirmInvitePayment below, once payment succeeds.
+// confirmInvitePayment (lib/payments.ts), once payment succeeds.
 //
 // Takes an (unused) _prevState param purely so it fits useActionState's
 // (prevState, formData) => ... contract — CustomizePanel.tsx binds
@@ -117,67 +116,9 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
   redirect(`/order/${templateSlug}/confirmation?order=${orderToken}`);
 }
 
-// The single trusted entry point for "a real payment was verified for this
-// invite." This function does NOT talk to Whish (or any payment provider)
-// at all — that integration doesn't exist yet and is explicitly out of
-// scope here. Whatever gets built later (a webhook route handler with its
-// own signature verification, or a redirect-back page that independently
-// re-checks payment status server-side) must call this ONLY after it has
-// verified the payment itself; this function trusts its caller completely.
-//
-// Must never be reachable via a GET route/query param the customer's own
-// browser can trigger unauthenticated (e.g. never "if success=true in the
-// URL, call this") — a webhook needs its own signature check first, and a
-// redirect-back flow needs a server-side status lookup against Whish,
-// never just trusting what the redirect URL claims.
-//
-// Idempotent: safe to call more than once for the same invite (webhook
-// retries, accidental double-calls) — a second call reuses the existing
-// dashboard_token/paid_at and skips re-sending the email.
-export async function confirmInvitePayment(
-  inviteSlug: string
-): Promise<{ dashboardUrl: string; guestUrl: string }> {
-  const supabaseAdmin = getSupabaseAdmin();
-
-  const { data: invite } = await supabaseAdmin
-    .from("invites")
-    .select("id, owner_email, dashboard_token, status")
-    .eq("slug", inviteSlug)
-    .single();
-
-  if (!invite) {
-    throw new Error(`confirmInvitePayment: no invite found for slug "${inviteSlug}"`);
-  }
-
-  const alreadyConfirmed = invite.status === "live" && Boolean(invite.dashboard_token);
-  const dashboardToken = invite.dashboard_token ?? randomUUID();
-
-  if (!alreadyConfirmed) {
-    await supabaseAdmin
-      .from("invites")
-      .update({
-        status: "live",
-        dashboard_token: dashboardToken,
-        paid_at: new Date().toISOString(),
-      })
-      .eq("id", invite.id);
-  }
-
-  const guestUrl = `${BASE_URL}/i/${inviteSlug}`;
-  const dashboardUrl = `${BASE_URL}/dashboard/${dashboardToken}`;
-
-  if (!alreadyConfirmed) {
-    // Never let an email failure block the payment confirmation itself —
-    // the status flip above has already committed by this point.
-    try {
-      await sendInviteReadyEmail({ to: invite.owner_email, dashboardUrl, guestUrl });
-    } catch (err) {
-      console.error("confirmInvitePayment: failed to send owner email", err);
-    }
-  }
-
-  return { dashboardUrl, guestUrl };
-}
+// Marking an invite paid (confirmInvitePayment) deliberately does NOT live in
+// this file: every export here is a Server Action anyone can POST to. It's in
+// lib/payments.ts, a server-only module with no endpoint.
 
 // Must match the $80 the customer is shown before paying: the confirmation
 // page's "Pay with Whish — $80" button and the Standard plan in Pricing.tsx.

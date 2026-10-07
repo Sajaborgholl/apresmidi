@@ -3,7 +3,7 @@
 // initiate a payment (get a hosted collectUrl to redirect the customer to),
 // and check a payment's real status server-side. Nothing here trusts a
 // customer's browser — see the trust-boundary note on confirmInvitePayment
-// in app/order/[slug]/actions.ts, which is the only thing allowed to act on
+// in lib/payments.ts, which is the only thing allowed to act on
 // a "success" this module reports.
 
 // Defaults to the sandbox API, since that's what the credentials we have

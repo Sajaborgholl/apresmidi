@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWhishPaymentStatus } from "@/lib/whish";
-import { confirmInvitePayment } from "@/app/order/[slug]/actions";
+import { confirmInvitePayment } from "@/lib/payments";
 
 // Whish hits this as an unauthenticated GET when a payment attempt settles
 // (success or failure — see successCallbackUrl/failureCallbackUrl in

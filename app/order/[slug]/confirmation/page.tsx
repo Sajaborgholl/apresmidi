@@ -6,7 +6,8 @@ import AutoRefresh from "../../../_components/AutoRefresh";
 import ReloadOnBfcacheRestore from "../../../_components/ReloadOnBfcacheRestore";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
 import TryAgainFallback from "./_components/TryAgainFallback";
-import { confirmInvitePayment, startWhishPayment } from "../actions";
+import { confirmInvitePayment } from "@/lib/payments";
+import { startWhishPayment } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -205,7 +206,7 @@ export default async function OrderConfirmationPage({
               business number above. Unlike Whish, nothing here confirms
               payment automatically: the invite stays a draft until it's
               marked paid directly in Supabase once payment is actually
-              received (see confirmInvitePayment in ../actions.ts for what
+              received (see confirmInvitePayment in lib/payments.ts for what
               that flips). */}
           <a
             href={`https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(
@@ -233,6 +234,9 @@ export default async function OrderConfirmationPage({
               <form
                 action={async () => {
                   "use server";
+                  // The button is stripped from production builds, but this
+                  // action is still registered there — so it refuses too.
+                  if (process.env.NODE_ENV === "production") return;
                   await confirmInvitePayment(inviteSlug);
                 }}
                 className="mt-2"
