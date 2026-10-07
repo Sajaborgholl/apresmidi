@@ -19,24 +19,45 @@ const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 // assumption is wrong, this is the only line that needs to change.
 const BUSINESS_WHATSAPP_NUMBER = "96170664401";
 
+// How long after payment the confirmation page keeps showing the dashboard
+// link to the order_token holder. Long enough to come back to the tab, short
+// enough that an old URL in browser history or a screenshot stops working.
+// After this, the emailed link is the way in.
+const DASHBOARD_LINK_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+function paidRecently(paidAt: string | null): boolean {
+  return Boolean(paidAt) && Date.now() - new Date(paidAt as string).getTime() < DASHBOARD_LINK_WINDOW_MS;
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Two ways in:
+//   ?order=<order_token>  the customer's own private reference (createOrder's
+//                         redirect and Whish's return). The only way to see
+//                         the dashboard link here.
+//   ?invite=<slug>        legacy links and invites made before order_token
+//                         existed. The slug is the PUBLIC guest link, so this
+//                         form must never reveal anything a guest shouldn't
+//                         see — no dashboard link, ever.
 export default async function OrderConfirmationPage({
   params,
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ invite?: string; result?: string }>;
+  searchParams: Promise<{ order?: string; invite?: string; result?: string }>;
 }) {
   const { slug: templateSlug } = await params;
-  const { invite: inviteSlug, result } = await searchParams;
+  const { order, invite: inviteParam, result } = await searchParams;
+  const orderToken = order && UUID.test(order) ? order : null;
 
   // No order reference in the URL. This used to be a bare 404, which is what
-  // customers saw when Whish's redirect dropped the ?invite= query string
-  // (Whish now returns to the path form instead — see
-  // ./[invite]/[[...result]]/page.tsx). Anyone who still lands here, from an
-  // old link or a stripped URL, gets told what happens next rather than a
-  // dead end: the payment callback runs server to server and keeps its own
-  // reference, so a real payment is still confirmed and emailed.
-  if (!inviteSlug) {
+  // customers saw when Whish's redirect dropped the query string (Whish now
+  // returns to the path form instead — see ./[invite]/[[...result]]/page.tsx).
+  // Anyone who still lands here, from an old link or a stripped URL, gets told
+  // what happens next rather than a dead end: the payment callback runs server
+  // to server and keeps its own reference, so a real payment is still
+  // confirmed and emailed.
+  if (!orderToken && !inviteParam) {
     return (
       <main
         className="flex min-h-dvh items-center justify-center px-6 py-16"
@@ -75,13 +96,19 @@ export default async function OrderConfirmationPage({
   }
 
   const supabaseAdmin = getSupabaseAdmin();
-  const { data: invite } = await supabaseAdmin
-    .from("invites")
-    .select("host_names, status, slug, dashboard_token")
-    .eq("slug", inviteSlug)
-    .single();
+  const lookup = supabaseAdmin.from("invites").select("host_names, status, slug, dashboard_token, paid_at");
+  const { data: invite } = await (orderToken
+    ? lookup.eq("order_token", orderToken)
+    : lookup.eq("slug", inviteParam as string)
+  ).single();
 
   if (!invite) notFound();
+
+  const inviteSlug: string = invite.slug;
+  // Keeps whichever reference this page was opened with, for TryAgainFallback.
+  const selfHref = `/order/${templateSlug}/confirmation?${
+    orderToken ? `order=${orderToken}` : `invite=${encodeURIComponent(inviteSlug)}`
+  }`;
 
   // Not paid yet — auto-refresh so this naturally flips to the paid view
   // below once app/api/whish/callback/route.ts confirms payment.
@@ -116,7 +143,7 @@ export default async function OrderConfirmationPage({
               This only takes a few seconds. This page will update on its own — no need to refresh.
             </p>
 
-            <TryAgainFallback href={`/order/${templateSlug}/confirmation?invite=${encodeURIComponent(inviteSlug)}`} />
+            <TryAgainFallback href={selfHref} />
           </div>
         </main>
       );
@@ -226,7 +253,11 @@ export default async function OrderConfirmationPage({
   }
 
   const guestUrl = `${BASE_URL}/i/${invite.slug}`;
-  const dashboardUrl = `${BASE_URL}/dashboard/${invite.dashboard_token}`;
+  // Only the order_token holder, and only for a while after paying. Anyone
+  // arriving by slug (which every guest has) gets the guest link and nothing
+  // more.
+  const showDashboardLink = Boolean(orderToken) && Boolean(invite.dashboard_token) && paidRecently(invite.paid_at);
+  const dashboardUrl = showDashboardLink ? `${BASE_URL}/dashboard/${invite.dashboard_token}` : null;
 
   return (
     <main
@@ -246,12 +277,14 @@ export default async function OrderConfirmationPage({
         </div>
         <h1 className="display text-2xl font-bold md:text-[26px]">You&apos;re all set, {invite.host_names}!</h1>
         <p className="mt-3 text-[14.5px] opacity-65">
-          Your invite is live. Save both links below, we also emailed them to you.
+          {dashboardUrl
+            ? "Your invite is live. Save both links below, we also emailed them to you."
+            : "Your invite is live. We emailed your private dashboard link to the address you gave us."}
         </p>
 
         <div className="mt-8 flex flex-col gap-3">
           <CopyLinkButton label="Guest link" url={guestUrl} />
-          <CopyLinkButton label="Dashboard link" url={dashboardUrl} isPrivate />
+          {dashboardUrl && <CopyLinkButton label="Dashboard link" url={dashboardUrl} isPrivate />}
         </div>
       </div>
     </main>

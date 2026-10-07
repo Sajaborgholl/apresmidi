@@ -88,8 +88,13 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
   const photoCount = registryEntry?.fields.photoCount ?? 0;
   const photoUrls = await uploadInvitePhotos(supabaseAdmin, formData, inviteSlug, photoCount);
 
+  // The confirmation page's private reference — never the slug, which is the
+  // public guest link. See supabase/add-order-token.sql.
+  const orderToken = randomUUID();
+
   const { error: insertError } = await supabaseAdmin.from("invites").insert({
     slug: inviteSlug,
+    order_token: orderToken,
     template_id: template.id,
     host_names: hostNames,
     owner_email: ownerEmail,
@@ -109,7 +114,7 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
     throw new Error(`Could not create invite: ${insertError.message}`);
   }
 
-  redirect(`/order/${templateSlug}/confirmation?invite=${inviteSlug}`);
+  redirect(`/order/${templateSlug}/confirmation?order=${orderToken}`);
 }
 
 // The single trusted entry point for "a real payment was verified for this
@@ -191,7 +196,7 @@ export async function startWhishPayment(
 
   const { data: invite } = await supabaseAdmin
     .from("invites")
-    .select("status")
+    .select("status, order_token")
     .eq("slug", inviteSlug)
     .single();
 
@@ -202,12 +207,16 @@ export async function startWhishPayment(
     throw new Error("This invite has already been paid for.");
   }
 
-  // Path form, not ?invite=…: Whish's browser redirect drops query strings,
+  // Path form, not ?order=…: Whish's browser redirect drops query strings,
   // which left customers on a bare /confirmation page that 404'd. See
   // confirmation/[invite]/[[...result]]/page.tsx, which turns this back into
   // the query form. (The server-to-server callbacks below keep their query
   // strings — Whish documents that it forwards those unchanged.)
-  const confirmationUrl = `${BASE_URL}/order/${templateSlug}/confirmation/${encodeURIComponent(inviteSlug)}`;
+  // The customer returns with their private order_token, so the page can
+  // show them their dashboard link. Invites created before order_token
+  // existed fall back to the slug, which gets the "check your email" view.
+  const returnRef = invite.order_token ?? inviteSlug;
+  const confirmationUrl = `${BASE_URL}/order/${templateSlug}/confirmation/${encodeURIComponent(returnRef)}`;
 
   // externalId = the invite slug itself (already globally unique) — Whish
   // treats a repeated externalId as a safe retry rather than a double
