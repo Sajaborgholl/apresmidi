@@ -6,9 +6,10 @@ import { getTemplateBySlug } from "@/lib/templates/registry";
 import { slugify } from "./_lib/slugify";
 import { redirect } from "next/navigation";
 import { createWhishPayment } from "@/lib/whish";
-import { buildWhatsappNumber } from "@/lib/types";
-import { dialCodeForCountry } from "@/lib/countryCodes";
-import { uploadInvitePhotos } from "@/lib/invitePhotos";
+import type { FormState } from "@/lib/types";
+import { readInviteFields } from "@/lib/inviteFields";
+import { EMAIL_PATTERN, MAX_LENGTH } from "@/lib/validation";
+import { PhotoError, uploadInvitePhotos } from "@/lib/invitePhotos";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -30,34 +31,57 @@ function randomSlugSuffix(): string {
 // (prevState, formData) => ... contract — CustomizePanel.tsx binds
 // `templateSlug` and reads back `isPending` to disable/label the
 // "Continue to payment" button while this is running (photo uploads can
-// take a few seconds). It never actually returns a state: every path
-// either throws or calls redirect().
-export async function createOrder(templateSlug: string, _prevState: unknown, formData: FormData) {
+// take a few seconds).
+//
+// Success redirects to the confirmation page. Every failure RETURNS
+// { error } instead of throwing, so the customize page shows it above the
+// form with everything the customer typed and picked still in place —
+// a thrown error would replace the whole page with the error screen.
+export async function createOrder(templateSlug: string, _prevState: FormState, formData: FormData): Promise<FormState> {
   // Checked before anything is uploaded: each order can carry up to 3 photos.
   if (!(await rateLimit("create-order", await clientIp(), 10, 60 * 60))) {
-    throw new Error("Too many orders from your connection — please try again in an hour.");
+    return { error: "Too many orders from your connection — please try again in an hour." };
   }
 
+  let orderToken: string;
+  try {
+    orderToken = await saveDraftInvite(templateSlug, formData);
+  } catch (err) {
+    if (err instanceof OrderInputError || err instanceof PhotoError) {
+      return { error: err.message };
+    }
+    console.error("createOrder: failed", err);
+    return { error: "Something went wrong saving your invite — please try again." };
+  }
+
+  // Outside the try: redirect() works by throwing, and must not be caught.
+  redirect(`/order/${templateSlug}/confirmation?order=${orderToken}`);
+}
+
+// Something wrong with what the customer submitted. Like PhotoError, its
+// message is written for them and shown as-is.
+class OrderInputError extends Error {}
+
+// Validates the submission, uploads its photos and inserts the draft invite.
+// Returns the new invite's order_token.
+async function saveDraftInvite(templateSlug: string, formData: FormData): Promise<string> {
   const supabaseAdmin = getSupabaseAdmin();
 
-  const hostNames = String(formData.get("host_names") ?? "").trim();
+  // Sizes and formats (map link, date, WhatsApp…): lib/inviteFields.ts.
+  const read = readInviteFields(formData);
+  if ("error" in read) {
+    throw new OrderInputError(read.error);
+  }
+  const { hostNames, eventDate, venueName, venueMapUrl, whatsappNumber } = read.fields;
   const ownerEmail = String(formData.get("owner_email") ?? "").trim();
-  const eventDate = String(formData.get("event_date") ?? "").trim();
-  const venueName = String(formData.get("venue_name") ?? "").trim();
-  const venueMapUrl = String(formData.get("venue_map_url") ?? "").trim();
-  const whatsappCountry = String(formData.get("whatsapp_country") ?? "").trim();
-  const whatsappNumber = buildWhatsappNumber(
-    dialCodeForCountry(whatsappCountry),
-    String(formData.get("whatsapp_number") ?? "")
-  );
 
   if (!hostNames) {
-    throw new Error("Host names are required.");
+    throw new OrderInputError("Please enter the host names.");
   }
   // Deliberately simple format check — full deliverability validation
   // (e.g. a verification email) is out of scope here.
-  if (!ownerEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
-    throw new Error("A valid email address is required.");
+  if (!ownerEmail || ownerEmail.length > MAX_LENGTH.email || !EMAIL_PATTERN.test(ownerEmail)) {
+    throw new OrderInputError("Please enter a valid email address.");
   }
 
   const { data: template } = await supabaseAdmin
@@ -67,7 +91,7 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
     .single();
 
   if (!template) {
-    throw new Error("Template not found.");
+    throw new OrderInputError("This design isn't available anymore — please pick another one.");
   }
 
   // Base slug from host names ("Sarah & Karim" -> "sarah-karim"), always
@@ -107,9 +131,9 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
     template_id: template.id,
     host_names: hostNames,
     owner_email: ownerEmail,
-    event_date: eventDate || null,
-    venue_name: venueName || null,
-    venue_map_url: venueMapUrl || null,
+    event_date: eventDate,
+    venue_name: venueName,
+    venue_map_url: venueMapUrl,
     whatsapp_number: whatsappNumber,
     photo_urls: photoUrls.length > 0 ? photoUrls : null,
     status: "draft",
@@ -118,12 +142,13 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
   // Surfacing this matters: a silent failure here (e.g. schema drift, a
   // migration not yet applied) would otherwise redirect to a confirmation
   // page for an invite that was never actually created, which just 404s
-  // with no indication why.
+  // with no indication why. The real message is logged by createOrder;
+  // the customer gets a generic one.
   if (insertError) {
     throw new Error(`Could not create invite: ${insertError.message}`);
   }
 
-  redirect(`/order/${templateSlug}/confirmation?order=${orderToken}`);
+  return orderToken;
 }
 
 // Marking an invite paid (confirmInvitePayment) deliberately does NOT live in
@@ -135,19 +160,30 @@ export async function createOrder(templateSlug: string, _prevState: unknown, for
 // There's only the one Standard price point right now, nothing per-template.
 const STANDARD_PRICE_USD = "80.00";
 
+export type StartPaymentResult = { collectUrl: string } | { error: "rate-limited" | "already-paid" | "failed" };
+
 // Kicks off a real Whish payment and returns the hosted collectUrl to send
 // the customer's browser to. Does NOT mark the invite paid — Whish's
 // callback (app/api/whish/callback/route.ts) is what eventually calls
 // confirmInvitePayment, and only after independently re-checking status.
-export async function startWhishPayment(
-  templateSlug: string,
-  inviteSlug: string
-): Promise<string> {
+//
+// Returns an error code instead of throwing, so the confirmation page can
+// show the customer what happened rather than the error screen.
+export async function startWhishPayment(templateSlug: string, inviteSlug: string): Promise<StartPaymentResult> {
   // Each call is an outbound request to Whish's API.
   if (!(await rateLimit("start-payment", await clientIp(), 10, 10 * 60))) {
-    throw new Error("Too many payment attempts — please wait a few minutes and try again.");
+    return { error: "rate-limited" };
   }
 
+  try {
+    return await requestWhishPayment(templateSlug, inviteSlug);
+  } catch (err) {
+    console.error("startWhishPayment: failed", err);
+    return { error: "failed" };
+  }
+}
+
+async function requestWhishPayment(templateSlug: string, inviteSlug: string): Promise<StartPaymentResult> {
   const supabaseAdmin = getSupabaseAdmin();
 
   const { data: invite } = await supabaseAdmin
@@ -160,7 +196,7 @@ export async function startWhishPayment(
     throw new Error(`startWhishPayment: no invite found for slug "${inviteSlug}"`);
   }
   if (invite.status === "live") {
-    throw new Error("This invite has already been paid for.");
+    return { error: "already-paid" };
   }
 
   // Path form, not ?order=…: Whish's browser redirect drops query strings,
@@ -196,5 +232,5 @@ export async function startWhishPayment(
     failureRedirectUrl: `${confirmationUrl}/failure`,
   });
 
-  return collectUrl;
+  return { collectUrl };
 }

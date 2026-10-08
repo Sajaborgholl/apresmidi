@@ -8,17 +8,11 @@ import CopyLinkButton from "../../../_components/CopyLinkButton";
 import TryAgainFallback from "./_components/TryAgainFallback";
 import { confirmInvitePayment } from "@/lib/payments";
 import { startWhishPayment } from "../actions";
+import { BUSINESS_WHATSAPP_NUMBER } from "@/lib/contact";
 
 export const dynamic = "force-dynamic";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-
-// Business WhatsApp number for the "Pay via WhatsApp" alternative to
-// Whish — customers who'd rather arrange payment over chat than pay by
-// card. Assumed Lebanon (+961), matching the rest of this app's Beirut-
-// based demo data; wa.me numbers take no "+" or leading 0. If that
-// assumption is wrong, this is the only line that needs to change.
-const BUSINESS_WHATSAPP_NUMBER = "96170664401";
 
 // How long after payment the confirmation page keeps showing the dashboard
 // link to the order_token holder. Long enough to come back to the tab, short
@@ -31,6 +25,16 @@ function paidRecently(paidAt: string | null): boolean {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ?result= values that show a message on the unpaid view. "failure" comes
+// back from Whish's hosted page; the other two from the Pay button below
+// when startWhishPayment couldn't start a payment at all.
+const PAYMENT_RESULT = { "rate-limited": "pay-limit", failed: "pay-error" } as const;
+const PAYMENT_MESSAGES: Record<string, string> = {
+  failure: "Payment didn't go through. You can try again below.",
+  "pay-error": "We couldn't open the payment page just now. Please try again in a moment, or pay via WhatsApp below.",
+  "pay-limit": "Too many payment attempts — please wait a few minutes and try again, or pay via WhatsApp below.",
+};
 
 // Two ways in:
 //   ?order=<order_token>  the customer's own private reference (createOrder's
@@ -173,21 +177,26 @@ export default async function OrderConfirmationPage({
             soon as payment is completed below.
           </p>
 
-          {result === "failure" && (
+          {result && PAYMENT_MESSAGES[result] && (
             <div
+              role="alert"
               className="mt-5 flex items-start gap-2 rounded-xl px-4 py-3 text-left text-[13.5px] font-medium"
               style={{ background: "rgba(180,84,84,0.08)", color: "#B45454" }}
             >
               <WarningCircle size={17} weight="fill" className="mt-0.5 shrink-0" />
-              Payment didn&apos;t go through. You can try again below.
+              {PAYMENT_MESSAGES[result]}
             </div>
           )}
 
           <form
             action={async () => {
               "use server";
-              const collectUrl = await startWhishPayment(templateSlug, inviteSlug);
-              redirect(collectUrl);
+              const payment = await startWhishPayment(templateSlug, inviteSlug);
+              if ("collectUrl" in payment) redirect(payment.collectUrl);
+              // Back to this same page: it re-reads the invite, so
+              // "already-paid" simply shows the paid view, and the other
+              // two show their message above the buttons.
+              redirect(payment.error === "already-paid" ? selfHref : `${selfHref}&result=${PAYMENT_RESULT[payment.error]}`);
             }}
             className="mt-7"
           >

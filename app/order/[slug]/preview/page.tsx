@@ -22,6 +22,12 @@ export default function CustomizePreviewPage() {
       if (e.data?.type === "preview-update") {
         setInvite(e.data.invite as Invite);
       }
+      // The parent asking whether we're ready — it does this once its own
+      // listener is up, in case our first "preview-ready" (below) went out
+      // before it was listening. See CustomizePanel.tsx.
+      if (e.data?.type === "preview-ping") {
+        window.parent.postMessage({ type: "preview-ready" }, window.location.origin);
+      }
     }
     window.addEventListener("message", handleMessage);
 

@@ -1,15 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Monitor, DeviceMobile, Lock, Eye, X } from "@phosphor-icons/react";
+import { Monitor, DeviceMobile, Lock, Eye, X, WarningCircle } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
-import { buildWhatsappNumber, type Invite } from "@/lib/types";
+import { buildWhatsappNumber, type FormState, type Invite } from "@/lib/types";
 import { dialCodeForCountry } from "@/lib/countryCodes";
 import { slugify } from "../_lib/slugify";
 import CustomizeForm, { EMPTY_VALUES, type CustomizeValues } from "./CustomizeForm";
 import { createOrder } from "../actions";
 import ReloadOnBfcacheRestore from "@/app/_components/ReloadOnBfcacheRestore";
+import { useHydrated } from "@/lib/useHydrated";
 
 const FORM_ID = "customize-form";
 
@@ -40,7 +41,7 @@ type PreviewStage = { width: number; height: number; windowWidth: number; window
 // invite's saved values, submits to updateInvite instead of createOrder, and
 // the checkout wording is swapped for "save changes" wording.
 export type CustomizeEditMode = {
-  action: (prevState: unknown, formData: FormData) => Promise<unknown>;
+  action: (prevState: FormState, formData: FormData) => Promise<FormState>;
   initialValues: CustomizeValues;
   initialPhotoUrls: string[];
   backHref: string;
@@ -88,7 +89,16 @@ export default function CustomizePanel({
   // below (desktop top chrome + mobile sticky bar) read it to disable
   // themselves and show they're working instead of sitting there looking
   // clickable while nothing visibly happens.
-  const [, formAction, isPending] = useActionState(edit?.action ?? createOrder.bind(null, slug), null);
+  // On failure the action returns { error } (never throws), shown above the
+  // form while everything the customer entered stays put.
+  const [formState, formAction, isPending] = useActionState<FormState, FormData>(
+    edit?.action ?? createOrder.bind(null, slug),
+    null
+  );
+  const errorRef = useRef<HTMLDivElement>(null);
+  // The submit buttons stay disabled until the page is interactive — see
+  // handleSubmit, which a click before hydration would bypass.
+  const hydrated = useHydrated();
   const [values, setValues] = useState<CustomizeValues>(edit?.initialValues ?? EMPTY_VALUES);
   // In edit mode each slot starts on the invite's saved photo, and falls
   // back to it again if a newly picked file is cleared — updateInvite keeps
@@ -125,6 +135,23 @@ export default function CustomizePanel({
       return next;
     });
   }
+
+  // Submitted by hand rather than through <form action>: React resets a form
+  // after its action finishes, which would empty the photo inputs (they're
+  // the only uncontrolled fields) while their previews stayed on screen — a
+  // retry after an error would then silently drop the photos.
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    startTransition(() => formAction(formData));
+  }
+
+  // The message sits at the top of the form, which can be scrolled away
+  // (and on phones the submit button is in a bar at the bottom), so bring it
+  // into view whenever a submission comes back with one.
+  useEffect(() => {
+    if (formState?.error) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [formState]);
 
   // Shaped like a real Invite so the actual template component can render
   // it directly. Falls back to friendly placeholder text for the empty
@@ -199,7 +226,13 @@ export default function CustomizePanel({
     return { ...screen, scale, boxWidth: Math.floor(screen.width * scale), boxHeight: Math.floor(screen.height * scale) };
   })();
 
-  // Listens for the preview iframe announcing it's mounted and ready.
+  // Listens for the preview iframe announcing it's mounted and ready. The
+  // iframe announces once, as soon as it mounts — which can happen before
+  // this page has hydrated and attached the listener, so that announcement
+  // is lost and the preview sat on "Loading preview…" for good. So once
+  // listening, this also asks ("preview-ping"); an iframe that's already up
+  // answers with "preview-ready", and one that isn't up yet will announce
+  // itself when it is. Either order ends with previewReady set.
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.origin !== window.location.origin) return;
@@ -208,6 +241,7 @@ export default function CustomizePanel({
       }
     }
     window.addEventListener("message", handleMessage);
+    iframeRef.current?.contentWindow?.postMessage({ type: "preview-ping" }, window.location.origin);
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
@@ -269,7 +303,7 @@ export default function CustomizePanel({
         <button
           type="submit"
           form={FORM_ID}
-          disabled={isPending}
+          disabled={isPending || !hydrated}
           className="hidden rounded-full px-5 py-2.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97] disabled:opacity-60 md:inline-flex"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >
@@ -378,11 +412,25 @@ export default function CustomizePanel({
           </div>
         </div>
 
-        <form id={FORM_ID} action={formAction} className="p-7 pb-28 md:pb-7">
+        {/* method="post": if a submission ever got past the hydration guard,
+            a plain browser submit must not put the form's details in the URL. */}
+        <form id={FORM_ID} method="post" onSubmit={handleSubmit} className="p-7 pb-28 md:pb-7">
           <h2 className="display text-lg font-bold">{edit ? "Edit your invite" : "Customize your invite"}</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
             Everything updates on the left as you type.
           </p>
+
+          {formState?.error && !isPending && (
+            <div
+              ref={errorRef}
+              role="alert"
+              className="mb-5 flex items-start gap-2 rounded-xl px-4 py-3 text-[13.5px] font-medium"
+              style={{ background: "rgba(180,84,84,0.08)", color: "#B45454" }}
+            >
+              <WarningCircle size={17} weight="fill" className="mt-0.5 shrink-0" />
+              {formState.error}
+            </div>
+          )}
 
           <CustomizeForm
             fields={fields}
@@ -416,7 +464,7 @@ export default function CustomizePanel({
         <button
           type="submit"
           form={FORM_ID}
-          disabled={isPending}
+          disabled={isPending || !hydrated}
           className="flex-[1.4] rounded-full py-3 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-60"
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >

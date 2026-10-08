@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import type { FormEvent, MouseEvent, RefObject } from "react";
 import { CheckCircle, X } from "@phosphor-icons/react";
 import { submitPremiumInquiry, type PremiumInquiryState } from "../_actions/premium-inquiry";
 import { PLUS_ADDON_GROUPS, REQUEST_PLANS, type InquiryPlan } from "@/lib/plans";
 import { COUNTRY_CODES } from "@/lib/countryCodes";
 import HoneypotField from "./HoneypotField";
+import { useHydrated } from "@/lib/useHydrated";
+import { MAX_LENGTH } from "@/lib/validation";
 
 // The request window for the Plus and Premium plans: the card's button, plus
 // a native <dialog> opened with showModal(). Native rather than a hand-built
@@ -138,6 +140,7 @@ function RequestForm({
   const [state, formAction, isPending] = useActionState<PremiumInquiryState, FormData>(submitPremiumInquiry, null);
   const [selectedCount, setSelectedCount] = useState(0);
   const [submittedEmail, setSubmittedEmail] = useState("");
+  const hydrated = useHydrated();
   const isPlus = plan === "plus";
 
   const success = state !== null && "success" in state;
@@ -178,8 +181,15 @@ function RequestForm({
     );
   }
 
+  // Submitted by hand rather than through <form action>: React resets a form
+  // after its action finishes, which would wipe every field here (they're all
+  // uncontrolled) when the action comes back with an error — and untick the
+  // extras while the "N extras selected" count kept its old number.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    setSubmittedEmail(String(new FormData(event.currentTarget).get("email") ?? "").trim());
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    setSubmittedEmail(String(formData.get("email") ?? "").trim());
+    startTransition(() => formAction(formData));
   }
 
   function countExtras(event: FormEvent<HTMLDivElement>) {
@@ -187,7 +197,9 @@ function RequestForm({
   }
 
   return (
-    <form action={formAction} onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+    // method="post": if a submission ever got past the hydration guard on the
+    // button, a plain browser submit must not put these details in the URL.
+    <form method="post" onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
       <input type="hidden" name="plan" value={plan} />
       <HoneypotField />
 
@@ -201,7 +213,7 @@ function RequestForm({
               <label htmlFor={`${plan}-name`} className={labelClass}>
                 Name
               </label>
-              <input id={`${plan}-name`} name="name" required autoComplete="name" placeholder="Your name" className={inputClass} />
+              <input id={`${plan}-name`} name="name" required maxLength={MAX_LENGTH.personName} autoComplete="name" placeholder="Your name" className={inputClass} />
             </div>
             <div>
               <label htmlFor={`${plan}-email`} className={labelClass}>
@@ -210,6 +222,7 @@ function RequestForm({
               <input
                 id={`${plan}-email`}
                 name="email"
+                maxLength={MAX_LENGTH.email}
                 type="email"
                 required
                 autoComplete="email"
@@ -248,6 +261,7 @@ function RequestForm({
               <input
                 id={`${plan}-phone`}
                 name="phone"
+                maxLength={MAX_LENGTH.phone}
                 type="tel"
                 required
                 autoComplete="tel-national"
@@ -336,7 +350,7 @@ function RequestForm({
         </p>
         <button
           type="submit"
-          disabled={isPending}
+          disabled={isPending || !hydrated}
           className={`${primaryButtonClass} w-full sm:w-auto`}
           style={{ background: "var(--ink)", color: "var(--cream)" }}
         >

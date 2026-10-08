@@ -5,6 +5,11 @@ const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 
 type PhotoType = { mime: (typeof ALLOWED_PHOTO_TYPES)[number]; ext: string };
 
+// A problem with a photo the customer chose (too large, wrong format). Its
+// message is written for them, so the actions show it as-is — unlike any
+// other error, which gets logged and replaced with a generic message.
+export class PhotoError extends Error {}
+
 // Identifies the real format from the file's first bytes (its "magic
 // number"), never from its name or the browser-supplied type — both are
 // whatever the uploader says they are. Anything that isn't one of
@@ -51,17 +56,17 @@ export async function uploadInvitePhotos(
       // Backstop for the client-side check in CustomizeForm.tsx (which
       // already clears an oversized file before it can be submitted) —
       // this only fires if that was somehow bypassed (JS disabled,
-      // tampering), so a thrown Error here is an acceptable fallback
-      // rather than a friendly inline message.
+      // tampering). The calling action shows the PhotoError's message
+      // inline on the form.
       if (file.size > MAX_PHOTO_SIZE_BYTES) {
-        throw new Error(`Photo ${i} exceeds the ${MAX_PHOTO_SIZE_MB}MB limit.`);
+        throw new PhotoError(`Photo ${i} exceeds the ${MAX_PHOTO_SIZE_MB}MB limit.`);
       }
 
       // Same backstop role as the size check: the form already refuses
       // other formats, so only a bypassed form reaches this.
       const type = await detectPhotoType(file);
       if (!type) {
-        throw new Error(`Photo ${i} must be a JPG, PNG or WebP image.`);
+        throw new PhotoError(`Photo ${i} must be a JPG, PNG or WebP image.`);
       }
 
       // Extension and content type come from the detected format, so a file

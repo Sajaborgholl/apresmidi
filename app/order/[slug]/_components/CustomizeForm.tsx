@@ -3,6 +3,7 @@ import { Image as ImageIcon } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_SIZE_MB } from "@/lib/types";
 import { COUNTRY_CODES } from "@/lib/countryCodes";
+import { MAX_LENGTH } from "@/lib/validation";
 
 const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 
@@ -119,6 +120,7 @@ export default function CustomizeForm({
           <label className={labelClass}>Your email *</label>
           <input
             name="owner_email"
+            maxLength={MAX_LENGTH.email}
             type="email"
             required
             placeholder="you@email.com"
@@ -137,6 +139,7 @@ export default function CustomizeForm({
           <label className={labelClass}>{isSingleHost ? "Host name *" : "Host names *"}</label>
           <input
             name="host_names"
+            maxLength={MAX_LENGTH.hostNames}
             required
             placeholder={isSingleHost ? "Alex" : "Alex & Jordan"}
             value={values.host_names}
@@ -164,6 +167,7 @@ export default function CustomizeForm({
           <label className={labelClass}>Venue name</label>
           <input
             name="venue_name"
+            maxLength={MAX_LENGTH.venueName}
             placeholder="The Grand Hall"
             value={values.venue_name}
             onChange={(e) => onValueChange("venue_name", e.target.value)}
@@ -174,15 +178,17 @@ export default function CustomizeForm({
 
       {fields.venue_map_url && (
         <div>
-          <label className={labelClass}>Venue Google Maps link</label>
+          <label className={labelClass}>Venue map link</label>
           <input
             name="venue_map_url"
+            maxLength={MAX_LENGTH.venueMapUrl}
             type="url"
             placeholder="https://maps.google.com/..."
             value={values.venue_map_url}
             onChange={(e) => onValueChange("venue_map_url", e.target.value)}
             className={inputClass}
           />
+          <p className="mt-1 text-[11px] text-[var(--ink)]/45">A Google Maps, Apple Maps or Waze link.</p>
         </div>
       )}
 
@@ -206,6 +212,7 @@ export default function CustomizeForm({
             </select>
             <input
               name="whatsapp_number"
+              maxLength={MAX_LENGTH.phone}
               placeholder="555 123 4567"
               value={values.whatsapp_number}
               onChange={(e) => onValueChange("whatsapp_number", e.target.value)}

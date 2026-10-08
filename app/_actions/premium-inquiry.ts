@@ -5,6 +5,7 @@ import { sendPremiumInquiryNotification } from "@/lib/email";
 import { PLUS_ADDONS, type InquiryPlan } from "@/lib/plans";
 import { dialCodeForCountry } from "@/lib/countryCodes";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { EMAIL_PATTERN, MAX_LENGTH } from "@/lib/validation";
 
 // Cap on the optional notes box — matches the textarea's maxLength in
 // PlanRequestDialog.tsx, enforced here too since the form can be bypassed.
@@ -50,10 +51,13 @@ export async function submitPremiumInquiry(
   if (!name) {
     return { error: "Name is required." };
   }
+  if (name.length > MAX_LENGTH.personName) {
+    return { error: `Your name can be at most ${MAX_LENGTH.personName} characters.` };
+  }
   // Deliberately simple format check — same as the owner_email check in
   // app/order/[slug]/actions.ts, full deliverability validation is out of
   // scope here.
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || email.length > MAX_LENGTH.email || !EMAIL_PATTERN.test(email)) {
     return { error: "A valid email address is required." };
   }
   if (!dialCode) {
@@ -61,6 +65,9 @@ export async function submitPremiumInquiry(
   }
   if (!localNumber) {
     return { error: "Phone number is required." };
+  }
+  if (localNumber.length > MAX_LENGTH.phone) {
+    return { error: "Please enter a valid phone number." };
   }
   const phone = `${dialCode} ${localNumber}`;
 
@@ -84,7 +91,10 @@ export async function submitPremiumInquiry(
   }
 
   if (insertError) {
-    return { error: `Could not save your info: ${insertError.message}` };
+    // The raw database message stays in the server log — it can name tables
+    // and columns, and means nothing to the visitor.
+    console.error("submitPremiumInquiry: insert failed", insertError);
+    return { error: "Something went wrong sending your request — please try again." };
   }
 
   // Never let a failed notification undo the lead we already saved above.

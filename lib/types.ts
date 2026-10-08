@@ -10,6 +10,13 @@ export const MAX_PHOTO_SIZE_MB = 8;
 // on purpose — HEIC doesn't render in Chrome or Android, SVG can carry script.
 export const ALLOWED_PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
+// What the customize form's actions (createOrder, updateInvite) hand back
+// through useActionState. Success never returns — it redirects — so the only
+// state is "nothing yet" or an error to show above the form. The message is
+// always written for the customer: raw database/provider errors are logged
+// server-side, never put here.
+export type FormState = { error: string } | null;
+
 // Shared data shape for an invite, used by every template component.
 // This is the one place the field names are defined — templates import
 // this instead of each declaring their own version, so they can never

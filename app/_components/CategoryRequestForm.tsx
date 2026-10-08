@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { CheckCircle } from "@phosphor-icons/react";
 import { submitCategoryRequest, type CategoryRequestState } from "../_actions/category-request";
 import HoneypotField from "./HoneypotField";
+import { MAX_LENGTH } from "@/lib/validation";
 
 // Matches the input/label classes already established in
 // app/_components/PlanRequestDialog.tsx, for visual consistency with the
@@ -76,15 +77,15 @@ export default function CategoryRequestForm() {
         <HoneypotField />
         <div>
           <label className={labelClass}>Name</label>
-          <input name="name" required placeholder="Your name" className={inputClass} />
+          <input name="name" required maxLength={MAX_LENGTH.personName} placeholder="Your name" className={inputClass} />
         </div>
         <div>
           <label className={labelClass}>Email</label>
-          <input name="email" type="email" required placeholder="you@email.com" className={inputClass} />
+          <input name="email" type="email" required maxLength={MAX_LENGTH.email} placeholder="you@email.com" className={inputClass} />
         </div>
         <div>
           <label className={labelClass}>What occasion?</label>
-          <input name="category" required placeholder="Graduation, private party..." className={inputClass} />
+          <input name="category" required maxLength={MAX_LENGTH.category} placeholder="Graduation, private party..." className={inputClass} />
         </div>
         {error && (
           <p className="text-[13px] font-medium" style={{ color: "#B23" }}>

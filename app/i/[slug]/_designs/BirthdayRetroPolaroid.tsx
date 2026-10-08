@@ -331,6 +331,18 @@ const CSS = `
 .rp-hero-section { padding: 64px 16px 48px; }
 .rp-rsvp-section { padding-top: 32px; }
 
+/* The RSVP page fills at least one full screen height, with its content
+   centered in it, so it reads as its own page after the invite card
+   instead of a short form trailing off into empty space. svh avoids a
+   jump when the mobile browser bar shows/hides; vh is the fallback. */
+.rp-rsvp-section {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
 .rp-hero-section img, .rp-rsvp-section img { max-width: 100%; display: block; }
 
 /* ---------- Scroll reveal ---------- */
@@ -519,7 +531,7 @@ const CSS = `
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 56px 32px 64px;
+  padding: 80px 32px 96px;
   text-align: center;
 }
 
@@ -543,7 +555,7 @@ const CSS = `
 }
 
 .rp-rsvp-sub {
-  margin: 0 0 2em;
+  margin: 0 0 3em;
   color: var(--rp-ink);
   opacity: 0.85;
   font-weight: 400;
@@ -551,7 +563,7 @@ const CSS = `
   line-height: 1.4;
 }
 
-.rp-rsvp-form { display: flex; flex-direction: column; gap: 1.6em; text-align: left; }
+.rp-rsvp-form { display: flex; flex-direction: column; gap: 2.2em; text-align: left; }
 
 .rp-rsvp-field { display: flex; flex-direction: column; gap: 0.5em; }
 
@@ -603,7 +615,7 @@ const CSS = `
 .rp-rsvp-error { font-size: 0.85rem; color: var(--rp-ink); margin: -8px 0 0; font-weight: 600; }
 
 .rp-rsvp-submit-btn {
-  margin-top: 0.4em;
+  margin-top: 1em;
   padding: 0.9em 1em;
   border-radius: 999px;
   border: none;
@@ -652,6 +664,6 @@ const CSS = `
 }
 
 @media (max-width: 480px) {
-  .rp-page { padding: 40px 20px 48px; }
+  .rp-page { padding: 64px 20px 72px; }
 }
 `;

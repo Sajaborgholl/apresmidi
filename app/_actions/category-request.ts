@@ -3,6 +3,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendCategoryRequestNotification } from "@/lib/email";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { EMAIL_PATTERN, MAX_LENGTH } from "@/lib/validation";
 
 export type CategoryRequestState = { error: string } | { success: true } | null;
 
@@ -27,12 +28,18 @@ export async function submitCategoryRequest(
   if (!name) {
     return { error: "Name is required." };
   }
+  if (name.length > MAX_LENGTH.personName) {
+    return { error: `Your name can be at most ${MAX_LENGTH.personName} characters.` };
+  }
   // Deliberately simple format check — same as submitPremiumInquiry.
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (!email || email.length > MAX_LENGTH.email || !EMAIL_PATTERN.test(email)) {
     return { error: "A valid email address is required." };
   }
   if (!category) {
     return { error: "Tell us what occasion you have in mind." };
+  }
+  if (category.length > MAX_LENGTH.category) {
+    return { error: `Please keep the occasion under ${MAX_LENGTH.category} characters.` };
   }
 
   // Each request emails the team inbox, so this caps how fast it can be flooded.
@@ -44,7 +51,9 @@ export async function submitCategoryRequest(
   const { error: insertError } = await supabaseAdmin.from("category_requests").insert({ name, email, category });
 
   if (insertError) {
-    return { error: `Could not save your info: ${insertError.message}` };
+    // Same as submitPremiumInquiry: details to the server log only.
+    console.error("submitCategoryRequest: insert failed", insertError);
+    return { error: "Something went wrong sending your request — please try again." };
   }
 
   // Never let a failed notification undo the lead we already saved above.
