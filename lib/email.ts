@@ -1,5 +1,17 @@
 import { Resend } from "resend";
 
+// Every value interpolated into an HTML email body goes through this —
+// customer-typed text especially, so a name or note can't inject links or
+// markup into an email that arrives looking like it came from us.
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // Wraps Resend so callers never need to think about whether an API key is
 // configured yet. Before RESEND_API_KEY is set (local dev, or before
 // Resend is fully set up), this just logs to the console instead of
@@ -42,9 +54,9 @@ export async function sendInviteReadyEmail({
     html: `
       <p>Your invite is live and ready to share.</p>
       <p><strong>Guest link</strong> (share this with your guests):<br/>
-      <a href="${guestUrl}">${guestUrl}</a></p>
+      <a href="${escapeHtml(guestUrl)}">${escapeHtml(guestUrl)}</a></p>
       <p><strong>Your dashboard</strong> (private, this is how you see RSVPs, don't share it):<br/>
-      <a href="${dashboardUrl}">${dashboardUrl}</a></p>
+      <a href="${escapeHtml(dashboardUrl)}">${escapeHtml(dashboardUrl)}</a></p>
     `,
   });
 }
@@ -54,12 +66,6 @@ export async function sendInviteReadyEmail({
 // pattern as sendInviteReadyEmail above — a failed notification must never
 // block the inquiry from being saved (submitPremiumInquiry already commits
 // the row before calling this).
-// Everything the customer typed is escaped before it goes into the HTML
-// body — the notes box is free text, so it must not be able to inject markup
-// into the team's inbox.
-function escapeHtml(value: string) {
-  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
 
 export async function sendPremiumInquiryNotification({
   name,
@@ -153,9 +159,9 @@ export async function sendCategoryRequestNotification({
     text,
     html: `
       <p>New category request from the homepage.</p>
-      <p><strong>Name:</strong> ${name}<br/>
-      <strong>Email:</strong> ${email}<br/>
-      <strong>Category requested:</strong> ${category}</p>
+      <p><strong>Name:</strong> ${escapeHtml(name)}<br/>
+      <strong>Email:</strong> ${escapeHtml(email)}<br/>
+      <strong>Category requested:</strong> ${escapeHtml(category)}</p>
     `,
   });
 }
