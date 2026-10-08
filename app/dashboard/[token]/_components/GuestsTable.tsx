@@ -11,9 +11,19 @@ function shortDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Spreadsheet apps run any cell starting with = + - @ (or tab/CR) as a
+// formula. Names and messages are typed by whoever has the guest link, so a
+// "name" like =HYPERLINK(...) would otherwise become live on the host's
+// machine. A leading apostrophe makes the app treat it as plain text
+// (OWASP's recommended fix). Only for guest-typed text: numbers and dates
+// here come from the app.
+function guestText(value: string) {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 function csvCell(value: string | number) {
   const s = String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 // Filtering, search and CSV export all run on the rows the server already
@@ -41,10 +51,10 @@ export default function GuestsTable({ rsvps, fileName }: { rsvps: DashboardRsvp[
     const header = ["Name", "Status", "Guests", "Message", "Responded"];
     const lines = rsvps.map((r) =>
       [
-        r.guest_name,
+        guestText(r.guest_name),
         r.attending ? "Attending" : "Declined",
         r.attending ? r.guest_count ?? 1 : 0,
-        r.message ?? "",
+        guestText(r.message ?? ""),
         new Date(r.created_at).toISOString(),
       ]
         .map(csvCell)
