@@ -19,6 +19,33 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Browser hardening for every page. When several entries match a
+        // path, a later one wins for the same header — so the stricter
+        // Referrer-Policy below overrides this one where it applies.
+        source: "/:path*",
+        headers: [
+          // Only our own pages may frame our pages. Not DENY: the site frames
+          // itself in three places (the customize preview, the dashboard's
+          // "What guests see" phone, the homepage invite previews).
+          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+          // Same rule for older browsers that don't read frame-ancestors.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+      {
+        // These URLs carry secrets (the dashboard token, the order token), so
+        // links out of them tell the next site nothing at all.
+        source: "/dashboard/:path*",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+      {
+        source: "/order/:path*",
+        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+      },
+      {
         // The customize page (and its preview iframe + confirmation page)
         // holds live, per-session form state — a browser's back-forward
         // cache (bfcache) can otherwise freeze and later restore a whole
