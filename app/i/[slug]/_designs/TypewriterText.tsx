@@ -8,12 +8,18 @@ import { useEffect, useRef, useState } from "react";
 // typing, which disappears once the text is fully revealed. Wrap it in
 // whatever heading tag you want, e.g. <h1><TypewriterText text="..." /></h1>,
 // rather than it rendering its own tag.
+//
+// `paused` holds the typing back even once it's in view — e.g. Blush Bow keeps
+// the couple's names waiting behind its "untie the bow" opening, so they're
+// written out as the page is revealed rather than unseen behind the blur.
 export default function TypewriterText({
   text,
   speed = 55,
+  paused = false,
 }: {
   text: string;
   speed?: number;
+  paused?: boolean;
 }) {
   const [visibleChars, setVisibleChars] = useState(0);
   const [started, setStarted] = useState(false);
@@ -36,10 +42,10 @@ export default function TypewriterText({
   }, []);
 
   useEffect(() => {
-    if (!started || visibleChars >= text.length) return;
+    if (!started || paused || visibleChars >= text.length) return;
     const timeout = setTimeout(() => setVisibleChars((c) => c + 1), speed);
     return () => clearTimeout(timeout);
-  }, [started, visibleChars, text, speed]);
+  }, [started, paused, visibleChars, text, speed]);
 
   const done = visibleChars >= text.length;
 

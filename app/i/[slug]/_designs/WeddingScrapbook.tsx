@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import WhatsappConfirmLink from "./WhatsappConfirmLink";
 
 type IconKey = "heart" | "star" | "rings";
 
@@ -239,15 +240,14 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
               <div className="thank-you" style={{ display: "block" }}>
                 <p dangerouslySetInnerHTML={{ __html: thankYouMsg }} />
                 {waLink && (
-                  <a
+                  <WhatsappConfirmLink
                     href={waLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    demo={invite.is_demo}
                     className="submit-btn"
                     style={{ display: "inline-block", textDecoration: "none", marginTop: "18px", background: "#25D366" }}
                   >
                     Confirm on WhatsApp too
-                  </a>
+                  </WhatsappConfirmLink>
                 )}
               </div>
             )}

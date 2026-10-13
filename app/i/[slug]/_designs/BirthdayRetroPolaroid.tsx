@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import WhatsappConfirmLink from "./WhatsappConfirmLink";
 
 // Birthday Retro Polaroid — ported from the approved static mockup
 // (template-birthday-retro-polaroid-prototype.html): recreates a Canva
@@ -281,9 +282,9 @@ export default function BirthdayRetroPolaroid({ invite }: { invite: Invite }) {
                   : `Thanks for letting us know, ${guestName.trim() || "friend"}.`}
               </p>
               {waLink && (
-                <a href={waLink} target="_blank" rel="noopener noreferrer" className="rp-rsvp-submit-btn rp-wa-btn">
+                <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="rp-rsvp-submit-btn rp-wa-btn">
                   Confirm on WhatsApp too
-                </a>
+                </WhatsappConfirmLink>
               )}
             </div>
           )}

@@ -6,10 +6,15 @@ export const dynamic = "force-dynamic";
 
 export default async function InvitePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ embed?: string }>;
 }) {
   const { slug } = await params;
+  // ?embed=1: this page is a preview inside another page (HeroPreview, the
+  // dashboard's phone) — see TemplateEntry.component in the registry.
+  const embedded = (await searchParams).embed === "1";
   const supabaseAdmin = getSupabaseAdmin();
 
   // Explicit safe column list — this row gets passed straight into a
@@ -50,7 +55,11 @@ export default async function InvitePage({
   // background.
   return (
     <div style={{ minHeight: "100vh", background: template.previewBackground }}>
-      <TemplateComponent invite={invite} />
+      {/* Demos are public showcases: stop phone browsers (iPhone Safari above
+          all) from turning numbers on the page into tappable call links.
+          React hoists this into <head>. Real invites are left as they are. */}
+      {invite.is_demo && <meta name="format-detection" content="telephone=no" />}
+      <TemplateComponent invite={invite} embedded={embedded} />
     </div>
   );
 }

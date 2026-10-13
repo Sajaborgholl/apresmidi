@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import WhatsappConfirmLink from "./WhatsappConfirmLink";
 
 // Birthday Cream & Pink — ported from the approved static mockup
 // (template-birthday-cream-pink-prototype.html): recreates a Canva
@@ -383,9 +384,9 @@ export default function BirthdayCreamPink({ invite }: { invite: Invite }) {
                     : `Thanks for letting us know, ${guestName.trim() || "friend"}.`}
                 </p>
                 {waLink && (
-                  <a href={waLink} target="_blank" rel="noopener noreferrer" className="cp-rsvp-submit-btn cp-wa-btn">
+                  <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="cp-rsvp-submit-btn cp-wa-btn">
                     Confirm on WhatsApp too
-                  </a>
+                  </WhatsappConfirmLink>
                 )}
               </div>
             )}

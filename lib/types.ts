@@ -31,6 +31,13 @@ export type Invite = {
   photo_urls: string[] | null;
   music_url: string | null;
   whatsapp_number: string | null;
+  // Demo invites are public showcases (homepage, template pages): templates
+  // keep their contact actions (WhatsApp, phone) inert on them. Absent on the
+  // customize page's live preview, which is never a demo.
+  is_demo?: boolean | null;
+  // The guest-link slug. Absent on the customize page's live preview (the
+  // invite doesn't exist yet).
+  slug?: string;
 };
 
 // A row from the `templates` table, joined with its category name.

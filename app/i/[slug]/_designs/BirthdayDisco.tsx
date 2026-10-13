@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import WhatsappConfirmLink from "./WhatsappConfirmLink";
 
 // Birthday Disco — ported from the approved static mockup
 // (template-disco-birthday-prototype.html): same pink disco look, but the
@@ -266,9 +267,9 @@ export default function BirthdayDisco({ invite }: { invite: Invite }) {
                 : `Thanks for letting us know, ${name.trim() || "friend"}.`}
             </p>
             {waLink && (
-              <a href={waLink} target="_blank" rel="noopener noreferrer" className="bd-submit-btn bd-wa-btn">
+              <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="bd-submit-btn bd-wa-btn">
                 Confirm on WhatsApp too
-              </a>
+              </WhatsappConfirmLink>
             )}
           </div>
         )}

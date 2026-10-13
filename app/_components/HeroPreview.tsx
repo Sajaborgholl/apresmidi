@@ -8,7 +8,8 @@
 export default function HeroPreview({ slug }: { slug: string }) {
   return (
     <iframe
-      src={`/i/${slug}`}
+      // ?embed=1: no opening interaction (e.g. Blush Bow's bow) in a preview.
+      src={`/i/${slug}?embed=1`}
       title={`Live preview of the ${slug} invitation`}
       tabIndex={-1}
       scrolling="no"

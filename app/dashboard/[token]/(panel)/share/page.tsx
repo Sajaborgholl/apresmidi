@@ -100,7 +100,7 @@ export default async function DashboardSharePage({ params }: { params: Promise<{
             style={{ width: PHONE.width * PHONE_SCALE + 12, height: PHONE.height * PHONE_SCALE + 12 }}
           >
             <iframe
-              src={`/i/${invite.slug}`}
+              src={`/i/${invite.slug}?embed=1`}
               title="Live preview of your invitation"
               loading="lazy"
               style={{

@@ -1,9 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import WhatsappConfirmLink from "./WhatsappConfirmLink";
 import TypewriterText from "./TypewriterText";
+import RibbonCountdown from "./RibbonCountdown";
+import BowGate from "./BowGate";
+import SaveTheDate from "./SaveTheDate";
 
 // Small hand-drawn-style SVG bow, reused at three sizes (hero, card corner,
 // rounded photo frame). size controls both the viewport and stroke weight
@@ -75,7 +79,19 @@ function AngularFrame() {
   );
 }
 
-export default function WeddingBlushBow({ invite }: { invite: Invite }) {
+// `embedded`: shown inside a preview (homepage/template cards, the dashboard's
+// phone, the customize page) rather than opened by a guest — no bow to untie.
+export default function WeddingBlushBow({ invite, embedded = false }: { invite: Invite; embedded?: boolean }) {
+  // Guests open the invitation by untying the bow (BowGate.tsx); previews
+  // start already open.
+  const [opened, setOpened] = useState(embedded);
+  const namesRef = useRef<HTMLHeadingElement>(null);
+  // Once the bow is untied (not in previews, which start open), hand keyboard
+  // and screen-reader focus to the names. Done after the render that lifts
+  // `inert` — an inert element can't take focus.
+  useEffect(() => {
+    if (opened && !embedded) namesRef.current?.focus({ preventScroll: true });
+  }, [opened, embedded]);
   const [name, setName] = useState("");
   const [attending, setAttending] = useState<"yes" | "no">("yes");
   const [guestCount, setGuestCount] = useState(1);
@@ -124,13 +140,27 @@ export default function WeddingBlushBow({ invite }: { invite: Invite }) {
     <>
       <style>{CSS}</style>
 
+      {!opened && (
+        <BowGate
+          hostNames={invite.host_names}
+          onOpen={() => setOpened(true)}
+        />
+      )}
+
+      {/* inert while the gate is up: nothing behind it can be tabbed to or clicked. */}
+      <div inert={!opened}>
+
       <section className="hero">
         <div className="hero-left">
           <Bow size={160} />
-          <h1 className="script"><TypewriterText text={invite.host_names} /></h1>
+          {/* The names wait for the bow to be untied, so they're written out as
+              the invitation is revealed. */}
+          <h1 ref={namesRef} tabIndex={-1} className="script">
+            <TypewriterText text={invite.host_names} paused={!opened} />
+          </h1>
           <p className="label">are getting married on</p>
           <span className="script date">{dateFormatted ?? "Date coming soon"}</span>
-          <a href="#rsvp" className="pill">Save the date</a>
+          <SaveTheDate invite={invite} />
         </div>
 
         <div className="frame-wrap angular">
@@ -143,6 +173,8 @@ export default function WeddingBlushBow({ invite }: { invite: Invite }) {
           )}
         </div>
       </section>
+
+      <RibbonCountdown eventDate={invite.event_date} bow={<Bow size={110} />} />
 
       <section className="details">
         <div className="details-heading">
@@ -255,9 +287,9 @@ export default function WeddingBlushBow({ invite }: { invite: Invite }) {
                   : `We'll miss you, ${name.trim() || "Friend"}. Thank you for letting us know.`}
               </p>
               {waLink && (
-                <a href={waLink} target="_blank" rel="noopener noreferrer" className="submit-btn wa-btn">
+                <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="submit-btn wa-btn">
                   Confirm on WhatsApp too
-                </a>
+                </WhatsappConfirmLink>
               )}
             </div>
           )}
@@ -266,7 +298,11 @@ export default function WeddingBlushBow({ invite }: { invite: Invite }) {
             <div className="contact">
               <p>
                 <span className="script">Phone</span>
-                <span className="pill-tag">{invite.whatsapp_number}</span>
+                {/* Shown, but never tappable on a demo (see page.tsx's format-detection
+                    note too): it's a public page anyone can open. */}
+                <span className="pill-tag" style={invite.is_demo ? { pointerEvents: "none", userSelect: "none" } : undefined}>
+                  {invite.whatsapp_number}
+                </span>
               </p>
             </div>
           )}
@@ -274,6 +310,7 @@ export default function WeddingBlushBow({ invite }: { invite: Invite }) {
       </section>
 
       <footer className="footer">Invitation crafted with love — order yours</footer>
+      </div>
     </>
   );
 }
@@ -304,10 +341,12 @@ body {
   letter-spacing: 0.05em;
   font-size: 12px;
 }
-.hero, .details, .rsvp-section { padding: 60px 8vw; }
+.hero, .details, .rsvp-section { padding: 80px 8vw; }
 .hero { display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
 .hero-left { max-width: 480px; }
 .hero-left h1 { font-size: clamp(2.8rem, 6vw, 4.2rem); margin: 12px 0 20px; line-height: 1; }
+/* Focused (for screen readers) after the bow is untied — no visible ring. */
+.hero-left h1:focus { outline: none; }
 .hero-left .label { font-size: 13px; margin: 0 0 6px; display: block; }
 .hero-left .date { font-size: clamp(1.8rem, 4vw, 2.6rem); margin: 0 0 28px; display: block; }
 .pill {
@@ -407,7 +446,7 @@ form input {
 }
 .footer { text-align: center; padding: 34px 20px 50px; font-size: 12px; color: rgba(28,28,28,0.5); }
 @media (max-width: 640px) {
-  .hero, .details, .rsvp-section { padding: 40px 6vw; }
+  .hero, .details, .rsvp-section { padding: 56px 6vw; }
   .details-heading { gap: 8px; }
   .details-heading svg { width: 46px; height: 46px; }
 }

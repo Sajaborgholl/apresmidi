@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import WhatsappConfirmLink from "./WhatsappConfirmLink";
 
 // Wedding Classic — replaced with the black-and-white editorial design
 // (script headline + photo banner + Where/When + RSVP), matching the
@@ -192,9 +193,9 @@ export default function WeddingClassic({ invite }: { invite: Invite }) {
                   : `Thank you for letting us know, ${name.trim() || "friend"}.`}
               </p>
               {waLink && (
-                <a href={waLink} target="_blank" rel="noopener noreferrer" className="wc-submit-btn wc-wa-btn">
+                <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="wc-submit-btn wc-wa-btn">
                   Confirm on WhatsApp too
-                </a>
+                </WhatsappConfirmLink>
               )}
             </div>
           )}

@@ -47,5 +47,6 @@ export default function CustomizePreviewPage() {
   }
 
   const TemplateComponent = entry.component;
-  return <TemplateComponent invite={invite} />;
+  // A preview: no opening interaction (e.g. Blush Bow's bow) over the draft.
+  return <TemplateComponent invite={invite} embedded />;
 }

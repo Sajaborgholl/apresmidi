@@ -45,7 +45,10 @@ export type TemplateEntry = {
   slug: string; // must match the `slug` column on the `templates` table
   name: string;
   category: string; // matches a `categories.slug`
-  component: ComponentType<{ invite: Invite }>;
+  // `embedded`: rendered inside a preview (homepage/template cards, the
+  // dashboard's phone, the customize page) rather than opened by a guest.
+  // Templates with an opening interaction (Blush Bow's bow) skip it there.
+  component: ComponentType<{ invite: Invite; embedded?: boolean }>;
   fields: TemplateFieldManifest;
   // The template's own dominant/paper background color. Used to wrap the
   // rendered page in a full-height container of the same color, so if the

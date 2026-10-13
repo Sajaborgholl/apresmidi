@@ -10,10 +10,10 @@ select
   'peyton-shane',
   id,
   'Peyton & Shane',
-  '2030-01-20 18:00:00+03',
-  null,
-  null,
-  '96170664401',
+  '2027-06-12 15:00:00+00',
+  '123 Anywhere Street, Any City',
+  'https://maps.google.com/?q=123+Anywhere+Street',
+  '96170000000',
   'live'
 from templates where slug = 'wedding-blush-bow'
 on conflict (slug) do nothing;
