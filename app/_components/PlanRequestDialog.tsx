@@ -1,6 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useRef, useState } from "react";
+import { trackPixel } from "@/lib/metaPixel";
 import type { FormEvent, MouseEvent, RefObject } from "react";
 import { CheckCircle, X } from "@phosphor-icons/react";
 import { submitPremiumInquiry, type PremiumInquiryState } from "../_actions/premium-inquiry";
@@ -149,6 +150,10 @@ function RequestForm({
   useEffect(() => {
     if (success) succeededRef.current = true;
   }, [success, succeededRef]);
+
+  useEffect(() => {
+    if (success) trackPixel("Lead", { content_name: isPlus ? "Plus request" : "Premium request", currency: "USD", value: isPlus ? 180 : 280 });
+  }, [success, isPlus]);
 
   if (success) {
     return (

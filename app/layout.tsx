@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import MetaPixel from "./_components/MetaPixel";
 
 export const metadata: Metadata = {
   title: "Après-midi — Digital Invitations",
   description: "Beautiful digital invitation websites for weddings, birthdays, and bachelorette parties.",
+  // Meta Business Manager domain verification (Brand safety > Domains).
+  ...(process.env.NEXT_PUBLIC_FB_DOMAIN_VERIFICATION
+    ? { other: { "facebook-domain-verification": process.env.NEXT_PUBLIC_FB_DOMAIN_VERIFICATION } }
+    : {}),
 };
 
 export default function RootLayout({
@@ -21,7 +26,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <MetaPixel />
+      </body>
     </html>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { trackPixel } from "@/lib/metaPixel";
+import { STANDARD_PLAN } from "@/lib/plans";
 import Link from "next/link";
 import { Monitor, DeviceMobile, Lock, Eye, X, WarningCircle } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
@@ -143,6 +145,8 @@ export default function CustomizePanel({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    // New orders only (not a host editing a live invite from the dashboard).
+    if (!edit) trackPixel("InitiateCheckout", { content_ids: [slug], content_type: "product", value: STANDARD_PLAN.priceUsd, currency: "USD" });
     startTransition(() => formAction(formData));
   }
 

@@ -3,6 +3,8 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendInviteReadyEmail } from "@/lib/email";
+import { sendPurchaseEvent } from "@/lib/metaCapi";
+import { STANDARD_PLAN } from "@/lib/plans";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -90,6 +92,9 @@ export async function confirmInvitePayment(
     } catch (err) {
       console.error("confirmInvitePayment: failed to send owner email", err);
     }
+    // Only the call that won the flip reports the sale, so retries and the
+    // dev "simulate" button can't count it twice. Never throws.
+    await sendPurchaseEvent({ inviteSlug, email: invite.owner_email, valueUsd: STANDARD_PLAN.priceUsd });
   }
 
   return { dashboardUrl, guestUrl };
