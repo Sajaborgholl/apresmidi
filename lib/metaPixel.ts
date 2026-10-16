@@ -60,6 +60,9 @@ export function trackPixel(event: string, params?: Record<string, unknown>, even
   if (!pixelAllowedOn(window.location.pathname)) return;
   const fbq = loadPixel();
   if (!fbq) return;
-  if (eventId) fbq("track", event, params ?? {}, { eventID: eventId });
-  else fbq("track", event, params ?? {});
+  // trackSingle, not track: with disablePushState on, fbevents silently drops
+  // every "track PageView" after the first one in a tab (it thinks the page
+  // never changed); trackSingle always sends.
+  if (eventId) fbq("trackSingle", META_PIXEL_ID, event, params ?? {}, { eventID: eventId });
+  else fbq("trackSingle", META_PIXEL_ID, event, params ?? {});
 }
