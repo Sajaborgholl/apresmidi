@@ -9,7 +9,7 @@ export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID ?? "";
 // (the invite pages, the customize preview iframe). The Pixel sends the full
 // page URL to Meta with every event, so it simply never loads or fires here.
 // Purchase is sent server-side instead (lib/metaCapi.ts), without those URLs.
-const EXCLUDED = [/^\/i\//, /^\/dashboard(\/|$)/, /^\/order\/[^/]+\/(confirmation|preview)(\/|$)/, /^\/api\//];
+const EXCLUDED = [/^\/i\//, /^\/dashboard(\/|$)/, /^\/order\/[^/]+\/(confirmation|preview)(\/|$)/, /^\/api\//, /^\/pixel\//];
 
 export function pixelAllowedOn(pathname: string): boolean {
   return Boolean(META_PIXEL_ID) && !EXCLUDED.some((re) => re.test(pathname));

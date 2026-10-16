@@ -6,6 +6,8 @@ import AutoRefresh from "../../../_components/AutoRefresh";
 import ReloadOnBfcacheRestore from "../../../_components/ReloadOnBfcacheRestore";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
 import TryAgainFallback from "./_components/TryAgainFallback";
+import PurchasePixel from "./_components/PurchasePixel";
+import { purchaseEventId } from "@/lib/purchaseEventId";
 import { confirmInvitePayment } from "@/lib/payments";
 import { startWhishPayment } from "../actions";
 import { BUSINESS_WHATSAPP_NUMBER } from "@/lib/contact";
@@ -278,6 +280,9 @@ export default async function OrderConfirmationPage({
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)", background: "var(--cream)" }}
     >
       <ReloadOnBfcacheRestore />
+      {/* The buyer's own view (order token), shortly after paying: report the
+          sale to the Meta Pixel. Not for visitors arriving by slug. */}
+      {orderToken && paidRecently(invite.paid_at) && <PurchasePixel eventId={purchaseEventId(inviteSlug)} />}
       <div
         className="w-full max-w-md rounded-[28px] bg-white p-8 text-center md:p-10"
         style={{ boxShadow: "0 30px 70px rgba(31,36,48,0.10)" }}

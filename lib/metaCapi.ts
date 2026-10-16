@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import { purchaseEventId } from "@/lib/purchaseEventId";
 
 // Meta Conversions API: sends Purchase from the server once Whish has really
 // confirmed a payment (see confirmInvitePayment in lib/payments.ts). Done
@@ -29,7 +30,7 @@ export async function sendPurchaseEvent(opts: { inviteSlug: string; email: strin
         event_name: "Purchase",
         event_time: Math.floor(Date.now() / 1000),
         // Same id on any retry, so Meta counts one purchase per invite.
-        event_id: `purchase-${opts.inviteSlug}`,
+        event_id: purchaseEventId(opts.inviteSlug),
         action_source: "website",
         // The site root, never the confirmation URL (it carries the order token).
         event_source_url: BASE_URL,
