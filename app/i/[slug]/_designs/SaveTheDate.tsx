@@ -6,11 +6,25 @@ import { calendarEvent, eventTitle, googleCalendarUrl, icsFile, outlookCalendarU
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-// Blush Bow's "Save the date" pill: opens a small menu to add the wedding to
-// the guest's calendar — Apple/iPhone (an .ics file from /i/<slug>/calendar.ics),
+// A "Save the date" trigger that opens a small menu to add the event to the
+// guest's calendar — Apple/iPhone (an .ics file from /i/<slug>/calendar.ics),
 // Google Calendar or Outlook.com (pre-filled "new event" pages). With no date
 // set there's nothing to save yet, so it stays a link down to the RSVP.
-export default function SaveTheDate({ invite, category = "wedding" }: { invite: Invite; category?: string }) {
+//
+// Blush Bow uses it as-is (its `.pill` trigger, cream/pink menu). Other
+// templates pass their own trigger class/label and restyle the menu through
+// the --std-* CSS variables (see CSS below) on any ancestor.
+export default function SaveTheDate({
+  invite,
+  category = "wedding",
+  triggerClassName = "pill",
+  triggerLabel = "Save the date",
+}: {
+  invite: Invite;
+  category?: string;
+  triggerClassName?: string;
+  triggerLabel?: string;
+}) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
 
@@ -42,8 +56,8 @@ export default function SaveTheDate({ invite, category = "wedding" }: { invite: 
 
   if (!event) {
     return (
-      <a href="#rsvp" className="pill">
-        Save the date
+      <a href="#rsvp" className={triggerClassName}>
+        {triggerLabel}
       </a>
     );
   }
@@ -67,12 +81,12 @@ export default function SaveTheDate({ invite, category = "wedding" }: { invite: 
       <style>{CSS}</style>
       <button
         type="button"
-        className="pill std-trigger"
+        className={`${triggerClassName} std-trigger`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        Save the date
+        {triggerLabel}
       </button>
       {open && (
         <span className="std-menu" role="menu" aria-label="Add to your calendar">
@@ -106,33 +120,38 @@ export default function SaveTheDate({ invite, category = "wedding" }: { invite: 
   );
 }
 
-// Same look as the template: cream card, 1.5px ink border, uppercase pills.
+// Blush Bow's look by default: cream card, 1.5px ink border, uppercase pills.
+// Templates override the --std-* variables to match their own palette.
 const CSS = `
-.std { position: relative; display: inline-block; }
+.std {
+  position: relative; display: inline-block;
+  --std-paper-d: var(--std-paper, #FBF1DE); --std-ink-d: var(--std-ink, #1c1c1c); --std-accent-d: var(--std-accent, #F6C9D3);
+  --std-script-d: var(--std-script, 'Caveat', cursive); --std-sans-d: var(--std-sans, 'Space Grotesk', sans-serif);
+}
 .std-menu {
   position: absolute; top: calc(100% + 10px); left: 0; z-index: 20;
   display: flex; flex-direction: column; gap: 8px;
   min-width: 230px; padding: 14px;
-  background: #FBF1DE; border: 1.5px solid #1c1c1c; border-radius: 16px;
+  background: var(--std-paper-d); border: 1.5px solid var(--std-ink-d); border-radius: 16px;
   box-shadow: 0 10px 30px rgba(28, 28, 28, 0.12);
   animation: std-in .18s ease-out;
 }
 .std-title {
-  font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.35rem; line-height: 1;
-  color: #1c1c1c; margin: 0 2px 4px;
+  font-family: var(--std-script-d); font-weight: 700; font-size: 1.35rem; line-height: 1;
+  color: var(--std-ink-d); margin: 0 2px 4px; text-align: left;
 }
 .std-option {
   display: block; text-align: center;
-  font-family: 'Space Grotesk', sans-serif; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.05em; font-size: 11px; color: #1c1c1c; text-decoration: none;
-  background: #F6C9D3; border: 1.5px solid #1c1c1c; border-radius: 999px; padding: 11px 18px;
+  font-family: var(--std-sans-d); font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; font-size: 11px; line-height: 1.2; color: var(--std-ink-d); text-decoration: none;
+  background: var(--std-accent-d); border: 1.5px solid var(--std-ink-d); border-radius: 999px; padding: 11px 18px;
   transition: background .15s ease, color .15s ease;
 }
-.std-option:hover, .std-option:focus-visible { background: #1c1c1c; color: #FBF1DE; outline: none; }
+.std-option:hover, .std-option:focus-visible { background: var(--std-ink-d); color: var(--std-paper-d); outline: none; }
 .std-option-off { opacity: 0.5; cursor: default; pointer-events: none; }
 .std-note {
-  font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.1rem; line-height: 1.1;
-  color: #1c1c1c; opacity: 0.75; text-align: center; margin-top: 2px;
+  font-family: var(--std-script-d); font-weight: 700; font-size: 1.1rem; line-height: 1.1;
+  color: var(--std-ink-d); opacity: 0.75; text-align: center; margin-top: 2px;
 }
 @keyframes std-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 @media (prefers-reduced-motion: reduce) { .std-menu { animation: none; } }
