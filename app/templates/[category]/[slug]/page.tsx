@@ -9,6 +9,7 @@ import SiteFooter from "@/app/_components/SiteFooter";
 import Reveal from "@/app/_components/Reveal";
 import { FeatureList } from "@/app/_components/Pricing";
 import HeroPreview from "@/app/_components/HeroPreview";
+import PixelEvent from "@/app/_components/PixelEvent";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,10 @@ export default async function TemplateDetailPage({ params }: { params: Params })
   return (
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
       <SiteHeader categories={navCategories} />
+      <PixelEvent
+        event="ViewContent"
+        params={{ content_ids: [template.slug], content_name: template.name, content_category: category, content_type: "product", value: STANDARD_PLAN.priceUsd, currency: "USD" }}
+      />
 
       {/* pt clears the fixed .site-nav (about 76px tall). */}
       <main className="mx-auto max-w-5xl px-6 pb-16 pt-28 md:pt-32">

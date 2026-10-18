@@ -15,6 +15,8 @@ export type InquiryPlan = "plus" | "premium";
 export const STANDARD_PLAN = {
   name: "Standard",
   price: "$80",
+  // Same price as a number, for the Meta Purchase / checkout events.
+  priceUsd: 80,
   features: ["Your chosen template, exactly as designed", "Live guest RSVP page", "Private RSVP dashboard"],
 };
 
