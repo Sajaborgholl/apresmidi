@@ -474,20 +474,10 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
                     >
                       −
                     </button>
-                    <div className="ra-rsvp-dial">
-                      <svg viewBox="0 0 100 100" aria-hidden="true">
-                        <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4" />
-                        <path id="ra-rsvp-dial-arc" d="M 17 50 a 33 33 0 1 1 66 0" fill="none" />
-                        <text className="ra-rsvp-dial-ring">
-                          <textPath href="#ra-rsvp-dial-arc" startOffset="50%" textAnchor="middle">
-                            GUESTS
-                          </textPath>
-                        </text>
-                      </svg>
-                      <output className="ra-rsvp-dial-num" aria-live="polite">
-                        {guestCount}
-                      </output>
-                    </div>
+                    <output className="ra-rsvp-count-value" aria-live="polite">
+                      <span className="ra-rsvp-count-num">{guestCount}</span>
+                      <span className="ra-rsvp-count-word">{guestCount === 1 ? "guest" : "guests"}</span>
+                    </output>
                     <button
                       type="button"
                       className="ra-rsvp-step"
@@ -771,12 +761,12 @@ const CSS = `
   font: 17px/1.4 'Hanken Grotesk', sans-serif; color: #2d3e66; width: 100%; box-sizing: border-box;
   padding: 8px 2px; min-height: 44px; border: 0; border-bottom: 1.5px solid rgba(86, 110, 153, 0.6); border-radius: 0; background: transparent;
 }
-.ra-rsvp-note:focus-visible, .ra-rsvp-name:focus-visible { outline: 2px solid #2d53c8; outline-offset: 4px; }
+.ra-rsvp-note:focus-visible, .ra-rsvp-name:focus-visible { outline: 2px solid #566e99; outline-offset: 4px; }
 
 /* "Par avion" label, like the blue airmail sticker */
 .ra-rsvp-airmail {
-  align-self: flex-end; margin-bottom: 6px; padding: 6px 12px; border: 1.5px solid #2d53c8; border-radius: 3px;
-  font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #2d53c8;
+  align-self: flex-end; margin-bottom: 6px; padding: 6px 12px; border: 1.5px solid #566e99; border-radius: 3px;
+  font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: #566e99;
 }
 
 /* Perforated stamps: the edge holes are a mask, like the ticket's perforation */
@@ -798,27 +788,46 @@ const CSS = `
   border: 1.5px solid #566e99; font-family: 'Sacramento', cursive; font-size: 26px; line-height: 1.1; color: #566e99; text-align: center;
 }
 .ra-rsvp-stamp.on { opacity: 1; transform: none; }
-.ra-rsvp-stamp.on span { background: #2d53c8; border-color: #2d53c8; color: #fdf4d4; }
+.ra-rsvp-stamp.on span { background: #566e99; border-color: #566e99; color: #fdf4d4; }
 .ra-rsvp-stamp:active { transform: scale(0.97); }
 .ra-rsvp-stamp:focus-visible { outline: none; }
 .ra-rsvp-stamp:focus-visible span { outline: 2px solid #c44d48; outline-offset: -6px; }
 @media (hover: hover) and (pointer: fine) { .ra-rsvp-stamp:not(.on):hover { opacity: 0.85; } }
 
-/* Guest counter: a postmark dial */
+/* Guest counter: one flat label in the "Par avion" style — square − and +
+   either side of the count, split by the dashed rules of the postcard. */
 .ra-rsvp-count { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
-.ra-rsvp-counter { display: flex; align-items: center; gap: 14px; }
-.ra-rsvp-dial { position: relative; width: 96px; height: 96px; color: #566e99; }
-.ra-rsvp-dial svg { width: 100%; height: 100%; display: block; }
-.ra-rsvp-dial-ring { font: 700 11px 'Hanken Grotesk', sans-serif; letter-spacing: 0.2em; fill: currentColor; }
-.ra-rsvp-dial-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding-top: 10px; font: 700 30px 'Hanken Grotesk', sans-serif; color: #2d53c8; }
-.ra-rsvp-step {
-  width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid #566e99; background: #fffdf6; color: #566e99;
-  font: 400 24px/1 'Hanken Grotesk', sans-serif; cursor: pointer; transition: transform .15s ease, background .15s ease;
+.ra-rsvp-counter {
+  display: inline-flex; align-self: flex-start; align-items: stretch; height: 52px;
+  border: 1.5px solid #566e99; border-radius: 4px; background: #fffdf6; color: #566e99;
 }
-.ra-rsvp-step:active:not(:disabled) { transform: scale(0.94); }
-.ra-rsvp-step:disabled { opacity: 0.35; cursor: default; }
-.ra-rsvp-step:focus-visible { outline: 2px solid #2d53c8; outline-offset: 3px; }
+.ra-rsvp-step {
+  width: 52px; border: 0; background: transparent; color: #566e99; padding: 0;
+  font: 400 22px/1 'Hanken Grotesk', sans-serif; cursor: pointer; transition: background .15s ease;
+}
+.ra-rsvp-step:first-child { border-radius: 3px 0 0 3px; }
+.ra-rsvp-step:last-child { border-radius: 0 3px 3px 0; }
+.ra-rsvp-step:active:not(:disabled) { background: #fdf4d4; }
+.ra-rsvp-step:disabled { opacity: 0.3; cursor: default; }
+.ra-rsvp-step:focus-visible { outline: 2px solid #566e99; outline-offset: 2px; }
 @media (hover: hover) and (pointer: fine) { .ra-rsvp-step:not(:disabled):hover { background: #fdf4d4; } }
+/* "1 GUEST" as one label: the number shares the word's font, size and
+   tracking (digits are cap height, so they match the capitals). Centred in a
+   fixed-width cell that fills the box's height, so the dashed rules run edge
+   to edge and nothing moves between 1, 9 and 10 or guest and guests. The
+   word's last-letter tracking is cancelled so the visible text is centred;
+   text-box trims the lines to the capitals so they sit at the true middle.
+   The 1.2px right padding is an optical nudge: Hanken's digits carry their
+   own space on the left, which otherwise sits the label ~0.6px right of
+   centre (measured for 1, 9 and 10). */
+.ra-rsvp-count-value {
+  display: flex; align-items: center; justify-content: center; gap: 0.45em; width: 150px; box-sizing: border-box; align-self: stretch; padding-right: 1.2px;
+  border-left: 1.5px dashed rgba(86, 110, 153, 0.55); border-right: 1.5px dashed rgba(86, 110, 153, 0.55);
+  font: 700 15px/1 'Hanken Grotesk', sans-serif; letter-spacing: 0.14em; text-transform: uppercase; color: #566e99;
+}
+.ra-rsvp-count-num, .ra-rsvp-count-word { text-box: trim-both cap alphabetic; }
+.ra-rsvp-count-num { font-variant-numeric: tabular-nums lining-nums; }
+.ra-rsvp-count-word { margin-right: -0.14em; }
 
 .ra-rsvp-error { font: 600 14px 'Hanken Grotesk', sans-serif; color: #c44d48; }
 .ra-rsvp-send {
@@ -827,19 +836,19 @@ const CSS = `
   display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
   border: 3px solid transparent; border-radius: 999px;
   background:
-    linear-gradient(#2d53c8, #2d53c8) padding-box,
+    linear-gradient(#566e99, #566e99) padding-box,
     repeating-linear-gradient(-45deg, #c44d48 0 6px, #fffdf6 6px 9px, #566e99 9px 15px, #fffdf6 15px 18px) border-box;
   transition: transform .15s ease, filter .15s ease;
 }
 .ra-rsvp-send:active:not(:disabled) { transform: scale(0.97); }
 .ra-rsvp-send:disabled { filter: saturate(0.6) brightness(1.1); cursor: default; }
-.ra-rsvp-send:focus-visible { outline: 2px solid #2d53c8; outline-offset: 4px; }
+.ra-rsvp-send:focus-visible { outline: 2px solid #566e99; outline-offset: 4px; }
 @media (hover: hover) and (pointer: fine) { .ra-rsvp-send:not(:disabled):hover { filter: brightness(1.08); } }
 
 /* Sent: the postmark lands on the card */
 .ra-rsvp-done { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 8px 0 4px; }
 .ra-rsvp-postmark {
-  width: min(300px, 80%); color: #2d53c8; opacity: 0.85; transform: rotate(-10deg);
+  width: min(300px, 80%); color: #566e99; opacity: 0.85; transform: rotate(-10deg);
   animation: ra-postmark .55s cubic-bezier(.2, .9, .3, 1.2) both;
 }
 .ra-rsvp-postmark-ring { font: 700 11px 'Hanken Grotesk', sans-serif; letter-spacing: 0.16em; fill: currentColor; }
