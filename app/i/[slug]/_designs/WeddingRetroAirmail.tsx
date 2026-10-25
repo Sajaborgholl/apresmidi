@@ -858,6 +858,39 @@ const CSS = `
 .ra-rsvp-done-text { font: 17px/1.5 'Hanken Grotesk', sans-serif; color: #2d3e66; margin-bottom: 8px; }
 .ra-rsvp-done .ra-rsvp-send { align-self: center; }
 
+/* Phones: the rest of the invitation shrinks with the screen, so the postcard
+   is scaled down to sit with it. Text fields stay at 16px (smaller makes
+   iPhones zoom in on tap) and every button stays at least 44px tall. */
+@media (max-width: 640px) {
+  .ra-rsvp { padding: 36px 28px 44px; }
+  .ra-rsvp-card { max-width: 340px; border-width: 7px; padding: 18px 16px 20px; }
+  .ra-rsvp-head { margin-bottom: 12px; }
+  .ra-rsvp-arc { width: 116px; margin-bottom: -4px; }
+  .ra-rsvp-title { font-size: 33px; }
+  .ra-rsvp-form { gap: 14px; }
+  .ra-rsvp-side { gap: 7px; }
+  .ra-rsvp-lead { font-size: 19px; }
+  .ra-rsvp-label { font-size: 10px; letter-spacing: 0.13em; }
+  .ra-rsvp-note {
+    line-height: 26px; min-height: 78px; height: 78px;
+    background-image: repeating-linear-gradient(transparent 0 25px, rgba(86, 110, 153, 0.38) 25px 26px);
+  }
+  .ra-rsvp-name { font-size: 16px; padding: 4px 2px; min-height: 36px; }
+  .ra-rsvp-airmail { font-size: 8.5px; padding: 4px 8px; margin-bottom: 0; }
+  .ra-rsvp-stamps { margin-top: 4px; }
+  .ra-rsvp-stamps legend { margin-bottom: 7px; }
+  .ra-rsvp-stamp-row { gap: 8px; }
+  .ra-rsvp-stamp { --r: 3px; min-height: 52px; }
+  .ra-rsvp-stamp span { min-height: 40px; font-size: 17px; padding: 4px; }
+  .ra-rsvp-counter { height: 47px; } /* 44px buttons inside the 1.5px border */
+  .ra-rsvp-step { width: 44px; font-size: 18px; }
+  .ra-rsvp-count-value { width: 118px; font-size: 12px; }
+  .ra-rsvp-send { min-height: 44px; padding: 8px 18px; font-size: 11.5px; margin-top: 4px; }
+  .ra-rsvp-postmark { width: min(200px, 75%); }
+  .ra-rsvp-done-script { font-size: 30px; }
+  .ra-rsvp-done-text { font-size: 14px; }
+}
+
 /* Scroll reveals (transform + opacity only). */
 .ra-js .ra-rv { transition: opacity .9s cubic-bezier(.22, 1, .36, 1), transform .9s cubic-bezier(.22, 1, .36, 1); }
 .ra-js .ra-rv:not(.in) { opacity: 0; }
