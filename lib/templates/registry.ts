@@ -4,6 +4,7 @@ import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import WeddingRetroAirmail from "@/app/i/[slug]/_designs/WeddingRetroAirmail";
+import WeddingWatercolorRiad from "@/app/i/[slug]/_designs/WeddingWatercolorRiad";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
 import BacheloretteMartini from "@/app/i/[slug]/_designs/BacheloretteMartini";
 import BacheloretteDoodle from "@/app/i/[slug]/_designs/BacheloretteDoodle";
@@ -119,6 +120,21 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       // For the "Confirm on WhatsApp too" link after an RSVP is sent.
       whatsapp_number: true,
       photoCount: 2,
+    },
+  },
+  {
+    slug: "wedding-watercolor-riad",
+    name: "Watercolor Riad Wedding",
+    category: "wedding",
+    component: WeddingWatercolorRiad,
+    previewBackground: "#f7f1e7",
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
+      whatsapp_number: true,
+      photoCount: 1,
     },
   },
   {
