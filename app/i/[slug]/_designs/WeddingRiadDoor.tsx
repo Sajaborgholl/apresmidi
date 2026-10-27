@@ -94,6 +94,10 @@ const TEXT = {
     decline: "Regretfully decline",
     guests: "Number of guests",
     preComing: "Coming to the pre-wedding",
+    preQuestion: "Coming to the pre-wedding?",
+    yes: "Yes",
+    no: "No",
+    preMissing: "Please tell us if you're coming to the pre-wedding.",
     preThanks: " See you at the pre-wedding too!",
     preWa: " We'll be at the pre-wedding too.",
     send: "Send reply",
@@ -142,6 +146,10 @@ const TEXT = {
     decline: "نعتذر عن الحضور",
     guests: "عدد الأشخاص",
     preComing: "سأحضر سهرة ما قبل الزفاف",
+    preQuestion: "هل ستحضرون سهرة ما قبل الزفاف؟",
+    yes: "نعم",
+    no: "لا",
+    preMissing: "يرجى تحديد حضوركم لسهرة ما قبل الزفاف.",
     preThanks: " نراكم في سهرة ما قبل الزفاف أيضاً!",
     preWa: " وسنحضر سهرة ما قبل الزفاف أيضاً.",
     send: "إرسال الرد",
@@ -434,7 +442,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   const [page, setPage] = useState<"wedding" | "pre">("wedding");
   const onPre = Boolean(pre) && page === "pre";
   function goReplyForPre() {
-    setPreComing(true);
+    setPreComing("yes");
     setAttending("yes");
     setPage("wedding");
     // after the wedding page has rendered
@@ -458,7 +466,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   const [guestCount, setGuestCount] = useState(1);
   // Only when there is a pre-wedding: one extra tap, saved with the reply
   // as its message so it shows in the couple's guest list.
-  const [preComing, setPreComing] = useState(false);
+  const [preComing, setPreComing] = useState<"yes" | "no" | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -477,6 +485,11 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
+    // With a pre-wedding, guests must answer Yes or No for it too.
+    if (pre && !preComing) {
+      setError(tx.preMissing);
+      return;
+    }
     setLoading(true);
     setError("");
     const { error: insertError } = await submitRsvp({
@@ -484,7 +497,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
       guest_name: name.trim(),
       attending: attending === "yes",
       guest_count: attending === "yes" ? guestCount : 0,
-      ...(pre && attending === "yes" ? { message: preComing ? "Coming to the pre-wedding" : "Not coming to the pre-wedding" } : {}),
+      ...(pre ? { message: preComing === "yes" ? "Coming to the pre-wedding" : "Not coming to the pre-wedding" } : {}),
     });
     setLoading(false);
     if (insertError) {
@@ -496,7 +509,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
 
   const guestName = name.trim() || tx.friend;
   const waMessage = encodeURIComponent(
-    attending === "yes" ? tx.waYes(guestName, guestCount) + (pre && preComing ? tx.preWa : "") : tx.waNo(guestName)
+    attending === "yes" ? tx.waYes(guestName, guestCount) + (pre && preComing === "yes" ? tx.preWa : "") : tx.waNo(guestName)
   );
   const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
 
@@ -684,11 +697,34 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
                       {tx.decline}
                     </button>
                   </div>
-                  {attending === "yes" && pre && (
-                    <button type="button" aria-pressed={preComing} className={`rd-toggle rd-pre-toggle${preComing ? " active" : ""}`} onClick={() => setPreComing((v) => !v)}>
-                      <span className="rd-pre-check" aria-hidden="true">{preComing ? "✓" : ""}</span>
-                      {tx.preComing}
-                    </button>
+                  {pre && (
+                    <div className="rd-pre-q" role="group" aria-label={tx.preQuestion}>
+                      <span className="rd-label">{tx.preQuestion}</span>
+                      <div className="rd-toggle-row">
+                        <button
+                          type="button"
+                          aria-pressed={preComing === "yes"}
+                          className={`rd-toggle${preComing === "yes" ? " active" : ""}`}
+                          onClick={() => {
+                            setPreComing("yes");
+                            setError("");
+                          }}
+                        >
+                          {tx.yes}
+                        </button>
+                        <button
+                          type="button"
+                          aria-pressed={preComing === "no"}
+                          className={`rd-toggle${preComing === "no" ? " active" : ""}`}
+                          onClick={() => {
+                            setPreComing("no");
+                            setError("");
+                          }}
+                        >
+                          {tx.no}
+                        </button>
+                      </div>
+                    </div>
                   )}
                   {attending === "yes" && (
                     <label>
@@ -704,7 +740,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
               ) : (
                 <div className="rd-thanks">
                   <p>
-                    {attending === "yes" ? tx.thanksYes(name.trim()) + (pre && preComing ? tx.preThanks : "") : tx.thanksNo(name.trim())}
+                    {attending === "yes" ? tx.thanksYes(name.trim()) + (pre && preComing === "yes" ? tx.preThanks : "") : tx.thanksNo(name.trim())}
                   </p>
                   {waLink && (
                     <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="rd-btn rd-btn-wa">
@@ -858,8 +894,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-form input:focus { outline: none; border-bottom-color: var(--brown); }
 .rd-toggle-row { display: flex; gap: 8px; }
 .rd-pre-cta { margin-top: 44px; }
-.rd-pre-toggle { flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px 14px; }
-.rd-pre-check { width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; line-height: 1; }
+.rd-pre-q { display: flex; flex-direction: column; gap: 8px; }
 .rd-toggle {
   flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 1.08rem; font-style: italic; cursor: pointer;
   padding: 10px 4px; border-radius: 999px; border: 1px solid rgba(91,58,38,.45); background: transparent; color: var(--brown);
