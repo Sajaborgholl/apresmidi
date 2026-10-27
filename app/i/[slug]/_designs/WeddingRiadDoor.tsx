@@ -29,21 +29,122 @@ const ZOOM_MS = 3400;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-// "Saturday 12 June 2027", from the time the host typed (never shifted by
-// the guest's timezone — see parseWallClock).
-function longDate(eventDate: string | null): string | null {
-  const t = parseWallClock(eventDate);
-  if (!t) return null;
-  const weekday = DAYS[new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay()];
-  return `${weekday} ${t.day} ${MONTHS[t.month - 1]} ${t.year}`;
+// Arabic version: Levantine month names (as used in Lebanon) and
+// Arabic-Indic digits.
+const MONTHS_AR = ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"];
+const DAYS_AR = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
+
+type Lang = "en" | "ar";
+
+// Digits in the page's language.
+function num(v: string | number, lang: Lang): string {
+  const s = String(v);
+  return lang === "ar" ? s.replace(/\d/g, (d) => AR_DIGITS[Number(d)]) : s;
 }
 
-function timeLabel(eventDate: string | null): string | null {
+// "Saturday 12 June 2027" / "السبت ٢٢ أيار ٢٠٢٧", from the time the host
+// typed (never shifted by the guest's timezone — see parseWallClock).
+function longDate(eventDate: string | null, lang: Lang): string | null {
+  const t = parseWallClock(eventDate);
+  if (!t) return null;
+  const wd = new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay();
+  if (lang === "ar") return `${DAYS_AR[wd]} ${num(t.day, lang)} ${MONTHS_AR[t.month - 1]} ${num(t.year, lang)}`;
+  return `${DAYS[wd]} ${t.day} ${MONTHS[t.month - 1]} ${t.year}`;
+}
+
+function timeLabel(eventDate: string | null, lang: Lang): string | null {
   const t = parseWallClock(eventDate);
   if (!t) return null;
   const h = t.hour % 12 || 12;
-  return `${h}:${String(t.minute).padStart(2, "0")} ${t.hour < 12 ? "AM" : "PM"}`;
+  const hm = `${num(h, lang)}:${num(String(t.minute).padStart(2, "0"), lang)}`;
+  if (lang === "ar") return `${hm} ${t.hour < 12 ? "صباحاً" : "مساءً"}`;
+  return `${hm} ${t.hour < 12 ? "AM" : "PM"}`;
 }
+
+// Every fixed text on the page, in both languages.
+const TEXT = {
+  en: {
+    invited: "You are invited",
+    tapDoor: "Tap the door to open",
+    openLabel: "Open the invitation",
+    together: "Together with their families",
+    request: ["request the pleasure of your company", "at the wedding of their children"],
+    requestCouple: ["request the pleasure of your company", "at the celebration of their marriage"],
+    celebrate: "We can't wait to celebrate with you",
+    dateSoon: "Date coming soon",
+    at: (t: string) => `at ${t}`,
+    scroll: "Scroll down",
+    countdown: ["Days", "Hours", "Minutes", "Seconds"],
+    countdownLabel: "Countdown to the wedding",
+    details: "The details",
+    when: "When",
+    whenSoon: "We'll share the date very soon.",
+    saveDate: "Save the date",
+    where: "Where",
+    whereSoon: "The venue will be announced soon.",
+    map: "View map",
+    dress: "Dress code",
+    dressText: "Garden formal — light colours and comfortable shoes.",
+    reply: "Kindly reply",
+    replySub: "We would love to know if you can join us.",
+    fullName: "Full name",
+    yourName: "Your name",
+    accept: "Joyfully accept",
+    decline: "Regretfully decline",
+    guests: "Number of guests",
+    send: "Send reply",
+    sending: "Sending…",
+    error: "Something went wrong — please try again.",
+    thanksYes: (n: string) => `Thank you, ${n} — we can't wait to celebrate with you.`,
+    thanksNo: (n: string) => `We'll miss you, ${n}. Thank you for letting us know.`,
+    whatsapp: "Confirm on WhatsApp too",
+    waYes: (n: string, g: number) => `Hi! It's ${n} — we'd be delighted to celebrate with you${g > 1 ? ` (${g} of us)` : ""}!`,
+    waNo: (n: string) => `Hi! It's ${n} — sadly we won't be able to make it, but we'll be with you in heart.`,
+    friend: "a friend",
+    footer: "With love, see you there",
+  },
+  ar: {
+    invited: "يسعدنا دعوتكم",
+    tapDoor: "اضغطوا على الباب لفتحه",
+    openLabel: "افتحوا الدعوة",
+    together: "مع عائلتيهما",
+    request: ["يتشرّفون بدعوتكم", "لمشاركتهم فرحة زفاف"],
+    requestCouple: ["يتشرّفان بدعوتكم", "لمشاركتهما فرحة زفافهما"],
+    celebrate: "بانتظاركم لنحتفل معاً",
+    dateSoon: "سنعلن عن الموعد قريباً",
+    at: (t: string) => `الساعة ${t}`,
+    scroll: "مرّروا للأسفل",
+    countdown: ["أيام", "ساعات", "دقائق", "ثوانٍ"],
+    countdownLabel: "العدّ التنازلي للزفاف",
+    details: "التفاصيل",
+    when: "الموعد",
+    whenSoon: "سنعلن عن الموعد قريباً.",
+    saveDate: "احفظوا الموعد",
+    where: "المكان",
+    whereSoon: "سيتم الإعلان عن المكان قريباً.",
+    map: "عرض الخريطة",
+    dress: "اللباس",
+    dressText: "رسمي — ألوان فاتحة وأحذية مريحة.",
+    reply: "نرجو تأكيد الحضور",
+    replySub: "يسعدنا أن نعرف إن كنتم ستشاركوننا.",
+    fullName: "الاسم الكامل",
+    yourName: "اسمكم",
+    accept: "بكل سرور",
+    decline: "نعتذر عن الحضور",
+    guests: "عدد الأشخاص",
+    send: "إرسال الرد",
+    sending: "جارٍ الإرسال…",
+    error: "حدث خطأ — يرجى المحاولة مجدداً.",
+    thanksYes: (n: string) => `شكراً ${n} — بانتظاركم لنحتفل معاً.`,
+    thanksNo: (n: string) => `سنفتقدكم يا ${n}. شكراً لإعلامنا.`,
+    whatsapp: "التأكيد عبر واتساب أيضاً",
+    waYes: (n: string, g: number) => `مرحباً! معكم ${n} — يسعدنا أن نشارككم فرحتكم${g > 1 ? ` (${g} أشخاص)` : ""}!`,
+    waNo: (n: string) => `مرحباً! معكم ${n} — للأسف لن نتمكن من الحضور، لكن قلوبنا معكم.`,
+    friend: "صديق",
+    footer: "بكل محبة، بانتظاركم",
+  },
+};
 
 // "Lea & Karim" -> ["Lea", "Karim"], drawn with a small italic "&" between.
 function splitNames(hostNames: string): string[] {
@@ -115,7 +216,8 @@ function DoorScene({ open, onDoorsOpened, sceneRef }: { open: boolean; onDoorsOp
 
 // The opening: linen sheet with a door-shaped hole, the collage, then the
 // measured walk-through zoom.
-function Gate({ hostNames, onOpen }: { hostNames: string; onOpen: () => void }) {
+function Gate({ hostNames, lang, onOpen }: { hostNames: string; lang: Lang; onOpen: () => void }) {
+  const tx = TEXT[lang];
   const [open, setOpen] = useState(false);
   const [zoomStyle, setZoomStyle] = useState<CSSProperties | null>(null);
   const [hole, setHole] = useState<string | null>(null);
@@ -210,15 +312,15 @@ function Gate({ hostNames, onOpen }: { hostNames: string; onOpen: () => void }) 
         <div ref={paperRef} className="rd-paper" style={hole ? { clipPath: hole } : undefined} />
         <div className="rd-gate-col">
           <div className="rd-gate-text">
-            <p className="rd-kicker">You are invited</p>
+            <p className="rd-kicker">{tx.invited}</p>
             <p className="rd-gate-names">
               <Names hostNames={hostNames} />
             </p>
           </div>
-          <button type="button" className="rd-gate-btn" onClick={start} aria-label="Open the invitation">
+          <button type="button" className="rd-gate-btn" onClick={start} aria-label={tx.openLabel}>
             <DoorScene open={open} onDoorsOpened={zoom} sceneRef={sceneRef} />
           </button>
-          <p className={`rd-gate-hint${open ? " gone" : ""}`}>Tap the door to open</p>
+          <p className={`rd-gate-hint${open ? " gone" : ""}`}>{tx.tapDoor}</p>
         </div>
       </div>
     </div>
@@ -258,26 +360,25 @@ function subscribeToClock(onTick: () => void) {
   return () => clearInterval(t);
 }
 const currentSecond = () => Math.floor(Date.now() / 1000);
+const noSubscribe = () => () => {};
+const readLangParam = () => new URLSearchParams(window.location.search).get("lang") === "ar";
 const noTimeOnServer = () => null;
 
-function Countdown({ eventDate }: { eventDate: string | null }) {
+function Countdown({ eventDate, lang }: { eventDate: string | null; lang: Lang }) {
+  const tx = TEXT[lang];
   const now = useSyncExternalStore(subscribeToClock, currentSecond, noTimeOnServer);
   const t = parseWallClock(eventDate);
   if (!t) return null;
   const target = new Date(t.year, t.month - 1, t.day, t.hour, t.minute).getTime() / 1000;
   const left = now === null ? null : Math.max(0, target - now);
-  const parts: [string, number | null][] = [
-    ["Days", left === null ? null : Math.floor(left / 86400)],
-    ["Hours", left === null ? null : Math.floor((left % 86400) / 3600)],
-    ["Minutes", left === null ? null : Math.floor((left % 3600) / 60)],
-    ["Seconds", left === null ? null : left % 60],
-  ];
+  const values = left === null ? [null, null, null, null] : [Math.floor(left / 86400), Math.floor((left % 86400) / 3600), Math.floor((left % 3600) / 60), left % 60];
+  const parts = tx.countdown.map((label, i) => [label, values[i]] as [string, number | null]);
   return (
-    <div className="rd-count" role="timer" aria-label="Countdown to the wedding">
+    <div className="rd-count" role="timer" aria-label={tx.countdownLabel}>
       {parts.map(([label, v], i) => (
         <div key={label} className="rd-count-cell">
           {i > 0 && <span className="rd-count-dot" aria-hidden="true">◆</span>}
-          <span className="rd-count-num">{v === null ? "–" : String(v).padStart(2, "0")}</span>
+          <span className="rd-count-num">{v === null ? "–" : num(String(v).padStart(2, "0"), lang)}</span>
           <span className="rd-count-label">{label}</span>
         </div>
       ))}
@@ -287,6 +388,17 @@ function Countdown({ eventDate }: { eventDate: string | null }) {
 
 export default function WeddingRiadDoor({ invite, embedded = false }: { invite: Invite; embedded?: boolean }) {
   const [opened, setOpened] = useState(embedded);
+  // English / Arabic. The Arabic version exists once the couple's names are
+  // given in Arabic; `?lang=ar` in the link opens it directly.
+  const hasArabic = Boolean(invite.host_names_ar?.trim());
+  const linkWantsArabic = useSyncExternalStore(noSubscribe, readLangParam, () => false);
+  const [chosen, setLang] = useState<Lang | null>(null);
+  const lang: Lang = hasArabic ? (chosen ?? (linkWantsArabic ? "ar" : "en")) : "en";
+  const tx = TEXT[lang];
+  const ar = lang === "ar";
+  const hostNames = (ar && invite.host_names_ar) || invite.host_names;
+  const groomParents = ar ? invite.groom_parents_ar || invite.groom_parents : invite.groom_parents;
+  const brideParents = ar ? invite.bride_parents_ar || invite.bride_parents : invite.bride_parents;
   const namesRef = useRef<HTMLHeadingElement>(null);
   const hydrated = useHydrated();
   useEffect(() => {
@@ -300,11 +412,11 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const dateText = longDate(invite.event_date);
-  const time = timeLabel(invite.event_date);
+  const dateText = longDate(invite.event_date, lang);
+  const time = timeLabel(invite.event_date, lang);
   // Both sides' parents, when given, open the invitation in the traditional
   // way: "<parents> | <parents> request the pleasure... of their children".
-  const families = Boolean(invite.groom_parents?.trim() && invite.bride_parents?.trim());
+  const families = Boolean(groomParents?.trim() && brideParents?.trim());
   
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -319,104 +431,116 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
     });
     setLoading(false);
     if (insertError) {
-      setError("Something went wrong — please try again.");
+      setError(tx.error);
       return;
     }
     setSubmitted(true);
   }
 
-  const waMessage = encodeURIComponent(
-    `Hi! It's ${name.trim() || "a friend"} — ${
-      attending === "yes"
-        ? `we'd be delighted to celebrate with you${guestCount > 1 ? ` (${guestCount} of us)` : ""}!`
-        : "sadly we won't be able to make it, but we'll be with you in heart."
-    }`
-  );
+  const guestName = name.trim() || tx.friend;
+  const waMessage = encodeURIComponent(attending === "yes" ? tx.waYes(guestName, guestCount) : tx.waNo(guestName));
   const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
 
   return (
-    <div className={`rd-page${hydrated ? " rd-js" : ""}`}>
+    <div className={`rd-page${hydrated ? " rd-js" : ""}`} lang={lang} dir={ar ? "rtl" : "ltr"}>
       <style>{CSS}</style>
+      {hasArabic && (
+        // Only this template needs an Arabic font, so it's loaded here
+        // rather than for the whole site.
+        // eslint-disable-next-line @next/next/no-page-custom-font
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" precedence="default" />
+      )}
 
-      {!opened && <Gate hostNames={invite.host_names} onOpen={() => setOpened(true)} />}
+      {hasArabic && (
+        <div className="rd-lang" role="group" aria-label="Language / اللغة">
+          <button type="button" lang="ar" aria-pressed={ar} onClick={() => setLang("ar")}>
+            AR
+          </button>
+          <button type="button" lang="en" aria-pressed={!ar} onClick={() => setLang("en")}>
+            EN
+          </button>
+        </div>
+      )}
+
+      {!opened && <Gate hostNames={hostNames} lang={lang} onOpen={() => setOpened(true)} />}
 
       <div inert={!opened}>
         <header className="rd-hero">
           {families ? (
             <div className="rd-families">
               <div className="rd-parents">
-                <p>{invite.groom_parents}</p>
+                <p>{groomParents}</p>
                 <span aria-hidden="true" className="rd-parents-rule" />
-                <p>{invite.bride_parents}</p>
+                <p>{brideParents}</p>
               </div>
               <p className="rd-request">
-                request the pleasure of your company
+                {tx.request[0]}
                 <br />
-                at the wedding of their children
+                {tx.request[1]}
               </p>
             </div>
           ) : (
-            <p className="rd-kicker">Together with their families</p>
+            <p className="rd-kicker">{tx.together}</p>
           )}
           <h1 ref={namesRef} tabIndex={-1} className="rd-names">
-            <Names hostNames={invite.host_names} />
+            <Names hostNames={hostNames} />
           </h1>
           <p className="rd-date">
-            {dateText ?? "Date coming soon"}
+            {dateText ?? tx.dateSoon}
             {dateText && time && (
               <>
                 <br />
-                <span className="rd-time">at {time}</span>
+                <span className="rd-time">{tx.at(time)}</span>
               </>
             )}
           </p>
           <span className="rd-divider" aria-hidden="true" />
-          <p className="rd-scroll-hint">Scroll down</p>
+          <p className="rd-scroll-hint">{tx.scroll}</p>
         </header>
 
         <section className="rd-section rd-intro">
           <Reveal>
             {families ? (
-              <p className="rd-lead">We can&apos;t wait to celebrate with you</p>
+              <p className="rd-lead">{tx.celebrate}</p>
             ) : (
               <p className="rd-lead">
-                request the pleasure of your company
+                {tx.requestCouple[0]}
                 <br />
-                at the celebration of their marriage
+                {tx.requestCouple[1]}
               </p>
             )}
           </Reveal>
           <Reveal delay={150}>
-            <Countdown eventDate={invite.event_date} />
+            <Countdown eventDate={invite.event_date} lang={lang} />
           </Reveal>
         </section>
 
         <section className="rd-section rd-details">
           <img src={`${A}/palm.webp`} alt="" className="rd-deco rd-deco-palm" />
           <Reveal>
-            <h2 className="rd-h2">The details</h2>
+            <h2 className="rd-h2">{tx.details}</h2>
           </Reveal>
           <div className="rd-cards">
             <Reveal className="rd-card">
-              <h3>When</h3>
-              <p>{dateText ?? "We'll share the date very soon."}</p>
-              {time && <p className="rd-muted">at {time}</p>}
-              <SaveTheDate invite={invite} triggerClassName="rd-btn rd-btn-ghost" />
+              <h3>{tx.when}</h3>
+              <p>{dateText ?? tx.whenSoon}</p>
+              {time && <p className="rd-muted">{tx.at(time)}</p>}
+              <SaveTheDate invite={invite} triggerClassName="rd-btn rd-btn-ghost" triggerLabel={tx.saveDate} />
               <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers" />
             </Reveal>
             <Reveal className="rd-card" delay={120}>
-              <h3>Where</h3>
-              <p>{invite.venue_name ?? "The venue will be announced soon."}</p>
+              <h3>{tx.where}</h3>
+              <p>{invite.venue_name ?? tx.whereSoon}</p>
               {invite.venue_map_url && (
                 <a href={invite.venue_map_url} target="_blank" rel="noopener noreferrer" className="rd-btn rd-btn-ghost">
-                  View map
+                  {tx.map}
                 </a>
               )}
               <img src={`${A}/pots.webp`} alt="" className="rd-deco rd-deco-pots" />
             </Reveal>
             <Reveal className="rd-card" delay={240}>
-              <h3>Dress code</h3>
-              <p>Garden formal — light colours and comfortable shoes.</p>
+              <h3>{tx.dress}</h3>
+              <p>{tx.dressText}</p>
               <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers rd-deco-flip" />
             </Reveal>
           </div>
@@ -425,43 +549,41 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
         <section id="rsvp" className="rd-section rd-rsvp">
           <Reveal>
             <div className="rd-rsvp-card">
-              <h2 className="rd-h2">Kindly reply</h2>
-              <p className="rd-muted">We would love to know if you can join us.</p>
+              <h2 className="rd-h2">{tx.reply}</h2>
+              <p className="rd-muted">{tx.replySub}</p>
               {!submitted ? (
                 <form onSubmit={handleSubmit} className="rd-form">
                   <label>
-                    <span className="rd-label">Full name</span>
-                    <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Your name" />
+                    <span className="rd-label">{tx.fullName}</span>
+                    <input value={name} onChange={(e) => setName(e.target.value)} required placeholder={tx.yourName} />
                   </label>
                   <div className="rd-toggle-row">
                     <button type="button" className={`rd-toggle${attending === "yes" ? " active" : ""}`} onClick={() => setAttending("yes")}>
-                      Joyfully accept
+                      {tx.accept}
                     </button>
                     <button type="button" className={`rd-toggle${attending === "no" ? " active" : ""}`} onClick={() => setAttending("no")}>
-                      Regretfully decline
+                      {tx.decline}
                     </button>
                   </div>
                   {attending === "yes" && (
                     <label>
-                      <span className="rd-label">Number of guests</span>
+                      <span className="rd-label">{tx.guests}</span>
                       <input type="number" min={1} max={10} value={guestCount} onChange={(e) => setGuestCount(Number(e.target.value))} />
                     </label>
                   )}
                   {error && <p className="rd-error">{error}</p>}
                   <button type="submit" className="rd-btn" disabled={loading || !hydrated}>
-                    {loading ? "Sending…" : "Send reply"}
+                    {loading ? tx.sending : tx.send}
                   </button>
                 </form>
               ) : (
                 <div className="rd-thanks">
                   <p>
-                    {attending === "yes"
-                      ? `Thank you, ${name.trim()} — we can't wait to celebrate with you.`
-                      : `We'll miss you, ${name.trim()}. Thank you for letting us know.`}
+                    {attending === "yes" ? tx.thanksYes(name.trim()) : tx.thanksNo(name.trim())}
                   </p>
                   {waLink && (
                     <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="rd-btn rd-btn-wa">
-                      Confirm on WhatsApp too
+                      {tx.whatsapp}
                     </WhatsappConfirmLink>
                   )}
                 </div>
@@ -476,9 +598,9 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
             <img src={`${A}/pots.webp`} alt="" className="rd-f-pots" />
           </div>
           <p className="rd-footer-names">
-            <Names hostNames={invite.host_names} />
+            <Names hostNames={hostNames} />
           </p>
-          <p className="rd-muted">With love, see you there</p>
+          <p className="rd-muted">{tx.footer}</p>
         </footer>
       </div>
     </div>
@@ -520,8 +642,8 @@ body { margin: 0; background: #ece6dc; }
   flex: 1; max-width: 170px; margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-weight: 700;
   font-size: 10.5px; letter-spacing: 0.2em; line-height: 1.7; text-transform: uppercase; color: var(--brown);
 }
-.rd-parents p:first-child { text-align: right; }
-.rd-parents p:last-child { text-align: left; }
+.rd-parents p:first-child { text-align: end; }
+.rd-parents p:last-child { text-align: start; }
 .rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
 .rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
 .rd-time { font-size: .85em; opacity: .85; }
@@ -549,7 +671,7 @@ body { margin: 0; background: #ece6dc; }
 /* Countdown */
 .rd-count { display: flex; justify-content: center; align-items: flex-start; }
 .rd-count-cell { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 74px; }
-.rd-count-dot { position: absolute; left: -5px; top: 16px; font-size: 7px; color: var(--rose); opacity: .7; }
+.rd-count-dot { position: absolute; inset-inline-start: -5px; top: 16px; font-size: 7px; color: var(--rose); opacity: .7; }
 .rd-count-num { font-size: clamp(2.3rem, 9vw, 3rem); font-weight: 500; color: var(--brown); line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
 .rd-count-label { font-family: 'Hanken Grotesk', sans-serif; font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 8px; opacity: .7; }
 
@@ -594,7 +716,7 @@ body { margin: 0; background: #ece6dc; }
   background: var(--card); border-radius: 4px; padding: 40px 24px 34px; max-width: 440px; margin: 0 auto;
   box-shadow: 0 18px 34px -20px rgba(60,40,25,.6), 0 0 0 1px rgba(91,58,38,.08);
 }
-.rd-form { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; text-align: left; }
+.rd-form { display: flex; flex-direction: column; gap: 18px; margin-top: 24px; text-align: start; }
 .rd-form label { display: flex; flex-direction: column; gap: 6px; }
 .rd-label { font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--sage); }
 .rd-form input {
@@ -657,7 +779,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-gate-hint.gone { opacity: 0; animation: none; }
 @keyframes rd-pulse { 0%,100% { opacity: .5; } 50% { opacity: 1; } }
 
-.rd-scene { position: relative; width: 100%; aspect-ratio: ${SCENE_W} / ${SCENE_H}; }
+.rd-scene { direction: ltr; position: relative; width: 100%; aspect-ratio: ${SCENE_W} / ${SCENE_H}; }
 .rd-mats { position: absolute; inset: 0; }
 .rd-piece { position: absolute; height: auto; display: block; }
 .rd-layer { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
@@ -674,6 +796,38 @@ body { margin: 0; background: #ece6dc; }
 .rd-leaf-r { transform-origin: right center; }
 .rd-doors.open .rd-leaf-l { transform: rotateY(88deg); }
 .rd-doors.open .rd-leaf-r { transform: rotateY(-88deg); }
+
+/* Language switch: top right corner, above the door too */
+.rd-lang {
+  position: fixed; top: 14px; right: 14px; z-index: 60; display: flex; direction: ltr;
+  border: 1px solid rgba(91,58,38,.45); border-radius: 999px; overflow: hidden;
+  background: rgba(251,248,242,.88); box-shadow: 0 6px 16px -10px rgba(60,40,25,.6);
+}
+.rd-lang button {
+  font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: .14em;
+  padding: 8px 12px; border: 0; background: transparent; color: var(--brown); cursor: pointer; line-height: 1;
+}
+.rd-lang button + button { border-left: 1px solid rgba(91,58,38,.3); }
+.rd-lang button[aria-pressed="true"] { background: var(--brown); color: #fbf8f2; }
+
+/* Arabic: Amiri throughout, no letter-spacing (it breaks the joined
+   letters), no fake italics, slightly larger small text */
+.rd-page[lang="ar"] {
+  font-family: 'Amiri', 'Cormorant Garamond', serif;
+  --std-script: 'Amiri', serif; --std-sans: 'Amiri', serif;
+}
+.rd-page[lang="ar"] :is(.rd-kicker, .rd-label, .rd-btn, .rd-count-label, .rd-scroll-hint, .rd-parents p, .rd-names, .rd-gate-names, .rd-footer-names, .rd-toggle, .rd-form input) {
+  font-family: 'Amiri', serif; letter-spacing: 0; text-transform: none;
+}
+.rd-page[lang="ar"] :is(em, .rd-date, .rd-lead, .rd-muted, .rd-request, .rd-toggle, .rd-gate-hint, .rd-thanks p, .rd-amp) { font-style: normal; }
+.rd-page[lang="ar"] :is(.rd-kicker, .rd-scroll-hint) { font-size: 15px; }
+.rd-page[lang="ar"] :is(.rd-label, .rd-count-label) { font-size: 13px; }
+.rd-page[lang="ar"] .rd-btn { font-size: 14px; padding: 11px 24px; }
+.rd-page[lang="ar"] .rd-parents p { font-size: 16px; line-height: 1.6; }
+.rd-page[lang="ar"] .rd-names { font-weight: 700; line-height: 1.35; font-size: clamp(2.2rem, 10vw, 3.6rem); }
+.rd-page[lang="ar"] .rd-gate-names { font-weight: 700; line-height: 1.5; font-size: clamp(1.6rem, 7vw, 2.3rem); }
+.rd-page[lang="ar"] .rd-footer-names { font-weight: 700; }
+.rd-page[lang="ar"] .rd-amp { font-size: .55em; }
 
 @media (prefers-reduced-motion: reduce) {
   .rd-sway, .rd-glow, .rd-gate-hint, .rd-scroll-hint::after { animation: none; }

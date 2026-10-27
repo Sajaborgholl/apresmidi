@@ -43,6 +43,11 @@ export type Invite = {
   // Not stored in the database yet — absent on every real invite for now.
   groom_parents?: string | null;
   bride_parents?: string | null;
+  // Optional Arabic version (Riad Door's AR/EN switch): the couple's and the
+  // parents' names as they should read in Arabic. Same status as above.
+  host_names_ar?: string | null;
+  groom_parents_ar?: string | null;
+  bride_parents_ar?: string | null;
 };
 
 // A row from the `templates` table, joined with its category name.
