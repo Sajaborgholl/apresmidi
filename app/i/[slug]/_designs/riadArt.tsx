@@ -463,3 +463,234 @@ export function RiadLantern() {
     </svg>
   );
 }
+
+// ---------------------------------------------------------------------------
+// The garden, seen from above: where guests "land" after walking through the
+// gate. A long courtyard panorama (pool running left to right, palms and
+// orange trees on both sides, the far arcade at the top) that the page pans
+// across as the guest scrolls.
+// ---------------------------------------------------------------------------
+
+export const GARDEN_W = 1400;
+export const GARDEN_H = 1000;
+
+// A palm seen from above at an angle: fronds radiating all around, squashed
+// vertically for the perspective, over a short visible trunk.
+function PalmTop({ x, y, ground, s = 1, seed = 0 }: { x: number; y: number; ground: number; s?: number; seed?: number }) {
+  const fronds: { rib: string; leaflets: string; i: number }[] = [];
+  const count = 13;
+  for (let i = 0; i < count; i++) {
+    const deg = (360 / count) * i + ((seed * 23 + i * 11) % 17) - 8;
+    const a = (deg * Math.PI) / 180;
+    const L = (78 + ((seed + i * 5) % 14)) * s;
+    const ca = Math.cos(a);
+    const sa = Math.sin(a) * 0.62;
+    const p2x = x + ca * L;
+    const p2y = y + sa * L + L * 0.12;
+    const p1x = x + ca * L * 0.5;
+    const p1y = y + sa * L * 0.5 - L * 0.08;
+    const leaflets: string[] = [];
+    const n = 10;
+    for (let k = 1; k <= n; k++) {
+      const t = k / (n + 1);
+      const bx = (1 - t) * (1 - t) * x + 2 * (1 - t) * t * p1x + t * t * p2x;
+      const by = (1 - t) * (1 - t) * y + 2 * (1 - t) * t * p1y + t * t * p2y;
+      const dx = 2 * (1 - t) * (p1x - x) + 2 * t * (p2x - p1x);
+      const dy = 2 * (1 - t) * (p1y - y) + 2 * t * (p2y - p1y);
+      const dl = Math.hypot(dx, dy) || 1;
+      const ux = dx / dl;
+      const uy = dy / dl;
+      const len = (17 - t * 10) * s;
+      for (const side of [1, -1]) {
+        const nx = -uy * side;
+        const ny = ux * side;
+        leaflets.push(`M${f(bx)},${f(by)} L${f(bx + (nx * 0.85 + ux * 0.5) * len)},${f(by + (ny * 0.85 + uy * 0.5) * len * 0.75 + len * 0.15)}`);
+      }
+    }
+    fronds.push({ rib: `M${f(x)},${f(y)} Q${f(p1x)},${f(p1y)} ${f(p2x)},${f(p2y)}`, leaflets: leaflets.join(" "), i });
+  }
+  // draw the back fronds (pointing up/away) first
+  fronds.sort((a, b) => Math.sin(((360 / count) * a.i * Math.PI) / 180) - Math.sin(((360 / count) * b.i * Math.PI) / 180));
+  const tw = 7 * s;
+  return (
+    <g>
+      <ellipse cx={x + 26 * s} cy={ground + 4} rx={80 * s} ry={20 * s} fill={C.leafDeep} opacity={0.22} />
+      <path d={`M${f(x - tw)},${ground} Q${f(x - tw * 0.6)},${f((y + ground) / 2)} ${f(x - tw * 0.5)},${y} L${f(x + tw * 0.5)},${y} Q${f(x + tw * 0.6)},${f((y + ground) / 2)} ${f(x + tw)},${ground} Z`} fill={C.trunk} />
+      {fronds.map(({ rib, leaflets, i }) => (
+        <g key={i}>
+          <path d={leaflets} fill="none" stroke={i % 3 === 0 ? C.leafDeep : i % 2 ? C.leafDark : C.leaf} strokeWidth={2.4 * s} strokeLinecap="round" opacity={0.85} />
+          <path d={rib} fill="none" stroke={C.leafDeep} strokeWidth={1.5 * s} strokeLinecap="round" opacity={0.8} />
+        </g>
+      ))}
+      <circle cx={x} cy={y} r={6 * s} fill={C.leafDeep} opacity={0.7} />
+    </g>
+  );
+}
+
+// A little orange tree in a terracotta pot.
+function OrangeTree({ x, ground, s = 1, seed = 0 }: { x: number; ground: number; s?: number; seed?: number }) {
+  const cy = ground - 62 * s;
+  const fruits = Array.from({ length: 9 }, (_, i) => {
+    const a = ((seed * 37 + i * 71) % 360) * (Math.PI / 180);
+    const r = (10 + ((seed + i * 13) % 20)) * s;
+    return [x + Math.cos(a) * r, cy + Math.sin(a) * r * 0.8];
+  });
+  return (
+    <g>
+      <ellipse cx={x + 14 * s} cy={ground + 2} rx={36 * s} ry={9 * s} fill={C.leafDeep} opacity={0.2} />
+      <path d={`M${x - 16 * s},${ground - 30 * s} h${32 * s} l${-5 * s},${30 * s} h${-22 * s} Z`} fill={C.terracotta} />
+      <rect x={x - 18 * s} y={ground - 34 * s} width={36 * s} height={6 * s} fill={C.terracottaDeep} />
+      <rect x={x - 1.5 * s} y={ground - 56 * s} width={3 * s} height={24 * s} fill={C.trunk} />
+      <circle cx={x} cy={cy} r={30 * s} fill={C.leafDark} opacity={0.9} />
+      <circle cx={x - 9 * s} cy={cy - 8 * s} r={18 * s} fill={C.leaf} opacity={0.8} />
+      {fruits.map(([fx, fy], i) => (
+        <circle key={i} cx={fx} cy={fy} r={3.4 * s} fill="#e8913f" />
+      ))}
+    </g>
+  );
+}
+
+export function RiadGarden({ id }: { id: string }) {
+  const W = GARDEN_W;
+  const wc = `url(#${id}-wc)`;
+  const leaf = `url(#${id}-leaf)`;
+  const wash = `url(#${id}-wash)`;
+  // far arcade
+  const arcTop = 96;
+  const roofB = 124;
+  const corB = 138;
+  const wallB = 262;
+  const bays: number[] = [];
+  for (let x = -20; x < W + 20; x += 64) bays.push(x);
+  // floor tile lines converging to a vanishing point far above
+  const vpx = W / 2;
+  const vpy = -260;
+  const tileLines: string[] = [];
+  for (let x = -1600; x <= W + 1600; x += 90) {
+    const t = (GARDEN_H - wallB) / (GARDEN_H - vpy);
+    const topX = x + (vpx - x) * t;
+    tileLines.push(`M${f(topX)},${wallB} L${x},${GARDEN_H}`);
+  }
+  for (let y = wallB + 18, gap = 18; y < GARDEN_H; gap *= 1.14, y += gap) tileLines.push(`M0,${f(y)} H${W}`);
+
+  const upperPalms = [110, 390, 670, 950, 1230];
+  const lowerPalms = [250, 530, 810, 1090, 1370, -30];
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox={`0 0 ${W} ${GARDEN_H}`} width={W} height={GARDEN_H}>
+      <WatercolorDefs id={id} />
+      <rect width={W} height={GARDEN_H} fill="#f3ead9" />
+      {/* sky */}
+      <g filter={wash} opacity={0.8}>
+        <rect x={-40} y={-40} width={W + 80} height={170} fill="#d4e7ea" />
+      </g>
+      {/* palms beyond the far wall */}
+      <g filter={leaf}>
+        {[60, 300, 520, 860, 1080, 1330].map((x, i) => (
+          <Palm key={x} x={x} y={130} h={70 + (i % 3) * 18} lean={(i % 2 ? 1 : -1) * 8} s={0.7} seed={i + 2} dark={i % 2 === 0} />
+        ))}
+      </g>
+      {/* far arcade */}
+      <g filter={wc}>
+        <path d={`M0,${arcTop + 6} L${W},${arcTop} V${roofB} H0 Z`} fill={C.roof} />
+        <path d={Array.from({ length: W / 8 + 1 }, (_, i) => `M${i * 8},${arcTop + 4} L${i * 8 - 1.5},${roofB - 1}`).join(" ")} stroke={C.roofDark} strokeWidth={1.3} opacity={0.5} />
+        <rect x={0} y={roofB} width={W} height={corB - roofB} fill={C.terracotta} />
+        <rect x={0} y={corB} width={W} height={wallB - corB} fill={C.sand} />
+        {bays.map((x) => {
+          const l = x + 12;
+          const r = x + 64;
+          const w = r - l;
+          const top = corB + 16 + w / 2;
+          return (
+            <g key={x}>
+              <path d={`M${l},${wallB} V${top} A${w / 2},${w / 2} 0 0 1 ${r},${top} V${wallB} Z`} fill="#7f8c64" opacity={0.85} />
+              <path d={`M${l},${top} A${w / 2},${w / 2} 0 0 1 ${r},${top} V${top + 22} H${l} Z`} fill="#5d6a48" opacity={0.5} />
+            </g>
+          );
+        })}
+      </g>
+      {/* courtyard floor */}
+      <g filter={wc}>
+        <rect x={0} y={wallB} width={W} height={GARDEN_H - wallB} fill="#ecd8c2" />
+        <path d={tileLines.join(" ")} stroke="#d6b99c" strokeWidth={1.4} opacity={0.6} fill="none" />
+      </g>
+      {/* paths + low hedges along the pool */}
+      <g filter={wc}>
+        <rect x={0} y={448} width={W} height={20} fill={C.hedge} />
+        <rect x={0} y={448} width={W} height={7} fill={C.leaf} opacity={0.7} />
+        <rect x={0} y={468} width={W} height={46} fill="#f2e6d6" />
+        <rect x={0} y={652} width={W} height={50} fill="#f2e6d6" />
+        <rect x={0} y={702} width={W} height={24} fill={C.hedge} />
+        <rect x={0} y={702} width={W} height={8} fill={C.leaf} opacity={0.7} />
+      </g>
+      {/* pool */}
+      <g filter={wc}>
+        <rect x={-10} y={514} width={W + 20} height={138} fill="#efe3d1" />
+        <rect x={-10} y={526} width={W + 20} height={114} fill={`url(#${id}-pool)`} />
+        <rect x={-10} y={526} width={W + 20} height={14} fill={C.waterDeep} opacity={0.45} />
+        {/* palm reflections */}
+        {upperPalms.map((x) => (
+          <ellipse key={x} cx={x + 6} cy={560} rx={60} ry={14} fill={C.leafDark} opacity={0.28} />
+        ))}
+        {/* fountains */}
+        {[250, 700, 1150].map((x) => (
+          <g key={x}>
+            <ellipse cx={x} cy={583} rx={44} ry={20} fill="#efe3d1" />
+            <ellipse cx={x} cy={583} rx={36} ry={15} fill={C.water} />
+            <ellipse cx={x} cy={578} rx={6} ry={10} fill="#ffffff" opacity={0.7} />
+          </g>
+        ))}
+        <path
+          d={Array.from({ length: 24 }, (_, i) => {
+            const x = 30 + i * 58 + (i % 3) * 9;
+            const y = 548 + ((i * 37) % 80);
+            return `M${x},${y} h${14 + (i % 4) * 5}`;
+          }).join(" ")}
+          stroke="#eef6f2"
+          strokeWidth={2}
+          strokeLinecap="round"
+          opacity={0.8}
+        />
+      </g>
+      {/* upper row: palms + orange trees on the far side of the pool */}
+      <g filter={leaf}>
+        {upperPalms.map((x, i) => (
+          <PalmTop key={x} x={x} y={380} ground={470} s={0.62} seed={i + 1} />
+        ))}
+      </g>
+      <g filter={wc}>
+        {upperPalms.map((x, i) => (
+          <OrangeTree key={x} x={x + 140} ground={470} s={0.6} seed={i} />
+        ))}
+      </g>
+      {/* lower row, closer to us */}
+      <g filter={wc}>
+        {lowerPalms.map((x, i) => (
+          <OrangeTree key={x} x={x - 140} ground={736} s={1} seed={i + 4} />
+        ))}
+      </g>
+      <g filter={leaf}>
+        {lowerPalms.map((x, i) => (
+          <PalmTop key={x} x={x} y={590} ground={736} s={1.2} seed={i + 6} />
+        ))}
+      </g>
+      {/* foreground, right below us: a path, then big palm crowns and potted
+          orange trees cut off by the bottom edge — what makes it feel high up */}
+      <g filter={wc}>
+        <rect x={0} y={736} width={W} height={GARDEN_H - 736} fill="#ead3bc" />
+        <rect x={0} y={800} width={W} height={56} fill="#f2e6d6" />
+        <rect x={0} y={856} width={W} height={20} fill={C.hedge} />
+        <rect x={0} y={856} width={W} height={7} fill={C.leaf} opacity={0.7} />
+      </g>
+      <g filter={wc}>
+        {[110, 390, 670, 950, 1230].map((x, i) => (
+          <OrangeTree key={x} x={x} ground={1010} s={1.45} seed={i + 9} />
+        ))}
+      </g>
+      <g filter={leaf}>
+        {[250, 530, 810, 1090, 1370, -30].map((x, i) => (
+          <PalmTop key={x} x={x} y={960} ground={1080} s={1.75} seed={i + 3} />
+        ))}
+      </g>
+    </svg>
+  );
+}
