@@ -154,14 +154,15 @@ function splitNames(hostNames: string): string[] {
     .filter(Boolean);
 }
 
-function Names({ hostNames }: { hostNames: string }) {
+// The joining word between the names: "&" in English, "و" in Arabic.
+function Names({ hostNames, lang = "en" }: { hostNames: string; lang?: "en" | "ar" }) {
   const parts = splitNames(hostNames);
   if (parts.length < 2) return <>{hostNames}</>;
   return (
     <>
       {parts.map((p, i) => (
         <span key={i}>
-          {i > 0 && <em className="rd-amp"> &amp; </em>}
+          {i > 0 && <em className="rd-amp"> {lang === "ar" ? "و" : "&"} </em>}
           <span className="rd-name">{p}</span>
         </span>
       ))}
@@ -314,7 +315,7 @@ function Gate({ hostNames, lang, onOpen }: { hostNames: string; lang: Lang; onOp
           <div className="rd-gate-text">
             <p className="rd-kicker">{tx.invited}</p>
             <p className="rd-gate-names">
-              <Names hostNames={hostNames} />
+              <Names hostNames={hostNames} lang={lang} />
             </p>
           </div>
           <button type="button" className="rd-gate-btn" onClick={start} aria-label={tx.openLabel}>
@@ -483,7 +484,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
             <p className="rd-kicker">{tx.together}</p>
           )}
           <h1 ref={namesRef} tabIndex={-1} className="rd-names">
-            <Names hostNames={hostNames} />
+            <Names hostNames={hostNames} lang={lang} />
           </h1>
           <p className="rd-date">
             {dateText ?? tx.dateSoon}
@@ -598,7 +599,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
             <img src={`${A}/pots.webp`} alt="" className="rd-f-pots" />
           </div>
           <p className="rd-footer-names">
-            <Names hostNames={hostNames} />
+            <Names hostNames={hostNames} lang={lang} />
           </p>
           <p className="rd-muted">{tx.footer}</p>
         </footer>
