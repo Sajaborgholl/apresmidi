@@ -93,6 +93,9 @@ const TEXT = {
     accept: "Joyfully accept",
     decline: "Regretfully decline",
     guests: "Number of guests",
+    preComing: "Coming to the pre-wedding",
+    preThanks: " See you at the pre-wedding too!",
+    preWa: " We'll be at the pre-wedding too.",
     send: "Send reply",
     sending: "Sending…",
     error: "Something went wrong — please try again.",
@@ -138,6 +141,9 @@ const TEXT = {
     accept: "بكل سرور",
     decline: "نعتذر عن الحضور",
     guests: "عدد الأشخاص",
+    preComing: "سأحضر سهرة ما قبل الزفاف",
+    preThanks: " نراكم في سهرة ما قبل الزفاف أيضاً!",
+    preWa: " وسنحضر سهرة ما قبل الزفاف أيضاً.",
     send: "إرسال الرد",
     sending: "جارٍ الإرسال…",
     error: "حدث خطأ — يرجى المحاولة مجدداً.",
@@ -427,6 +433,13 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   const pre = invite.pre_wedding ?? null;
   const [page, setPage] = useState<"wedding" | "pre">("wedding");
   const onPre = Boolean(pre) && page === "pre";
+  function goReplyForPre() {
+    setPreComing(true);
+    setAttending("yes");
+    setPage("wedding");
+    // after the wedding page has rendered
+    window.setTimeout(() => document.getElementById("rsvp")?.scrollIntoView({ behavior: "smooth" }), 80);
+  }
   function showPage(next: "wedding" | "pre") {
     setPage(next);
     window.scrollTo({ top: 0 });
@@ -443,6 +456,9 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   const [name, setName] = useState("");
   const [attending, setAttending] = useState<"yes" | "no">("yes");
   const [guestCount, setGuestCount] = useState(1);
+  // Only when there is a pre-wedding: one extra tap, saved with the reply
+  // as its message so it shows in the couple's guest list.
+  const [preComing, setPreComing] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -468,6 +484,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
       guest_name: name.trim(),
       attending: attending === "yes",
       guest_count: attending === "yes" ? guestCount : 0,
+      ...(pre && attending === "yes" ? { message: preComing ? "Coming to the pre-wedding" : "Not coming to the pre-wedding" } : {}),
     });
     setLoading(false);
     if (insertError) {
@@ -478,7 +495,9 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   }
 
   const guestName = name.trim() || tx.friend;
-  const waMessage = encodeURIComponent(attending === "yes" ? tx.waYes(guestName, guestCount) : tx.waNo(guestName));
+  const waMessage = encodeURIComponent(
+    attending === "yes" ? tx.waYes(guestName, guestCount) + (pre && preComing ? tx.preWa : "") : tx.waNo(guestName)
+  );
   const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
 
   return (
@@ -562,6 +581,13 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
               <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers rd-deco-flip" />
             </Reveal>
           </div>
+          {/* Replies for the pre-wedding go through the wedding's form: this
+              takes guests there with "Coming to the pre-wedding" ticked. */}
+          <Reveal className="rd-pre-cta">
+            <button type="button" className="rd-btn" onClick={goReplyForPre}>
+              {tx.preComing}
+            </button>
+          </Reveal>
         </section>
 
           </div>
@@ -658,6 +684,12 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
                       {tx.decline}
                     </button>
                   </div>
+                  {attending === "yes" && pre && (
+                    <button type="button" aria-pressed={preComing} className={`rd-toggle rd-pre-toggle${preComing ? " active" : ""}`} onClick={() => setPreComing((v) => !v)}>
+                      <span className="rd-pre-check" aria-hidden="true">{preComing ? "✓" : ""}</span>
+                      {tx.preComing}
+                    </button>
+                  )}
                   {attending === "yes" && (
                     <label>
                       <span className="rd-label">{tx.guests}</span>
@@ -672,7 +704,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
               ) : (
                 <div className="rd-thanks">
                   <p>
-                    {attending === "yes" ? tx.thanksYes(name.trim()) : tx.thanksNo(name.trim())}
+                    {attending === "yes" ? tx.thanksYes(name.trim()) + (pre && preComing ? tx.preThanks : "") : tx.thanksNo(name.trim())}
                   </p>
                   {waLink && (
                     <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="rd-btn rd-btn-wa">
@@ -825,6 +857,9 @@ body { margin: 0; background: #ece6dc; }
 }
 .rd-form input:focus { outline: none; border-bottom-color: var(--brown); }
 .rd-toggle-row { display: flex; gap: 8px; }
+.rd-pre-cta { margin-top: 44px; }
+.rd-pre-toggle { flex: none; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px 14px; }
+.rd-pre-check { width: 18px; height: 18px; border-radius: 50%; border: 1px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; line-height: 1; }
 .rd-toggle {
   flex: 1; font-family: 'Cormorant Garamond', serif; font-size: 1.08rem; font-style: italic; cursor: pointer;
   padding: 10px 4px; border-radius: 999px; border: 1px solid rgba(91,58,38,.45); background: transparent; color: var(--brown);
