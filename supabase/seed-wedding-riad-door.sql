@@ -1,10 +1,10 @@
 -- Run this in Supabase: Project → SQL Editor → New query → paste → Run
--- Registers the "Watercolor Riad" wedding template so it shows up in the
+-- Registers the "Riad Door" wedding template so it shows up in the
 -- wedding gallery and can be ordered, and adds its demo invite (lea-karim)
 -- for the homepage / template page previews. Safe to re-run.
 
 insert into templates (slug, name, category, source)
-values ('wedding-watercolor-riad', 'Watercolor Riad Wedding', 'wedding', 'static')
+values ('wedding-riad-door', 'Riad Door Wedding', 'wedding', 'static')
 on conflict (slug) do nothing;
 
 insert into invites (
@@ -21,5 +21,5 @@ select
   '96170000000',
   'live',
   true
-from templates where slug = 'wedding-watercolor-riad'
+from templates where slug = 'wedding-riad-door'
 on conflict (slug) do nothing;

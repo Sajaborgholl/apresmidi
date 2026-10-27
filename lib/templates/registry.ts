@@ -4,7 +4,7 @@ import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import WeddingRetroAirmail from "@/app/i/[slug]/_designs/WeddingRetroAirmail";
-import WeddingWatercolorRiad from "@/app/i/[slug]/_designs/WeddingWatercolorRiad";
+import WeddingRiadDoor from "@/app/i/[slug]/_designs/WeddingRiadDoor";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
 import BacheloretteMartini from "@/app/i/[slug]/_designs/BacheloretteMartini";
 import BacheloretteDoodle from "@/app/i/[slug]/_designs/BacheloretteDoodle";
@@ -123,11 +123,11 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     },
   },
   {
-    slug: "wedding-watercolor-riad",
-    name: "Watercolor Riad Wedding",
+    slug: "wedding-riad-door",
+    name: "Riad Door Wedding",
     category: "wedding",
-    component: WeddingWatercolorRiad,
-    previewBackground: "#f7f1e7",
+    component: WeddingRiadDoor,
+    previewBackground: "#ece6dc",
     fields: {
       host_names: true,
       event_date: true,
