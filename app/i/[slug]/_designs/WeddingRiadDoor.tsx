@@ -103,6 +103,11 @@ const TEXT = {
     waNo: (n: string) => `Hi! It's ${n} — sadly we won't be able to make it, but we'll be with you in heart.`,
     friend: "a friend",
     footer: "With love, see you there",
+    navWedding: "Wedding",
+    navPre: "Pre-wedding",
+    preKicker: "Pre-wedding celebration",
+    preIntro: "Join us the night before the wedding",
+    whereTbc: "Location to be confirmed.",
   },
   ar: {
     invited: "يسعدنا دعوتكم",
@@ -143,6 +148,11 @@ const TEXT = {
     waNo: (n: string) => `مرحباً! معكم ${n} — للأسف لن نتمكن من الحضور، لكن قلوبنا معكم.`,
     friend: "صديق",
     footer: "بكل محبة، بانتظاركم",
+    navWedding: "الزفاف",
+    navPre: "ما قبل الزفاف",
+    preKicker: "سهرة ما قبل الزفاف",
+    preIntro: "شاركونا سهرة ما قبل الزفاف",
+    whereTbc: "سيتم تأكيد المكان قريباً.",
   },
 };
 
@@ -411,6 +421,16 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   const lang: Lang = hasArabic ? (chosen ?? (linkWantsArabic ? "ar" : "en")) : "en";
   const tx = TEXT[lang];
   const ar = lang === "ar";
+  // Optional second page: the pre-wedding (same details, no countdown, no
+  // RSVP, couple only). A clear Wedding / Pre-wedding bar appears at the top
+  // once the door is open.
+  const pre = invite.pre_wedding ?? null;
+  const [page, setPage] = useState<"wedding" | "pre">("wedding");
+  const onPre = Boolean(pre) && page === "pre";
+  function showPage(next: "wedding" | "pre") {
+    setPage(next);
+    window.scrollTo({ top: 0 });
+  }
   const hostNames = (ar && invite.host_names_ar) || invite.host_names;
   const groomParents = ar ? invite.groom_parents_ar || invite.groom_parents : invite.groom_parents;
   const brideParents = ar ? invite.bride_parents_ar || invite.bride_parents : invite.bride_parents;
@@ -432,6 +452,11 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
   // Both sides' parents, when given, open the invitation in the traditional
   // way: "<parents> | <parents> request the pleasure... of their children".
   const families = Boolean(groomParents?.trim() && brideParents?.trim());
+  const preDate = pre ? longDate(pre.event_date, lang) : null;
+  const preTime = pre ? timeLabel(pre.event_date, lang) : null;
+  const preInvite: Invite | null = pre
+    ? { ...invite, event_date: pre.event_date, venue_name: pre.venue_name, venue_map_url: pre.venue_map_url }
+    : null;
   
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -466,20 +491,91 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" precedence="default" />
       )}
 
-      {hasArabic && (
-        <div className="rd-lang" role="group" aria-label="Language / اللغة">
-          <button type="button" lang="ar" aria-pressed={ar} onClick={() => setLang("ar")}>
-            AR
-          </button>
-          <button type="button" lang="en" aria-pressed={!ar} onClick={() => setLang("en")}>
-            EN
-          </button>
-        </div>
+      {/* Top bar: the Wedding / Pre-wedding pages (once the door is open)
+          and the AR / EN switch (always, top right). */}
+      {(hasArabic || (pre && opened)) && (
+        <nav className={`rd-bar${pre && opened ? " with-pages" : ""}`} aria-label={ar ? "التنقل" : "Navigation"}>
+          {pre && opened && (
+            <div className="rd-tabs" role="tablist">
+              <button type="button" role="tab" aria-selected={!onPre} className="rd-tab" onClick={() => showPage("wedding")}>
+                {tx.navWedding}
+              </button>
+              <button type="button" role="tab" aria-selected={onPre} className="rd-tab" onClick={() => showPage("pre")}>
+                {tx.navPre}
+              </button>
+            </div>
+          )}
+          {hasArabic && (
+          <div className="rd-lang" role="group" aria-label="Language / اللغة">
+            <button type="button" lang="ar" aria-pressed={ar} onClick={() => setLang("ar")}>
+              AR
+            </button>
+            <button type="button" lang="en" aria-pressed={!ar} onClick={() => setLang("en")}>
+              EN
+            </button>
+          </div>
+          )}
+        </nav>
       )}
 
       {!opened && <Gate hostNames={hostNames} lang={lang} onOpen={() => setOpened(true)} />}
 
       <div inert={!opened}>
+        {onPre ? (
+          <div key="pre" className="rd-view">
+        <header className="rd-hero">
+          <p className="rd-kicker">{tx.preKicker}</p>
+          <h1 className="rd-names">
+            <Names hostNames={hostNames} lang={lang} />
+          </h1>
+          <p className="rd-date">
+            {preDate ?? tx.dateSoon}
+            {preDate && preTime && (
+              <>
+                <br />
+                <span className="rd-time">{tx.at(preTime)}</span>
+              </>
+            )}
+          </p>
+          <p className="rd-pre-intro">{tx.preIntro}</p>
+          <span className="rd-divider" aria-hidden="true" />
+          <p className="rd-scroll-hint">{tx.scroll}</p>
+        </header>
+
+        <section className="rd-section rd-details">
+          <img src={`${A}/palm.webp`} alt="" className="rd-deco rd-deco-palm" />
+          <Reveal>
+            <h2 className="rd-h2">{tx.details}</h2>
+          </Reveal>
+          <div className="rd-cards">
+            <Reveal className="rd-card">
+              <h3>{tx.when}</h3>
+              <p>{preDate ?? tx.whenSoon}</p>
+              {preTime && <p className="rd-muted">{tx.at(preTime)}</p>}
+              {preInvite && <SaveTheDate invite={preInvite} category="pre-wedding" triggerClassName="rd-btn rd-btn-ghost" triggerLabel={tx.saveDate} />}
+              <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers" />
+            </Reveal>
+            <Reveal className="rd-card" delay={120}>
+              <h3>{tx.where}</h3>
+              <p>{pre?.venue_name ?? tx.whereTbc}</p>
+              {pre?.venue_map_url && (
+                <a href={pre.venue_map_url} target="_blank" rel="noopener noreferrer" className="rd-btn rd-btn-ghost">
+                  {tx.map}
+                </a>
+              )}
+              <img src={`${A}/pots.webp`} alt="" className="rd-deco rd-deco-pots" />
+            </Reveal>
+            <Reveal className="rd-card" delay={240}>
+              <h3>{tx.dress}</h3>
+              <p>{tx.dressText}</p>
+              <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers rd-deco-flip" />
+            </Reveal>
+          </div>
+        </section>
+
+          </div>
+        ) : (
+          <div key="wedding" className="rd-view">
         <header className="rd-hero">
           {families ? (
             <div className="rd-families">
@@ -607,6 +703,9 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
           </Reveal>
         </section>
 
+          </div>
+        )}
+
         <footer className="rd-footer">
           <div className="rd-footer-art" aria-hidden="true">
             <img src={`${A}/mat.webp`} alt="" className="rd-f-mat" />
@@ -665,6 +764,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
 .rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
 .rd-time { font-size: .85em; opacity: .85; }
+.rd-pre-intro { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); margin: 18px 0 0; opacity: .85; }
 .rd-divider { width: 46px; height: 1px; background: var(--brown); opacity: .45; margin: 26px 0 18px; }
 .rd-scroll-hint { font-family: 'Hanken Grotesk', sans-serif; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--sage); margin: 0; }
 .rd-scroll-hint::after {
@@ -815,9 +915,29 @@ body { margin: 0; background: #ece6dc; }
 .rd-doors.open .rd-leaf-l { transform: rotateY(88deg); }
 .rd-doors.open .rd-leaf-r { transform: rotateY(-88deg); }
 
-/* Language switch: top right corner, above the door too */
+/* Top bar: page tabs on the left, language switch on the right */
+.rd-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 60; pointer-events: none;
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 12px 14px; direction: ltr;
+}
+.rd-bar > * { pointer-events: auto; }
+.rd-bar.with-pages {
+  justify-content: space-between;
+  background: rgba(236,230,220,.92); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  box-shadow: 0 1px 0 rgba(91,58,38,.14), 0 8px 20px -16px rgba(60,40,25,.55);
+}
+.rd-page[dir="rtl"] .rd-tabs { direction: rtl; }
+.rd-tabs { display: flex; gap: 4px; background: rgba(91,58,38,.08); border-radius: 999px; padding: 3px; }
+.rd-tab {
+  font-family: 'Hanken Grotesk', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  padding: 9px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--brown); cursor: pointer; line-height: 1;
+}
+.rd-tab[aria-selected="true"] { background: var(--brown); color: #fbf8f2; }
+.rd-page[lang="ar"] .rd-tab { font-family: 'Amiri', serif; letter-spacing: 0; text-transform: none; font-size: 14px; padding: 7px 14px; }
+.rd-view { animation: rd-viewin .6s ease; }
+@keyframes rd-viewin { from { opacity: 0; } to { opacity: 1; } }
 .rd-lang {
-  position: fixed; top: 14px; right: 14px; z-index: 60; display: flex; direction: ltr;
+  display: flex; direction: ltr;
   border: 1px solid rgba(91,58,38,.45); border-radius: 999px; overflow: hidden;
   background: rgba(251,248,242,.88); box-shadow: 0 6px 16px -10px rgba(60,40,25,.6);
 }
@@ -837,7 +957,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-page[lang="ar"] :is(.rd-kicker, .rd-label, .rd-btn, .rd-count-label, .rd-scroll-hint, .rd-parents p, .rd-names, .rd-gate-names, .rd-footer-names, .rd-toggle, .rd-form input) {
   font-family: 'Amiri', serif; letter-spacing: 0; text-transform: none;
 }
-.rd-page[lang="ar"] :is(em, .rd-date, .rd-lead, .rd-muted, .rd-request, .rd-toggle, .rd-gate-hint, .rd-thanks p, .rd-amp) { font-style: normal; }
+.rd-page[lang="ar"] :is(em, .rd-pre-intro, .rd-date, .rd-lead, .rd-muted, .rd-request, .rd-toggle, .rd-gate-hint, .rd-thanks p, .rd-amp) { font-style: normal; }
 .rd-page[lang="ar"] :is(.rd-kicker, .rd-scroll-hint) { font-size: 15px; }
 .rd-page[lang="ar"] :is(.rd-label, .rd-count-label) { font-size: 13px; }
 .rd-page[lang="ar"] .rd-btn { font-size: 14px; padding: 11px 24px; }
@@ -848,7 +968,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-page[lang="ar"] .rd-amp { font-size: .9em; font-weight: 700; color: var(--brown); margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .rd-sway, .rd-glow, .rd-gate-hint, .rd-scroll-hint::after { animation: none; }
+  .rd-sway, .rd-glow, .rd-gate-hint, .rd-scroll-hint::after, .rd-view { animation: none; }
   .rd-js .rd-rv { opacity: 1; transform: none; transition: none; }
 }
 `;

@@ -44,7 +44,7 @@ export type CalendarEvent = {
   url: string;
 };
 
-const OCCASION: Record<string, string> = { wedding: "wedding", birthday: "birthday", bachelorette: "bachelorette" };
+const OCCASION: Record<string, string> = { wedding: "wedding", "pre-wedding": "pre-wedding", birthday: "birthday", bachelorette: "bachelorette" };
 
 // "Peyton & Shane's wedding" — by the template's category; anything else gets
 // a plain "Peyton & Shane's celebration".

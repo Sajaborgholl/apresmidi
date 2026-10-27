@@ -48,6 +48,8 @@ export type Invite = {
   host_names_ar?: string | null;
   groom_parents_ar?: string | null;
   bride_parents_ar?: string | null;
+  // Optional pre-wedding page (Riad Door): its own date/time and venue.
+  pre_wedding?: { event_date: string | null; venue_name: string | null; venue_map_url: string | null } | null;
 };
 
 // A row from the `templates` table, joined with its category name.
