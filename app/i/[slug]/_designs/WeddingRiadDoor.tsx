@@ -828,7 +828,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-page[lang="ar"] .rd-names { font-weight: 700; line-height: 1.35; font-size: clamp(2.2rem, 10vw, 3.6rem); }
 .rd-page[lang="ar"] .rd-gate-names { font-weight: 700; line-height: 1.5; font-size: clamp(1.6rem, 7vw, 2.3rem); }
 .rd-page[lang="ar"] .rd-footer-names { font-weight: 700; }
-.rd-page[lang="ar"] .rd-amp { font-size: .55em; }
+.rd-page[lang="ar"] .rd-amp { font-size: .9em; font-weight: 700; color: var(--brown); margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .rd-sway, .rd-glow, .rd-gate-hint, .rd-scroll-hint::after { animation: none; }
