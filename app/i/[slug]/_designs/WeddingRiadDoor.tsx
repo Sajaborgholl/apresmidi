@@ -154,6 +154,20 @@ function splitNames(hostNames: string): string[] {
     .filter(Boolean);
 }
 
+// "Amer & Nadine Abdeen" -> first names on top, family name centred under
+// them (the last word is taken as the family name).
+function Parents({ names }: { names: string }) {
+  const t = names.trim();
+  const cut = t.lastIndexOf(" ");
+  if (cut < 0) return <p>{t}</p>;
+  return (
+    <p>
+      <span className="rd-parents-first">{t.slice(0, cut)}</span>
+      <span className="rd-parents-family">{t.slice(cut + 1)}</span>
+    </p>
+  );
+}
+
 // The joining word between the names: "&" in English, "و" in Arabic.
 function Names({ hostNames, lang = "en" }: { hostNames: string; lang?: "en" | "ar" }) {
   const parts = splitNames(hostNames);
@@ -470,9 +484,9 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
           {families ? (
             <div className="rd-families">
               <div className="rd-parents">
-                <p>{groomParents}</p>
+                <Parents names={groomParents!} />
                 <span aria-hidden="true" className="rd-parents-rule" />
-                <p>{brideParents}</p>
+                <Parents names={brideParents!} />
               </div>
               <p className="rd-request">
                 {tx.request[0]}
@@ -643,8 +657,9 @@ body { margin: 0; background: #ece6dc; }
   flex: 1; max-width: 170px; margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-weight: 700;
   font-size: 10.5px; letter-spacing: 0.2em; line-height: 1.7; text-transform: uppercase; color: var(--brown);
 }
-.rd-parents p:first-child { text-align: end; }
-.rd-parents p:last-child { text-align: start; }
+.rd-parents p { text-align: center; }
+.rd-parents-first, .rd-parents-family { display: block; }
+.rd-parents-family { margin-top: 2px; }
 .rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
 .rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
 .rd-time { font-size: .85em; opacity: .85; }
