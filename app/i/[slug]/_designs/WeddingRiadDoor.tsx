@@ -528,15 +528,6 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
           <h1 className="rd-names">
             <Names hostNames={hostNames} lang={lang} />
           </h1>
-          <p className="rd-date">
-            {preDate ?? tx.dateSoon}
-            {preDate && preTime && (
-              <>
-                <br />
-                <span className="rd-time">{tx.at(preTime)}</span>
-              </>
-            )}
-          </p>
           <p className="rd-pre-intro">{tx.preIntro}</p>
           <span className="rd-divider" aria-hidden="true" />
           <p className="rd-scroll-hint">{tx.scroll}</p>
@@ -596,15 +587,6 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
           <h1 ref={namesRef} tabIndex={-1} className="rd-names">
             <Names hostNames={hostNames} lang={lang} />
           </h1>
-          <p className="rd-date">
-            {dateText ?? tx.dateSoon}
-            {dateText && time && (
-              <>
-                <br />
-                <span className="rd-time">{tx.at(time)}</span>
-              </>
-            )}
-          </p>
           <span className="rd-divider" aria-hidden="true" />
           <p className="rd-scroll-hint">{tx.scroll}</p>
         </header>
@@ -749,7 +731,6 @@ body { margin: 0; background: #ece6dc; }
 .rd-names:focus { outline: none; }
 .rd-name { white-space: nowrap; display: inline-block; }
 .rd-amp { display: block; text-transform: none; font-style: italic; font-weight: 400; letter-spacing: 0; font-size: 0.62em; color: var(--terra); margin: 4px 0; }
-.rd-date { font-style: italic; font-size: clamp(1.25rem, 5vw, 1.6rem); margin: 18px 0 0; }
 .rd-families { margin: 0 0 26px; }
 .rd-parents { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .rd-parents p {
@@ -763,7 +744,6 @@ body { margin: 0; background: #ece6dc; }
 .rd-parents-family { margin-top: 2px; }
 .rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
 .rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
-.rd-time { font-size: .85em; opacity: .85; }
 .rd-pre-intro { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); margin: 18px 0 0; opacity: .85; }
 .rd-divider { width: 46px; height: 1px; background: var(--brown); opacity: .45; margin: 26px 0 18px; }
 .rd-scroll-hint { font-family: 'Hanken Grotesk', sans-serif; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--sage); margin: 0; }
@@ -957,7 +937,7 @@ body { margin: 0; background: #ece6dc; }
 .rd-page[lang="ar"] :is(.rd-kicker, .rd-label, .rd-btn, .rd-count-label, .rd-scroll-hint, .rd-parents p, .rd-names, .rd-gate-names, .rd-footer-names, .rd-toggle, .rd-form input) {
   font-family: 'Amiri', serif; letter-spacing: 0; text-transform: none;
 }
-.rd-page[lang="ar"] :is(em, .rd-pre-intro, .rd-date, .rd-lead, .rd-muted, .rd-request, .rd-toggle, .rd-gate-hint, .rd-thanks p, .rd-amp) { font-style: normal; }
+.rd-page[lang="ar"] :is(em, .rd-pre-intro, .rd-lead, .rd-muted, .rd-request, .rd-toggle, .rd-gate-hint, .rd-thanks p, .rd-amp) { font-style: normal; }
 .rd-page[lang="ar"] :is(.rd-kicker, .rd-scroll-hint) { font-size: 15px; }
 .rd-page[lang="ar"] :is(.rd-label, .rd-count-label) { font-size: 13px; }
 .rd-page[lang="ar"] .rd-btn { font-size: 14px; padding: 11px 24px; }
