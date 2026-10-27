@@ -7,7 +7,7 @@ import { useHydrated } from "@/lib/useHydrated";
 import { submitRsvp } from "../actions";
 import SaveTheDate from "./SaveTheDate";
 import WhatsappConfirmLink from "./WhatsappConfirmLink";
-import { ArchIcon, LanternIcon, PalmIcon, RIAD_H, RIAD_W, RiadLantern, ARCH_CX, ARCH_HALF, ARCH_TOP, GROUND } from "./riadArt";
+import { ArchIcon, LanternIcon, PalmIcon, RIAD_H, RIAD_W, RiadLantern, ARCH_CX, ARCH_HALF, ARCH_TOP, GROUND, VISTA_W, VISTA_H, VISTA_VX, VISTA_VY } from "./riadArt";
 
 // The painted scene, pre-rendered from riadArt.tsx by scripts/render-riad-art.tsx.
 const A = "/templates/wedding-watercolor-riad";
@@ -130,14 +130,25 @@ function Countdown({ eventDate }: { eventDate: string | null }) {
   );
 }
 
-// Opening gate overlay: doors open (1.8s), then the camera flies in through
-// the arch while the gate fades, handing over to the garden underneath.
+// Opening gate: the doors open, then we slowly walk in through the arch.
+// The gate's arch is a real hole: behind it is the actual garden view the
+// invitation sits on (RiadVista, already framed as it will be), so the zoom
+// just carries the gate past the edges of the screen and we're there — no
+// switch of scene. The zoom is measured, not guessed: it ends when the
+// arch's opening covers the whole screen.
 const DOORS_MS = 1800;
-const ZOOM_MS = 1500;
+const ZOOM_MS = 3400;
+
+// The part of the arch opening that is a clean rectangle (below where the
+// round top narrows), in scene units: this is what must end up covering
+// the screen.
+const HOLE = { x: ARCH_CX - ARCH_HALF, y: 246, w: ARCH_HALF * 2, h: GROUND - 246 };
 
 function Gate({ hostNames, onZoom, onOpen }: { hostNames: string; onZoom: () => void; onOpen: () => void }) {
   const [open, setOpen] = useState(false);
-  const [zooming, setZooming] = useState(false);
+  const [zoomStyle, setZoomStyle] = useState<CSSProperties | null>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const zoomStarted = useRef(false);
   const done = useRef(false);
 
@@ -153,7 +164,26 @@ function Gate({ hostNames, onZoom, onOpen }: { hostNames: string; onZoom: () => 
   function zoom() {
     if (zoomStarted.current) return;
     zoomStarted.current = true;
-    setZooming(true);
+    const inner = innerRef.current;
+    const scene = sceneRef.current;
+    if (inner && scene) {
+      const sr = scene.getBoundingClientRect();
+      const ir = inner.getBoundingClientRect();
+      const u = sr.width / RIAD_W;
+      const hx = sr.left + HOLE.x * u;
+      const hy = sr.top + HOLE.y * u;
+      const hw = HOLE.w * u;
+      const hh = HOLE.h * u;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const scale = Math.max(vw / hw, vh / hh) * 1.08;
+      const cx = hx + hw / 2;
+      const cy = hy + hh / 2;
+      setZoomStyle({
+        transformOrigin: `${cx - ir.left}px ${cy - ir.top}px`,
+        transform: `translate(${vw / 2 - cx}px, ${vh / 2 - cy}px) scale(${scale})`,
+      });
+    }
     onZoom();
   }
 
@@ -167,25 +197,28 @@ function Gate({ hostNames, onZoom, onOpen }: { hostNames: string; onZoom: () => 
     if (open) return;
     setOpen(true);
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      zoom();
+      zoomStarted.current = true;
+      onZoom();
       finish();
       return;
     }
     // Each step normally starts when the previous animation ends (the doors'
-    // and the gate's transitionend); these are fallbacks for when those
+    // and the zoom's transitionend); these are fallbacks for when those
     // events never arrive (a hidden tab).
     window.setTimeout(zoom, DOORS_MS + 400);
-    window.setTimeout(finish, DOORS_MS + ZOOM_MS + 1200);
+    window.setTimeout(finish, DOORS_MS + ZOOM_MS + 1000);
   }
 
   return (
-    <div
-      className={`wr-gate${zooming ? " zooming" : ""}`}
-      onTransitionEnd={(e) => {
-        if (e.target === e.currentTarget && e.propertyName === "opacity" && zoomStarted.current) finish();
-      }}
-    >
-      <div className="wr-gate-inner">
+    <div className={`wr-gate${zoomStyle ? " zooming" : ""}`}>
+      <div
+        ref={innerRef}
+        className="wr-gate-inner"
+        style={zoomStyle ?? undefined}
+        onTransitionEnd={(e) => {
+          if (e.target === e.currentTarget && e.propertyName === "transform") finish();
+        }}
+      >
         <div className="wr-gate-text">
           <p className="wr-kicker">You are invited</p>
           <p className="wr-gate-names">
@@ -193,7 +226,11 @@ function Gate({ hostNames, onZoom, onOpen }: { hostNames: string; onZoom: () => 
           </p>
         </div>
         <button type="button" className="wr-gate-btn" onClick={start} aria-label="Open the invitation">
-          <RiadScene doors open={open} onDoorsOpened={zoom} />
+          <span className="wr-fill wr-fill-l" />
+          <span className="wr-fill wr-fill-r" />
+          <div ref={sceneRef}>
+            <RiadScene doors open={open} onDoorsOpened={zoom} />
+          </div>
         </button>
         <p className={`wr-gate-hint${open ? " gone" : ""}`}>Tap the doors to open</p>
       </div>
@@ -475,7 +512,7 @@ export default function WeddingWatercolorRiad({ invite, embedded = false }: { in
         <div ref={stageRef} className={`wr-stage${landed ? " landed" : ""}`}>
           <div className="wr-bg" aria-hidden="true">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`${A}/garden.webp`} alt="" />
+            <img src={`${A}/vista.jpg`} alt="" />
           </div>
           <div className="wr-track">
             {panels.map((p, i) => (
@@ -517,18 +554,29 @@ html.wr-snap { scroll-snap-type: y mandatory; }
 .wr-scroll { position: relative; }
 .wr-snap-point { position: absolute; left: 0; width: 1px; height: 100svh; scroll-snap-align: start; pointer-events: none; }
 .wr-stage { position: sticky; top: 0; height: 100svh; overflow: hidden; --pos: 0; --prog: 0; }
+/* The garden view: wider than the screen. It starts framed on the pool
+   (its vanishing point, VISTA_VX across, at the centre of the screen —
+   what the arch showed) and pans gently right as the cards change. */
 .wr-bg {
-  position: absolute; top: 0; left: 0; height: 100%;
-  width: max(140svh, 135vw);
-  transform: translateX(calc(var(--prog) * (100vw - max(140svh, 135vw))));
+  --wd: max(${(VISTA_W / VISTA_H).toFixed(3)} * 100svh, 150vw);
+  --x0: calc(50vw - ${(VISTA_VX / VISTA_W).toFixed(3)} * var(--wd));
+  /* a gentle pan: at most a bit more than one screen over all the cards */
+  --x1: max(calc(100vw - var(--wd)), calc(var(--x0) - 110vw));
+  position: absolute; left: 0; top: 50%; width: var(--wd); aspect-ratio: ${VISTA_W} / ${VISTA_H};
+  transform: translate(calc(var(--x0) + var(--prog) * (var(--x1) - var(--x0))), -50%);
   will-change: transform;
 }
 .wr-bg img {
-  width: 100%; height: 100%; object-fit: cover; display: block;
-  transform: scale(1.35); transform-origin: 30% 55%;
-  transition: transform 2.2s cubic-bezier(.2,.7,.2,1);
+  width: 100%; height: 100%; display: block;
+  transform-origin: ${((VISTA_VX / VISTA_W) * 100).toFixed(1)}% ${((VISTA_VY / VISTA_H) * 100).toFixed(1)}%;
+  transform: scale(1.22);
+  transition: transform ${ZOOM_MS}ms cubic-bezier(.45,0,.2,1);
 }
 .wr-stage.landed .wr-bg img { transform: none; }
+.wr-track { opacity: 0; transition: opacity 1.1s ease ${ZOOM_MS - 600}ms; }
+.wr-stage.landed .wr-track { opacity: 1; }
+.wr-dots { opacity: 0; transition: opacity 1.1s ease ${ZOOM_MS - 600}ms; }
+.wr-stage.landed .wr-dots { opacity: 1; }
 .wr-track { position: absolute; inset: 0; transform: translateX(calc(var(--pos) * -100%)); will-change: transform; }
 .wr-panel {
   position: absolute; top: 0; width: 100%; height: 100%;
@@ -628,16 +676,23 @@ html.wr-snap { scroll-snap-type: y mandatory; }
 .wr-dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(251,247,240,.85); box-shadow: 0 0 0 1px rgba(143,75,52,.35); transition: background .3s, transform .3s; }
 .wr-dots span.on { background: var(--terra); transform: scale(1.35); }
 
-/* Gate */
+/* Gate: no background of its own — the painted scene (with its arch hole)
+   plus fills around it cover the screen, so the garden behind shows only
+   through the arch. */
 .wr-gate {
   position: fixed; inset: 0; z-index: 50; overflow: hidden;
-  background: linear-gradient(#d9eaec 0%, #eef1ea 55%, #f7f1e7 100%);
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
 }
-.wr-gate.zooming { opacity: 0; transition: opacity ${ZOOM_MS * 0.55}ms ease ${ZOOM_MS * 0.45}ms; pointer-events: none; }
-.wr-gate-inner { width: 100%; max-width: 560px; text-align: center; }
+.wr-gate.zooming { pointer-events: none; }
+/* we walk in under the lantern: it fades away early in the zoom */
+.wr-gate .wr-scene > svg.riad-layer { transition: opacity ${ZOOM_MS * 0.35}ms ease; }
+.wr-gate.zooming .wr-scene > svg.riad-layer { opacity: 0; }
+.wr-gate-inner {
+  width: 100%; max-width: 560px; text-align: center; padding-top: 6svh;
+  transition: transform ${ZOOM_MS}ms cubic-bezier(.45,0,.2,1);
+}
 @media (max-width: 699px) { .wr-gate-inner { max-width: none; } }
-.wr-gate-text, .wr-gate-hint { transition: opacity .5s ease; }
+.wr-gate-text, .wr-gate-hint { position: relative; z-index: 2; transition: opacity .6s ease; }
 .wr-gate.zooming .wr-gate-text { opacity: 0; }
 .wr-gate-names {
   font-family: 'Cormorant Garamond', serif; font-weight: 500; color: var(--terra);
@@ -646,11 +701,17 @@ html.wr-snap { scroll-snap-type: y mandatory; }
 }
 .wr-gate-names .wr-amp { display: inline; }
 .wr-gate-btn {
-  display: block; width: 160%; margin-left: -30%; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transform-origin: 50% ${(((ARCH_TOP + GROUND) / 2 + 20) / RIAD_H * 100).toFixed(1)}%;
+  position: relative; z-index: 1; display: block; width: 160%; margin: -120px 0 0 -30%; padding: 0; border: 0; background: none;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
 }
-.wr-gate.zooming .wr-gate-btn { transform: scale(7); transition: transform ${ZOOM_MS}ms cubic-bezier(.55,0,.35,1); }
-@media (min-width: 700px) { .wr-gate-btn { width: 100%; margin-left: 0; } }
+@media (min-width: 700px) { .wr-gate-btn { width: 100%; margin: -60px 0 0 0; } }
+/* paper above / below / beside the scene, matching its edges */
+.wr-gate-btn::before, .wr-gate-btn::after { content: ""; position: absolute; left: -300vw; right: -300vw; height: 400vh; }
+.wr-gate-btn::before { bottom: calc(100% - 1px); background: #d9eaec; }
+.wr-gate-btn::after { top: calc(100% - 1px); background: #f3ead9; }
+.wr-fill { position: absolute; top: 0; bottom: 0; width: 300vw; background: linear-gradient(#d9eaec, #eef1ea 55%, #f3ead9); }
+.wr-fill-l { right: calc(100% - 1px); }
+.wr-fill-r { left: calc(100% - 1px); }
 .wr-gate-hint {
   font-style: italic; font-size: 1.25rem; color: var(--terra-deep); margin: 6px 0 0;
   animation: wr-pulse 2.4s ease-in-out infinite;
@@ -679,6 +740,6 @@ html.wr-snap { scroll-snap-type: y mandatory; }
 
 @media (prefers-reduced-motion: reduce) {
   .riad-lantern, .riad-glow, .wr-gate-hint, .wr-scroll-hint::after { animation: none; }
-  .wr-bg img { transition: none; }
+  .wr-bg img, .wr-track, .wr-dots { transition: none; }
 }
 `;
