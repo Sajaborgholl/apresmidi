@@ -38,6 +38,11 @@ export type Invite = {
   // The guest-link slug. Absent on the customize page's live preview (the
   // invite doesn't exist yet).
   slug?: string;
+  // Optional family line for templates that print it (Riad Door): each
+  // side's parents as they should read, e.g. "Amer & Nadine Abdeen".
+  // Not stored in the database yet — absent on every real invite for now.
+  groom_parents?: string | null;
+  bride_parents?: string | null;
 };
 
 // A row from the `templates` table, joined with its category name.

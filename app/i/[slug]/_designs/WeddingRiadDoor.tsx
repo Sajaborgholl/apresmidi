@@ -302,6 +302,9 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
 
   const dateText = longDate(invite.event_date);
   const time = timeLabel(invite.event_date);
+  // Both sides' parents, when given, open the invitation in the traditional
+  // way: "<parents> | <parents> request the pleasure... of their children".
+  const families = Boolean(invite.groom_parents?.trim() && invite.bride_parents?.trim());
   
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -339,22 +342,49 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
 
       <div inert={!opened}>
         <header className="rd-hero">
-          <p className="rd-kicker">Together with their families</p>
+          {families ? (
+            <div className="rd-families">
+              <div className="rd-parents">
+                <p>{invite.groom_parents}</p>
+                <span aria-hidden="true" className="rd-parents-rule" />
+                <p>{invite.bride_parents}</p>
+              </div>
+              <p className="rd-request">
+                request the pleasure of your company
+                <br />
+                at the wedding of their children
+              </p>
+            </div>
+          ) : (
+            <p className="rd-kicker">Together with their families</p>
+          )}
           <h1 ref={namesRef} tabIndex={-1} className="rd-names">
             <Names hostNames={invite.host_names} />
           </h1>
-          <p className="rd-date">{dateText ?? "Date coming soon"}</p>
+          <p className="rd-date">
+            {dateText ?? "Date coming soon"}
+            {dateText && time && (
+              <>
+                <br />
+                <span className="rd-time">at {time}</span>
+              </>
+            )}
+          </p>
           <span className="rd-divider" aria-hidden="true" />
           <p className="rd-scroll-hint">Scroll down</p>
         </header>
 
         <section className="rd-section rd-intro">
           <Reveal>
-            <p className="rd-lead">
-              request the pleasure of your company
-              <br />
-              at the celebration of their marriage
-            </p>
+            {families ? (
+              <p className="rd-lead">We can&apos;t wait to celebrate with you</p>
+            ) : (
+              <p className="rd-lead">
+                request the pleasure of your company
+                <br />
+                at the celebration of their marriage
+              </p>
+            )}
           </Reveal>
           <Reveal delay={150}>
             <Countdown eventDate={invite.event_date} />
@@ -484,6 +514,17 @@ body { margin: 0; background: #ece6dc; }
 .rd-name { white-space: nowrap; display: inline-block; }
 .rd-amp { display: block; text-transform: none; font-style: italic; font-weight: 400; letter-spacing: 0; font-size: 0.62em; color: var(--terra); margin: 4px 0; }
 .rd-date { font-style: italic; font-size: clamp(1.25rem, 5vw, 1.6rem); margin: 18px 0 0; }
+.rd-families { margin: 0 0 26px; }
+.rd-parents { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.rd-parents p {
+  flex: 1; max-width: 170px; margin: 0; font-family: 'Hanken Grotesk', sans-serif; font-weight: 700;
+  font-size: 10.5px; letter-spacing: 0.2em; line-height: 1.7; text-transform: uppercase; color: var(--brown);
+}
+.rd-parents p:first-child { text-align: right; }
+.rd-parents p:last-child { text-align: left; }
+.rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
+.rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
+.rd-time { font-size: .85em; opacity: .85; }
 .rd-divider { width: 46px; height: 1px; background: var(--brown); opacity: .45; margin: 26px 0 18px; }
 .rd-scroll-hint { font-family: 'Hanken Grotesk', sans-serif; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--sage); margin: 0; }
 .rd-scroll-hint::after {
