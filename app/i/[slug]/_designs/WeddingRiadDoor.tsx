@@ -524,7 +524,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
         {onPre ? (
           <div key="pre" className="rd-view">
         <header className="rd-hero">
-          <p className="rd-kicker">{tx.preKicker}</p>
+          <p className="rd-kicker rd-pre-title">{tx.preKicker}</p>
           <h1 className="rd-names">
             <Names hostNames={hostNames} lang={lang} />
           </h1>
@@ -744,6 +744,8 @@ body { margin: 0; background: #ece6dc; }
 .rd-parents-family { margin-top: 2px; }
 .rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
 .rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
+.rd-kicker.rd-pre-title { font-size: clamp(15px, 4.4vw, 19px); letter-spacing: .22em; color: var(--brown); margin-bottom: 22px; }
+.rd-page[lang="ar"] .rd-kicker.rd-pre-title { font-size: clamp(21px, 6vw, 26px); }
 .rd-pre-intro { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); margin: 18px 0 0; opacity: .85; }
 .rd-divider { width: 46px; height: 1px; background: var(--brown); opacity: .45; margin: 26px 0 18px; }
 .rd-scroll-hint { font-family: 'Hanken Grotesk', sans-serif; font-size: 10px; letter-spacing: .26em; text-transform: uppercase; color: var(--sage); margin: 0; }
