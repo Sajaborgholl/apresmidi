@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- every <img> here is fixed,
-   pre-sized collage artwork or a customer photo, placed like the siblings do. */
+   pre-sized collage artwork, placed like the siblings do. */
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type CSSProperties, type ReactNode } from "react";
 import type { Invite } from "@/lib/types";
@@ -302,8 +302,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
 
   const dateText = longDate(invite.event_date);
   const time = timeLabel(invite.event_date);
-  const photo = invite.photo_urls?.[0];
-
+  
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
@@ -362,35 +361,20 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
           </Reveal>
         </section>
 
-        <section className="rd-section">
-          <Reveal>
-            <div className="rd-photo-wrap">
-              <div className="rd-photo">
-                {photo ? (
-                  <img src={photo} alt={invite.host_names} />
-                ) : (
-                  <div className="rd-photo-empty">Your photo here</div>
-                )}
-              </div>
-              <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers" />
-              <img src={`${A}/pots.webp`} alt="" className="rd-deco rd-deco-pots" />
-            </div>
-          </Reveal>
-        </section>
-
         <section className="rd-section rd-details">
           <img src={`${A}/palm.webp`} alt="" className="rd-deco rd-deco-palm" />
           <Reveal>
             <h2 className="rd-h2">The details</h2>
           </Reveal>
           <div className="rd-cards">
-            <Reveal className="rd-card rd-tilt-l">
+            <Reveal className="rd-card">
               <h3>When</h3>
               <p>{dateText ?? "We'll share the date very soon."}</p>
               {time && <p className="rd-muted">at {time}</p>}
               <SaveTheDate invite={invite} triggerClassName="rd-btn rd-btn-ghost" />
+              <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers" />
             </Reveal>
-            <Reveal className="rd-card rd-tilt-r" delay={120}>
+            <Reveal className="rd-card" delay={120}>
               <h3>Where</h3>
               <p>{invite.venue_name ?? "The venue will be announced soon."}</p>
               {invite.venue_map_url && (
@@ -398,10 +382,12 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
                   View map
                 </a>
               )}
+              <img src={`${A}/pots.webp`} alt="" className="rd-deco rd-deco-pots" />
             </Reveal>
-            <Reveal className="rd-card rd-tilt-l" delay={240}>
+            <Reveal className="rd-card" delay={240}>
               <h3>Dress code</h3>
               <p>Garden formal — light colours and comfortable shoes.</p>
+              <img src={`${A}/flowers.webp`} alt="" className="rd-deco rd-deco-flowers rd-deco-flip" />
             </Reveal>
           </div>
         </section>
@@ -526,33 +512,31 @@ body { margin: 0; background: #ece6dc; }
 .rd-count-num { font-size: clamp(2.3rem, 9vw, 3rem); font-weight: 500; color: var(--brown); line-height: 1; font-variant-numeric: lining-nums tabular-nums; }
 .rd-count-label { font-family: 'Hanken Grotesk', sans-serif; font-size: 9.5px; letter-spacing: 0.2em; text-transform: uppercase; margin-top: 8px; opacity: .7; }
 
-/* Photo: a door-shaped print, with stickers tucked at its feet */
-.rd-photo-wrap { position: relative; width: min(70vw, 290px); margin: 0 auto 30px; }
-.rd-photo {
-  aspect-ratio: 3 / 4.2; border-radius: 999px 999px 6px 6px; overflow: hidden; background: #ddd2c3;
-  border: 8px solid #fffdf8; box-shadow: 0 18px 34px -18px rgba(60,40,25,.55);
-}
-.rd-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.rd-photo-empty { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-style: italic; color: var(--brown); opacity: .55; font-size: 1.2rem; }
-.rd-deco { position: absolute; pointer-events: none; }
-.rd-deco-flowers { width: 42%; left: -24%; bottom: -14%; }
-.rd-deco-pots { width: 48%; right: -26%; bottom: -10%; }
+.rd-deco { position: absolute; pointer-events: none; z-index: 1; }
 .rd-deco-palm { width: 130px; right: -46px; top: -30px; opacity: .95; }
 @media (min-width: 720px) { .rd-deco-palm { right: -120px; width: 170px; } }
 
-/* Details: paper cards, slightly askew like a collage */
-.rd-cards { display: grid; gap: 22px; grid-template-columns: 1fr; position: relative; }
-@media (min-width: 720px) { .rd-cards { grid-template-columns: repeat(3, 1fr); } }
+/* Details: arch-topped cards (a semicircle on top, like a doorway), with
+   the bougainvillea and the pots tucked at their feet */
+.rd-cards { display: grid; gap: 54px; grid-template-columns: 1fr; justify-items: center; position: relative; padding-bottom: 20px; }
+@media (min-width: 720px) { .rd-cards { grid-template-columns: repeat(3, 1fr); gap: 40px; } }
 .rd-card {
-  background: var(--card); border-radius: 4px; padding: 30px 22px 28px; display: flex; flex-direction: column; align-items: center;
-  box-shadow: 0 14px 28px -18px rgba(60,40,25,.6), 0 0 0 1px rgba(91,58,38,.08);
+  position: relative; box-sizing: border-box; width: min(76vw, 290px); min-height: min(96vw, 370px);
+  background: var(--card); border-radius: 999px 999px 6px 6px;
+  padding: 84px 24px 40px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  box-shadow: 0 18px 34px -18px rgba(60,40,25,.55), 0 0 0 1px rgba(91,58,38,.08);
 }
-.rd-card.rd-tilt-l { rotate: -1.2deg; }
-.rd-card.rd-tilt-r { rotate: 1.2deg; }
+.rd-card::before {
+  content: ""; position: absolute; inset: 10px; border-radius: 999px 999px 3px 3px;
+  border: 1px solid rgba(168,96,60,.38); pointer-events: none;
+}
 .rd-card h3 { font-weight: 500; font-size: 2rem; color: var(--brown); margin: 0 0 8px; }
 .rd-card h3::after { content: ""; display: block; width: 28px; height: 1px; background: var(--rose); opacity: .6; margin: 10px auto 0; }
-.rd-card p { margin: 0; font-size: 1.25rem; line-height: 1.35; }
-.rd-card .rd-btn { margin-top: 20px; }
+.rd-card p { margin: 0; font-size: 1.25rem; line-height: 1.35; position: relative; }
+.rd-card .rd-btn { margin-top: 20px; position: relative; }
+.rd-deco-flowers { width: 38%; left: -16%; bottom: -12%; }
+.rd-deco-flowers.rd-deco-flip { left: auto; right: -16%; transform: scaleX(-1); }
+.rd-deco-pots { width: 46%; right: -18%; bottom: -8%; }
 
 /* Buttons */
 .rd-btn {

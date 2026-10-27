@@ -134,7 +134,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_name: true,
       venue_map_url: true,
       whatsapp_number: true,
-      photoCount: 1,
+      photoCount: 0,
     },
   },
   {
