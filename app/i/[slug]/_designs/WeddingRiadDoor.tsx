@@ -658,7 +658,9 @@ body { margin: 0; background: #ece6dc; }
   font-size: 10.5px; letter-spacing: 0.2em; line-height: 1.7; text-transform: uppercase; color: var(--brown);
 }
 .rd-parents p { text-align: center; }
-.rd-parents-first, .rd-parents-family { display: block; }
+.rd-parents-first, .rd-parents-family { display: block; white-space: nowrap; }
+.rd-parents p { flex: 0 1 auto; max-width: none; }
+.rd-parents { gap: 18px; }
 .rd-parents-family { margin-top: 2px; }
 .rd-parents-rule { width: 1px; align-self: stretch; min-height: 34px; background: var(--brown); opacity: .35; }
 .rd-request { font-style: italic; font-size: clamp(1.1rem, 4.4vw, 1.35rem); line-height: 1.4; margin: 18px 0 0; }
