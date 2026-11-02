@@ -520,7 +520,7 @@ export default function WeddingRiadDoor({ invite, embedded = false }: { invite: 
         // Only this template needs an Arabic font, so it's loaded here
         // rather than for the whole site.
         // eslint-disable-next-line @next/next/no-page-custom-font
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" precedence="default" />
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&display=swap" precedence="default" />
       )}
 
       {/* Top bar: the Wedding / Pre-wedding pages (once the door is open)
@@ -985,7 +985,7 @@ body { margin: 0; background: #ece6dc; }
   padding: 9px 14px; border: 0; border-radius: 999px; background: transparent; color: var(--brown); cursor: pointer; line-height: 1;
 }
 .rd-tab[aria-selected="true"] { background: var(--brown); color: #fbf8f2; }
-.rd-page[lang="ar"] .rd-tab { font-family: 'Amiri', serif; letter-spacing: 0; text-transform: none; font-size: 14px; padding: 7px 14px; }
+.rd-page[lang="ar"] .rd-tab { font-family: 'Reem Kufi', serif; letter-spacing: 0; text-transform: none; font-size: 14px; padding: 7px 14px; }
 .rd-view { animation: rd-viewin .6s ease; }
 @keyframes rd-viewin { from { opacity: 0; } to { opacity: 1; } }
 .rd-lang {
@@ -1000,21 +1000,21 @@ body { margin: 0; background: #ece6dc; }
 .rd-lang button + button { border-left: 1px solid rgba(91,58,38,.3); }
 .rd-lang button[aria-pressed="true"] { background: var(--brown); color: #fbf8f2; }
 
-/* Arabic: Amiri throughout, no letter-spacing (it breaks the joined
+/* Arabic: Reem Kufi throughout, no letter-spacing (it breaks the joined
    letters), no fake italics, slightly larger small text */
 .rd-page[lang="ar"] {
-  font-family: 'Amiri', 'Cormorant Garamond', serif;
-  --std-script: 'Amiri', serif; --std-sans: 'Amiri', serif;
+  font-family: 'Reem Kufi', 'Cormorant Garamond', serif;
+  --std-script: 'Reem Kufi', serif; --std-sans: 'Reem Kufi', serif;
 }
 .rd-page[lang="ar"] :is(.rd-kicker, .rd-label, .rd-btn, .rd-count-label, .rd-scroll-hint, .rd-parents p, .rd-names, .rd-gate-names, .rd-footer-names, .rd-toggle, .rd-form input) {
-  font-family: 'Amiri', serif; letter-spacing: 0; text-transform: none;
+  font-family: 'Reem Kufi', serif; letter-spacing: 0; text-transform: none;
 }
 .rd-page[lang="ar"] :is(em, .rd-pre-intro, .rd-lead, .rd-muted, .rd-request, .rd-toggle, .rd-gate-hint, .rd-thanks p, .rd-amp) { font-style: normal; }
 .rd-page[lang="ar"] :is(.rd-kicker, .rd-scroll-hint) { font-size: 15px; }
 .rd-page[lang="ar"] :is(.rd-label, .rd-count-label) { font-size: 13px; }
 .rd-page[lang="ar"] .rd-btn { font-size: 14px; padding: 11px 24px; }
 .rd-page[lang="ar"] .rd-parents p { font-size: 16px; line-height: 1.6; }
-.rd-page[lang="ar"] .rd-names { font-weight: 700; line-height: 1.35; font-size: clamp(2.2rem, 10vw, 3.6rem); }
+.rd-page[lang="ar"] .rd-names { font-weight: 600; line-height: 1.35; font-size: clamp(2.2rem, 10vw, 3.6rem); }
 .rd-page[lang="ar"] .rd-gate-names { font-weight: 700; line-height: 1.5; font-size: clamp(1.6rem, 7vw, 2.3rem); }
 .rd-page[lang="ar"] .rd-footer-names { font-weight: 700; }
 .rd-page[lang="ar"] .rd-amp { font-size: .9em; font-weight: 700; color: var(--brown); margin: 0; }
