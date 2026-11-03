@@ -375,6 +375,16 @@ body { margin: 0; background: #f0e8dd; }
 /* leave a little room at the side for the lantern */
 @media (max-width: 520px) { .wr-panel { padding-left: 34px; padding-right: 34px; } }
 
+/* First card: everything ~12% smaller, with more room to the border */
+.wr-card.wr-card-hero { padding-left: 30px; padding-right: 30px; }
+.wr-card-hero .wr-parents { gap: 10px; }
+.wr-card-hero .wr-parents p { font-size: clamp(.75rem, 3.25vw, .92rem) !important; }
+.wr-card-hero .wr-request { font-size: clamp(.98rem, 3.9vw, 1.15rem) !important; }
+.wr-card-hero .wr-names { font-size: clamp(1.95rem, 8.8vw, 3rem); }
+.wr-card-hero .wr-kicker { font-size: 9.5px !important; }
+.wr-page[lang="ar"] .wr-card-hero .wr-parents p { font-size: 15px !important; }
+.wr-page[lang="ar"] .wr-card-hero .wr-names { font-size: clamp(1.85rem, 8.4vw, 2.8rem); }
+
 @media (prefers-reduced-motion: reduce) {
   .riad-lantern, .riad-glow, .wr-gate-hint, .wr-scroll-hint::after, .wr-lantern-halo, .wr-lantern-glass { animation: none; }
   .wr-bg img { transition: none; }
