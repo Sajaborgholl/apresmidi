@@ -7,8 +7,8 @@ import type { Invite } from "@/lib/types";
 import { parseWallClock } from "@/lib/calendar";
 import { useHydrated } from "@/lib/useHydrated";
 import SaveTheDate from "./SaveTheDate";
-import WhatsappConfirmLink from "./WhatsappConfirmLink";
-import { submitRsvp } from "../actions";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Retro Airmail Wedding — cloned from the Canva "Save the date" site
 // (apresmidi.my.canva.site/save-the-date). Every element sits at the exact
@@ -331,50 +331,13 @@ function Postmark({ names, date }: { names: string; date: string | null }) {
 
 // RSVP, as a reply postcard in the design's airmail language: cream card in
 // an airmail-striped frame, a "message" side (an optional note for the
-// couple) and an "address" side (name, two perforated stamps to accept or
-// decline, a postmark-style guest counter). Saves through the same
-// submitRsvp server action as every other template, plus the note, which the
-// action and the host's dashboard already support.
-const MAX_GUESTS = 10; // the server's own limit (app/i/[slug]/actions.ts)
-
-function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no">("yes");
-  const [guestCount, setGuestCount] = useState(1);
-  const [message, setMessage] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "yes",
-      guest_count: attending === "yes" ? guestCount : 0,
-      message: message.trim() || null,
-    });
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
-  const firstName = name.trim().split(/\s+/)[0] || "friend";
-  const waMessage = encodeURIComponent(
-    `Hi! It's ${name.trim() || "Friend"} — ${
-      attending === "yes"
-        ? `we are beyond excited and wouldn't miss it for the world! We'll be there${guestCount > 1 ? ` with ${guestCount} of us` : ""}.`
-        : "I'm so sorry we won't be able to make it this time. Sending all our love on your special day."
-    }`
-  );
-  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
+// couple) and an "address" side (two perforated stamps to accept or decline,
+// a guest counter up to the guest's reserved seats). The guest is known from
+// their personal link, so there's no name field; the shared logic (save,
+// change my reply) is useGuestRsvp in ./guestRsvp. On the general link the
+// card just points guests to their personal invitation.
+function RetroRsvp({ invite, date, guest }: { invite: Invite; date: string | null; guest: InviteGuest | null }) {
+  const rsvp = useGuestRsvp(guest);
 
   return (
     <section id="rsvp" className="ra-rsvp">
@@ -388,21 +351,24 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
           <h2 className="ra-rsvp-title">Kindly reply</h2>
         </header>
 
-        {submitted ? (
+        {!guest ? (
+          <RsvpByInvitationNote className="ra-rsvp-closed" />
+        ) : !rsvp.showForm && rsvp.saved ? (
           <div className="ra-rsvp-done" role="status">
             <Postmark names={invite.host_names} date={date} />
-            <p className="ra-rsvp-done-script">{attending === "yes" ? `Yay, ${firstName}!` : `We'll miss you, ${firstName}.`}</p>
-            <p className="ra-rsvp-done-text">
-              {attending === "yes" ? "We can't wait to celebrate with you." : "Thank you for letting us know."}
+            <p className="ra-rsvp-done-script">
+              {rsvp.saved.attending ? `Yay${rsvp.toName}!` : `We'll miss you${rsvp.toName}.`}
             </p>
-            {waLink && (
-              <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="ra-rsvp-send">
-                Confirm on WhatsApp too
-              </WhatsappConfirmLink>
-            )}
+            <p className="ra-rsvp-done-text">
+              {rsvp.saved.attending ? "We can't wait to celebrate with you." : "Thank you for letting us know."}{" "}
+              {replySummary(rsvp.saved)}
+            </p>
+            <button type="button" className="ra-link ra-rsvp-change" onClick={rsvp.edit}>
+              Change my reply
+            </button>
           </div>
         ) : (
-          <form className="ra-rsvp-form" onSubmit={handleSubmit}>
+          <form className="ra-rsvp-form" onSubmit={rsvp.submit}>
             <div className="ra-rsvp-side ra-rsvp-message">
               <p className="ra-rsvp-lead">We&rsquo;d love to know if you can make it.</p>
               <label className="ra-rsvp-label" htmlFor="ra-rsvp-note">
@@ -413,8 +379,8 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
                 className="ra-rsvp-note"
                 rows={5}
                 maxLength={1000}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={rsvp.message}
+                onChange={(e) => rsvp.setMessage(e.target.value)}
               />
             </div>
 
@@ -424,34 +390,28 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
               <p className="ra-rsvp-airmail" aria-hidden="true">
                 Par avion · By air mail
               </p>
-              <label className="ra-rsvp-label" htmlFor="ra-rsvp-name">
-                Your name
-              </label>
-              <input
-                id="ra-rsvp-name"
-                className="ra-rsvp-name"
-                required
-                maxLength={100}
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+              {guest.name && (
+                <>
+                  <p className="ra-rsvp-label">From</p>
+                  <p className="ra-rsvp-from">{guest.name}</p>
+                </>
+              )}
 
               <fieldset className="ra-rsvp-stamps">
                 <legend className="ra-rsvp-label">Will you be there?</legend>
                 <Rv kind="fade" delay={200} className="ra-rsvp-stamp-row">
                   {(
                     [
-                      ["yes", "Joyfully accepts"],
-                      ["no", "Regretfully declines"],
+                      [true, "Joyfully accepts"],
+                      [false, "Regretfully declines"],
                     ] as const
                   ).map(([value, label]) => (
                     <button
-                      key={value}
+                      key={label}
                       type="button"
-                      className={`ra-rsvp-stamp${attending === value ? " on" : ""}`}
-                      aria-pressed={attending === value}
-                      onClick={() => setAttending(value)}
+                      className={`ra-rsvp-stamp${rsvp.attending === value ? " on" : ""}`}
+                      aria-pressed={rsvp.attending === value}
+                      onClick={() => rsvp.setAttending(value)}
                     >
                       <span>{label}</span>
                     </button>
@@ -459,31 +419,31 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
                 </Rv>
               </fieldset>
 
-              {attending === "yes" && (
+              {rsvp.attending && rsvp.maxGuests > 1 && (
                 <div className="ra-rsvp-count">
                   <span className="ra-rsvp-label" id="ra-rsvp-count-label">
-                    Guests, you included
+                    Guests, you included &middot; up to {rsvp.maxGuests}
                   </span>
                   <div className="ra-rsvp-counter" role="group" aria-labelledby="ra-rsvp-count-label">
                     <button
                       type="button"
                       className="ra-rsvp-step"
                       aria-label="One guest fewer"
-                      disabled={guestCount <= 1}
-                      onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                      disabled={rsvp.guestCount <= 1}
+                      onClick={() => rsvp.setGuestCount(rsvp.guestCount - 1)}
                     >
                       −
                     </button>
                     <output className="ra-rsvp-count-value" aria-live="polite">
-                      <span className="ra-rsvp-count-num">{guestCount}</span>
-                      <span className="ra-rsvp-count-word">{guestCount === 1 ? "guest" : "guests"}</span>
+                      <span className="ra-rsvp-count-num">{rsvp.guestCount}</span>
+                      <span className="ra-rsvp-count-word">{rsvp.guestCount === 1 ? "guest" : "guests"}</span>
                     </output>
                     <button
                       type="button"
                       className="ra-rsvp-step"
                       aria-label="One guest more"
-                      disabled={guestCount >= MAX_GUESTS}
-                      onClick={() => setGuestCount((c) => Math.min(MAX_GUESTS, c + 1))}
+                      disabled={rsvp.guestCount >= rsvp.maxGuests}
+                      onClick={() => rsvp.setGuestCount(rsvp.guestCount + 1)}
                     >
                       +
                     </button>
@@ -491,14 +451,19 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
                 </div>
               )}
 
-              {error && (
+              {rsvp.error && (
                 <p className="ra-rsvp-error" role="alert">
-                  {error}
+                  {rsvp.error}
                 </p>
               )}
-              <button type="submit" className="ra-rsvp-send" disabled={loading}>
-                {loading ? "Sending…" : "Send by airmail"}
+              <button type="submit" className="ra-rsvp-send" disabled={rsvp.loading}>
+                {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send by airmail"}
               </button>
+              {rsvp.changing && (
+                <button type="button" className="ra-link ra-rsvp-change" onClick={rsvp.cancelEdit}>
+                  Keep my earlier reply
+                </button>
+              )}
             </div>
           </form>
         )}
@@ -507,7 +472,7 @@ function RetroRsvp({ invite, date }: { invite: Invite; date: string | null }) {
   );
 }
 
-export default function WeddingRetroAirmail({ invite }: { invite: Invite }) {
+export default function WeddingRetroAirmail({ invite, guest = null }: { invite: Invite; guest?: InviteGuest | null }) {
   const hydrated = useHydrated();
   const names = invite.host_names;
   const date = shortDate(invite.event_date);
@@ -519,6 +484,9 @@ export default function WeddingRetroAirmail({ invite }: { invite: Invite }) {
   return (
     <div className={`ra${hydrated ? " ra-js" : ""}`}>
       <style>{CSS}</style>
+
+      {/* A guest's personal invitation opens with their name and seats. */}
+      <GuestWelcome guest={guest} className="ra-welcome" parts={{ dear: "ra-welcome-dear", seats: "ra-welcome-seats" }} />
 
       {/* ---------- Hero: envelope with photo 1, disco balls ---------- */}
       <section className="ra-sec" style={{ height: u(768) }}>
@@ -622,7 +590,7 @@ export default function WeddingRetroAirmail({ invite }: { invite: Invite }) {
         </div>
       </section>
 
-      <RetroRsvp invite={invite} date={date} />
+      <RetroRsvp invite={invite} date={date} guest={guest} />
     </div>
   );
 }
@@ -721,6 +689,11 @@ const CSS = `
 @media (max-width: 640px) {
   .ra-small-text svg { transform: scale(1.45); }
 }
+
+/* ---------- Personal welcome (guest links) ---------- */
+.ra-welcome { padding: clamp(28px, 5vw, 48px) 16px 0; text-align: center; color: #566e99; }
+.ra-welcome-dear { font-family: 'Sacramento', cursive; font-size: clamp(34px, 5vw, 52px); line-height: 1.15; }
+.ra-welcome-seats { margin-top: 6px; font: 700 clamp(10.5px, 1.1vw, 13px)/1.5 'Hanken Grotesk', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
 
 /* ---------- RSVP: a reply postcard ---------- */
 .ra-rsvp { padding: clamp(64px, 9vw, 120px) 16px clamp(72px, 10vw, 130px); background: #ffffff; }
@@ -830,6 +803,9 @@ const CSS = `
 .ra-rsvp-count-word { margin-right: -0.14em; }
 
 .ra-rsvp-error { font: 600 14px 'Hanken Grotesk', sans-serif; color: #c44d48; }
+.ra-rsvp-from { font: 17px/1.4 'Hanken Grotesk', sans-serif; color: #2d3e66; padding: 4px 2px 8px; border-bottom: 1.5px solid rgba(86, 110, 153, 0.6); }
+.ra-rsvp-closed { text-align: center; font-family: 'Sacramento', cursive; font-size: clamp(26px, 3.4vw, 34px); line-height: 1.3; color: #566e99; padding: 8px 0 4px; }
+.ra-rsvp-change { align-self: center; margin-top: 4px; font: 600 13px 'Hanken Grotesk', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; min-height: 44px; }
 .ra-rsvp-send {
   align-self: stretch; margin-top: 10px; min-height: 52px; padding: 12px 26px; cursor: pointer; text-decoration: none; text-align: center;
   font: 700 14px 'Hanken Grotesk', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; color: #fdf4d4;

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
-import WhatsappConfirmLink from "./WhatsappConfirmLink";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Wedding Classic — replaced with the black-and-white editorial design
 // (script headline + photo banner + Where/When + RSVP), matching the
@@ -24,13 +23,9 @@ function PhotoSlot({ url, alt }: { url: string | undefined; alt: string }) {
   );
 }
 
-export default function WeddingClassic({ invite }: { invite: Invite }) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"accept" | "decline">("accept");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export default function WeddingClassic({ invite, guest = null }: { invite: Invite; guest?: InviteGuest | null }) {
+  // Replies come only from a guest's personal link (shared logic in ./guestRsvp).
+  const rsvp = useGuestRsvp(guest);
 
   const eventDate = invite.event_date ? new Date(invite.event_date) : null;
 
@@ -48,41 +43,17 @@ export default function WeddingClassic({ invite }: { invite: Invite }) {
     ? eventDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
     : null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "accept",
-      guest_count: attending === "accept" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
-  const waMessage = encodeURIComponent(
-    `Hi! It's ${name.trim() || "Friend"} — ${
-      attending === "accept"
-        ? `we are so happy for you and wouldn't miss it! We'll be there${guestCount > 1 ? ` with ${guestCount} of us` : ""}.`
-        : "I'm sorry we won't be able to make it. Sending our love!"
-    }`
-  );
-  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
+  // The thank-you block shows once a guest has a saved reply and isn't changing it.
+  const showThanks = Boolean(guest) && !rsvp.showForm && rsvp.saved !== null;
 
   return (
     <>
       <style>{CSS}</style>
 
       <div className="wc-page">
+        {/* A guest's personal invitation opens with their name and seats. */}
+        <GuestWelcome guest={guest} className="wc-welcome" parts={{ dear: "wc-welcome-dear", seats: "wc-welcome-seats" }} />
+
         <header className="wc-header">
           <div>
             <h1 className="wc-script">we&apos;re getting married</h1>
@@ -134,71 +105,80 @@ export default function WeddingClassic({ invite }: { invite: Invite }) {
 
         <section className="wc-rsvp">
           <h2 className="wc-script wc-rsvp-script">RSVP</h2>
-          {!submitted && <p className="wc-rsvp-sub">We can&apos;t wait to celebrate with you</p>}
+          {!showThanks && <p className="wc-rsvp-sub">We can&apos;t wait to celebrate with you</p>}
 
-          {!submitted ? (
-            <form onSubmit={handleSubmit}>
-              <label>
-                Full name
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="Your name"
-                />
-              </label>
+          {!guest ? (
+            <RsvpByInvitationNote className="wc-rsvp-closed" />
+          ) : rsvp.showForm ? (
+            <form onSubmit={rsvp.submit}>
+              {guest.name && (
+                <div>
+                  <span className="wc-rsvp-label">Replying as</span>
+                  <p className="wc-rsvp-from">{guest.name}</p>
+                </div>
+              )}
 
               <div className="wc-attend-row">
                 <button
                   type="button"
-                  className={`wc-attend-btn ${attending === "accept" ? "active" : ""}`}
-                  onClick={() => setAttending("accept")}
+                  className={`wc-attend-btn ${rsvp.attending ? "active" : ""}`}
+                  aria-pressed={rsvp.attending}
+                  onClick={() => rsvp.setAttending(true)}
                 >
                   Joyfully accept
                 </button>
                 <button
                   type="button"
-                  className={`wc-attend-btn ${attending === "decline" ? "active" : ""}`}
-                  onClick={() => setAttending("decline")}
+                  className={`wc-attend-btn ${!rsvp.attending ? "active" : ""}`}
+                  aria-pressed={!rsvp.attending}
+                  onClick={() => rsvp.setAttending(false)}
                 >
                   Regretfully decline
                 </button>
               </div>
 
-              {attending === "accept" && (
+              {rsvp.attending && rsvp.maxGuests > 1 && (
                 <label>
-                  Number of guests
+                  Number of guests &middot; up to {rsvp.maxGuests}
                   <input
                     type="number"
                     min={1}
-                    max={10}
-                    value={guestCount}
-                    onChange={(e) => setGuestCount(Number(e.target.value))}
+                    max={rsvp.maxGuests}
+                    value={rsvp.guestCount}
+                    onChange={(e) => rsvp.setGuestCount(Number(e.target.value))}
                   />
                 </label>
               )}
 
-              {error && <p className="wc-error">{error}</p>}
-
-              <button type="submit" className="wc-submit-btn" disabled={loading}>
-                {loading ? "Sending..." : "Send RSVP"}
-              </button>
-            </form>
-          ) : (
-            <div className="wc-thank-you">
-              <div className="wc-script">{attending === "accept" ? "Yay!" : "We'll miss you"}</div>
-              <p>
-                {attending === "accept"
-                  ? `We can't wait to celebrate with you, ${name.trim() || "friend"}.`
-                  : `Thank you for letting us know, ${name.trim() || "friend"}.`}
-              </p>
-              {waLink && (
-                <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="wc-submit-btn wc-wa-btn">
-                  Confirm on WhatsApp too
-                </WhatsappConfirmLink>
+              {rsvp.error && (
+                <p className="wc-error" role="alert">
+                  {rsvp.error}
+                </p>
               )}
+
+              <button type="submit" className="wc-submit-btn" disabled={rsvp.loading}>
+                {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
+              </button>
+              {rsvp.changing && (
+                <button type="button" className="wc-text-btn" onClick={rsvp.cancelEdit}>
+                  Keep my earlier reply
+                </button>
+              )}
+            </form>
+          ) : rsvp.saved ? (
+            <div className="wc-thank-you" role="status">
+              <div className="wc-script">
+                {rsvp.saved.attending ? `Yay${rsvp.toName}!` : `We'll miss you${rsvp.toName}`}
+              </div>
+              <p>
+                {rsvp.saved.attending ? "We can't wait to celebrate with you." : "Thank you for letting us know."}{" "}
+                {replySummary(rsvp.saved)}
+              </p>
+              <button type="button" className="wc-text-btn" onClick={rsvp.edit}>
+                Change my reply
+              </button>
             </div>
-          )}
+          ) : null}
         </section>
 
         <footer className="wc-footer">Invitation crafted with love — order yours</footer>
@@ -302,9 +282,25 @@ const CSS = `
 }
 .wc-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .wc-submit-btn:hover { opacity: 0.85; }
-.wc-wa-btn { margin-top: 14px; background: #25D366; }
+.wc-rsvp-label { display: block; font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: rgba(17,17,17,0.55); margin-bottom: 8px; }
+.wc-rsvp-from {
+  margin: 0; border-bottom: 1px solid rgba(17,17,17,0.35); overflow-wrap: anywhere;
+  font-family: 'Cinzel', serif; font-size: 15px; padding: 6px 2px 10px; color: #111;
+}
+.wc-text-btn {
+  align-self: center; min-height: 44px; padding: 0 8px; border: none; background: transparent; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: #111;
+  text-decoration: underline; text-underline-offset: 4px;
+}
+.wc-text-btn:hover { opacity: 0.7; }
+.wc-thank-you .wc-text-btn { margin-top: 10px; }
+.wc-rsvp-closed { max-width: 380px; margin: 0 auto; font-family: 'Cinzel', serif; font-size: 15px; line-height: 1.8; color: #333; }
 .wc-thank-you { max-width: 380px; margin: 0 auto; font-family: 'Cinzel', serif; font-size: 15px; line-height: 1.8; color: #333; }
 .wc-thank-you .wc-script { font-size: clamp(40px, 6vw, 64px); margin-bottom: 10px; }
+.wc-welcome { padding: clamp(32px, 5vw, 52px) max(16px, 5vw) 0; text-align: center; }
+.wc-welcome-dear { margin: 0; font-family: 'BD Script', cursive; font-weight: 400; font-size: clamp(34px, 5vw, 56px); line-height: 1.1; overflow-wrap: anywhere; }
+.wc-welcome-seats { margin: 10px 0 0; font-family: 'Cinzel', serif; font-size: clamp(10.5px, 1.2vw, 12px); letter-spacing: 3px; text-transform: uppercase; color: rgba(17,17,17,0.6); }
+.wc-welcome + .wc-header { padding-top: 26px; }
 .wc-footer { text-align: center; font-size: 11px; letter-spacing: 1px; color: rgba(17,17,17,0.4); padding: 30px 20px 50px; font-family: 'Cinzel', serif; }
 @media (max-width: 720px) {
   .wc-header { flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 32px; }

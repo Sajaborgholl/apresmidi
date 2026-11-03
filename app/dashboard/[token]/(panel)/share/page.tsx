@@ -15,7 +15,9 @@ export default async function DashboardSharePage({ params }: { params: Promise<{
   const { token } = await params;
   const invite = await getDashboardInvite(token);
   const guestUrl = `${BASE_URL}/i/${invite.slug}`;
-  const shareText = `You're invited to ${invite.host_names}! RSVP here: ${guestUrl}`;
+  // The general link shows the invitation; replies come only through each
+  // guest's personal link (Guests page).
+  const shareText = `You're invited to ${invite.host_names}! See the invitation: ${guestUrl}`;
 
   // The qrcode package needs literal hex, so this is --ink written out.
   const qrOptions = { margin: 1, color: { dark: "#2C251D", light: "#FFFFFF" } };
@@ -27,7 +29,10 @@ export default async function DashboardSharePage({ params }: { params: Promise<{
 
   return (
     <>
-      <PageHeader title="Share" subtitle="Your guest link and QR code." />
+      <PageHeader
+        title="Share"
+        subtitle="Your invitation's general link and QR code. Guests reply through their personal links, from the Guests page."
+      />
 
       {eventPassed && (
         <p className="mb-5 rounded-xl bg-black/[0.04] px-4 py-3 text-[13px] text-[var(--ink)]/65">
@@ -38,8 +43,12 @@ export default async function DashboardSharePage({ params }: { params: Promise<{
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_auto]">
         <div className="flex flex-col gap-5">
           <Card>
-            <CardHeader title="Guest link" />
-            <CopyLinkButton label="Anyone with this link can view and RSVP" url={guestUrl} shareText={shareText} />
+            <CardHeader title="General link" />
+            <CopyLinkButton
+              label="Anyone with this link can view your invitation. To reply, guests use their personal link."
+              url={guestUrl}
+              shareText={shareText}
+            />
             <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}

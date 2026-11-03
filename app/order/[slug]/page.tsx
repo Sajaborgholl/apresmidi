@@ -11,7 +11,6 @@ const EMPTY_FIELDS: TemplateFieldManifest = {
   event_date: false,
   venue_name: false,
   venue_map_url: false,
-  whatsapp_number: false,
   photoCount: 0,
 };
 

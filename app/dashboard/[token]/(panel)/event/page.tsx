@@ -44,7 +44,7 @@ export default async function DashboardEventPage({ params }: { params: Promise<{
                 </a>
               )}
             </Row>
-            <Row label="RSVP WhatsApp">{invite.whatsapp_number ? `+${invite.whatsapp_number}` : notSet}</Row>
+            <Row label="Your WhatsApp (private)">{invite.whatsapp_number ? `+${invite.whatsapp_number}` : notSet}</Row>
             <Row label="Design">{invite.template?.name ?? notSet}</Row>
           </dl>
         </Card>

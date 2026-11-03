@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 import Reveal from "@/app/_components/Reveal";
 
 // Doodle Bachelorette — ported from template-bachelorette-doodle-prototype.html,
@@ -53,13 +54,10 @@ function ordinal(day: number) {
 
 const rise = (ms: number): CSSProperties => ({ animationDelay: `${ms}ms` });
 
-export default function BacheloretteDoodle({ invite }: { invite: Invite }) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no">("yes");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export default function BacheloretteDoodle({ invite, guest = null }: { invite: Invite; guest?: InviteGuest | null }) {
+  // RSVP comes only from a guest's personal link; the shared save / change
+  // my reply logic lives in useGuestRsvp (./guestRsvp).
+  const rsvp = useGuestRsvp(guest);
 
   // "Sarina's" fills its Canva box; longer names shrink to stay on one line.
   // Everything is in cqw, so one measurement holds at any card width.
@@ -87,30 +85,12 @@ export default function BacheloretteDoodle({ invite }: { invite: Invite }) {
     : "Date coming soon";
   const venue = invite.venue_name ?? "Location coming soon";
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "yes",
-      guest_count: attending === "yes" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
   return (
     <div className="bb-page">
       <style>{CSS}</style>
+
+      {/* A guest's personal invitation opens with their name and seats. */}
+      <GuestWelcome guest={guest} className="bb-welcome" parts={{ dear: "bb-welcome-dear", seats: "bb-welcome-seats" }} />
 
       <div className="bb-wrap">
         <section className="bb-card bb-card-1" aria-label="Invitation">
@@ -169,22 +149,16 @@ export default function BacheloretteDoodle({ invite }: { invite: Invite }) {
           </div>
 
           <div className="bb-rsvp">
-            {!submitted ? (
-              <form className="bb-form" onSubmit={handleSubmit}>
-                <div>
-                  <label className="bb-label" htmlFor="bb-guest-name">
-                    Your name
-                  </label>
-                  <input
-                    id="bb-guest-name"
-                    className="bb-input"
-                    type="text"
-                    required
-                    autoComplete="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
+            {!guest ? (
+              <RsvpByInvitationNote className="bb-rsvp-closed" />
+            ) : rsvp.showForm ? (
+              <form className="bb-form" onSubmit={rsvp.submit}>
+                {guest.name && (
+                  <div>
+                    <span className="bb-label">Replying as</span>
+                    <p className="bb-from">{guest.name}</p>
+                  </div>
+                )}
 
                 <div>
                   <span className="bb-label">Attending</span>
@@ -192,40 +166,44 @@ export default function BacheloretteDoodle({ invite }: { invite: Invite }) {
                     <button
                       type="button"
                       className="bb-btn"
-                      aria-pressed={attending === "yes"}
-                      onClick={() => setAttending("yes")}
+                      aria-pressed={rsvp.attending}
+                      onClick={() => rsvp.setAttending(true)}
                     >
                       Count me in
                     </button>
                     <button
                       type="button"
                       className="bb-btn"
-                      aria-pressed={attending === "no"}
-                      onClick={() => setAttending("no")}
+                      aria-pressed={!rsvp.attending}
+                      onClick={() => rsvp.setAttending(false)}
                     >
                       Can&rsquo;t make it
                     </button>
                   </div>
                 </div>
 
-                {attending === "yes" && (
+                {rsvp.attending && rsvp.maxGuests > 1 && (
                   <div>
-                    <span className="bb-label">Guests</span>
-                    <div className="bb-stepper">
+                    <span className="bb-label" id="bb-guests-label">
+                      Guests &middot; up to {rsvp.maxGuests}
+                    </span>
+                    <div className="bb-stepper" role="group" aria-labelledby="bb-guests-label">
                       <button
                         type="button"
                         className="bb-btn"
                         aria-label="Fewer guests"
-                        onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                        disabled={rsvp.guestCount <= 1}
+                        onClick={() => rsvp.setGuestCount(rsvp.guestCount - 1)}
                       >
                         −
                       </button>
-                      <output aria-live="polite">{guestCount}</output>
+                      <output aria-live="polite">{rsvp.guestCount}</output>
                       <button
                         type="button"
                         className="bb-btn"
                         aria-label="More guests"
-                        onClick={() => setGuestCount((c) => Math.min(6, c + 1))}
+                        disabled={rsvp.guestCount >= rsvp.maxGuests}
+                        onClick={() => rsvp.setGuestCount(rsvp.guestCount + 1)}
                       >
                         +
                       </button>
@@ -233,21 +211,36 @@ export default function BacheloretteDoodle({ invite }: { invite: Invite }) {
                   </div>
                 )}
 
-                {error && <p className="bb-error">{error}</p>}
+                {rsvp.error && (
+                  <p className="bb-error" role="alert">
+                    {rsvp.error}
+                  </p>
+                )}
 
-                <button className="bb-btn bb-submit" type="submit" disabled={loading}>
-                  {loading ? "Sending…" : "Send RSVP"}
+                <button className="bb-btn bb-submit" type="submit" disabled={rsvp.loading}>
+                  {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
                 </button>
+                {rsvp.changing && (
+                  <button type="button" className="bb-text-btn" onClick={rsvp.cancelEdit}>
+                    Keep my earlier reply
+                  </button>
+                )}
               </form>
             ) : (
-              <div className="bb-thanks">
-                <p className="bb-thanks-script">{attending === "yes" ? "See you there!" : "You’ll be missed!"}</p>
-                <p className="bb-thanks-body">
-                  {attending === "yes"
-                    ? `Cheers, ${name.trim() || "friend"} — your RSVP is in.`
-                    : `Thanks for letting us know, ${name.trim() || "friend"}.`}
-                </p>
-              </div>
+              rsvp.saved && (
+                <div className="bb-thanks" role="status">
+                  <p className="bb-thanks-script">{rsvp.saved.attending ? "See you there!" : "You’ll be missed!"}</p>
+                  <p className="bb-thanks-body">
+                    {rsvp.saved.attending
+                      ? `Cheers${rsvp.toName} — your RSVP is in.`
+                      : `Thanks for letting us know${rsvp.toName}.`}
+                  </p>
+                  <p className="bb-thanks-body">{replySummary(rsvp.saved)}</p>
+                  <button type="button" className="bb-text-btn" onClick={rsvp.edit}>
+                    Change my reply
+                  </button>
+                </div>
+              )
             )}
           </div>
         </section>
@@ -273,6 +266,32 @@ const CSS = `
 .bb-card-2 { background: var(--bb-blue); color: var(--bb-white); }
 .bb-el { position: absolute; }
 .bb-el img { display: block; width: 100%; height: 100%; }
+
+/* ---------- Personal welcome (guest links) ---------- */
+.bb-welcome {
+  width: min(100%, 480px);
+  margin: 0 auto;
+  padding: clamp(24px, 6vw, 40px) 16px 4px;
+  text-align: center;
+  color: var(--bb-blue);
+}
+.bb-welcome p { margin: 0; }
+.bb-welcome .bb-welcome-dear {
+  font-family: var(--bb-script);
+  font-weight: 400;
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0, "clig" 0;
+  font-size: clamp(26px, 7.5vw, 38px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.bb-welcome .bb-welcome-seats {
+  margin-top: 4px;
+  font-family: var(--bb-hand);
+  font-size: clamp(12px, 3.2vw, 14px);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
 
 /* ---------- Page 1 art ---------- */
 .bb-p1-disco-ball { left: 50.645%; top: -4.063%; width: 46.936%; height: 31.296%; }
@@ -377,6 +396,33 @@ const CSS = `
 }
 .bb-error { margin: 0; font-size: max(13px, 3.4cqw); }
 .bb-thanks { text-transform: none; }
+.bb-rsvp-closed { margin: 0; font-size: max(14px, 4cqw); line-height: 1.5; letter-spacing: 0.04em; }
+.bb-from {
+  margin: 0;
+  padding: 1.2cqw 0.4cqw;
+  border-bottom: 2px solid var(--bb-white);
+  font-size: max(16px, 4.6cqw);
+  overflow-wrap: anywhere;
+}
+.bb-stepper .bb-btn:disabled { opacity: 0.4; cursor: default; }
+.bb-text-btn {
+  justify-self: center;
+  min-height: 44px;
+  margin-top: 1cqw;
+  padding: 2cqw 3cqw;
+  border: 0;
+  background: transparent;
+  color: var(--bb-white);
+  font-family: var(--bb-hand);
+  font-size: max(13px, 3.4cqw);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.bb-thanks .bb-text-btn { margin-top: 3cqw; margin-left: -3cqw; }
+.bb-text-btn:focus-visible { outline: 2px solid var(--bb-white); outline-offset: 3px; }
 .bb-thanks-script { font-family: var(--bb-script); font-size: 10cqw; line-height: 1.3; margin: 0; }
 .bb-thanks-body { font-size: max(13px, 3.6cqw); margin: 2cqw 0 0; text-transform: uppercase; }
 

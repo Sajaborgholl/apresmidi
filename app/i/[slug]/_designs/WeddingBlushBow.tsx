@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
-import WhatsappConfirmLink from "./WhatsappConfirmLink";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 import TypewriterText from "./TypewriterText";
 import RibbonCountdown from "./RibbonCountdown";
 import BowGate from "./BowGate";
@@ -81,7 +81,15 @@ function AngularFrame() {
 
 // `embedded`: shown inside a preview (homepage/template cards, the dashboard's
 // phone, the customize page) rather than opened by a guest — no bow to untie.
-export default function WeddingBlushBow({ invite, embedded = false }: { invite: Invite; embedded?: boolean }) {
+export default function WeddingBlushBow({
+  invite,
+  embedded = false,
+  guest = null,
+}: {
+  invite: Invite;
+  embedded?: boolean;
+  guest?: InviteGuest | null;
+}) {
   // Guests open the invitation by untying the bow (BowGate.tsx); previews
   // start already open.
   const [opened, setOpened] = useState(embedded);
@@ -92,12 +100,8 @@ export default function WeddingBlushBow({ invite, embedded = false }: { invite: 
   useEffect(() => {
     if (opened && !embedded) namesRef.current?.focus({ preventScroll: true });
   }, [opened, embedded]);
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no">("yes");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // Replies come only from a guest's personal link (shared logic in ./guestRsvp).
+  const rsvp = useGuestRsvp(guest);
 
   const dateFormatted = invite.event_date
     ? new Date(invite.event_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
@@ -105,36 +109,6 @@ export default function WeddingBlushBow({ invite, embedded = false }: { invite: 
 
   const photo1 = invite.photo_urls?.[0];
   const photo2 = invite.photo_urls?.[1];
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "yes",
-      guest_count: attending === "yes" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
-  const waMessage = encodeURIComponent(
-    `Hi! It's ${name.trim() || "Friend"} — ${
-      attending === "yes"
-        ? `we are beyond excited and wouldn't miss it for the world! We'll be there${guestCount > 1 ? ` with ${guestCount} of us` : ""}.`
-        : "I'm so sorry we won't be able to make it this time. Sending all our love on your special day."
-    }`
-  );
-  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
 
   return (
     <>
@@ -149,6 +123,9 @@ export default function WeddingBlushBow({ invite, embedded = false }: { invite: 
 
       {/* inert while the gate is up: nothing behind it can be tabbed to or clicked. */}
       <div inert={!opened}>
+
+      {/* A guest's personal invitation opens with their name and seats. */}
+      <GuestWelcome guest={guest} className="bb-welcome" parts={{ dear: "bb-welcome-dear", seats: "bb-welcome-seats" }} />
 
       <section className="hero">
         <div className="hero-left">
@@ -231,81 +208,77 @@ export default function WeddingBlushBow({ invite, embedded = false }: { invite: 
             <TypewriterText text="RSVP with us before our big day!" />
           </h2>
 
-          {!submitted ? (
-            <form onSubmit={handleSubmit}>
-              <label>
-                <span className="label">Full name</span>
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  placeholder="Your name"
-                />
-              </label>
+          {!guest ? (
+            <RsvpByInvitationNote className="bb-rsvp-closed" />
+          ) : rsvp.showForm ? (
+            <form onSubmit={rsvp.submit}>
+              {guest.name && (
+                <div className="bb-rsvp-as">
+                  <span className="label">Replying as</span>
+                  <p className="bb-rsvp-from">{guest.name}</p>
+                </div>
+              )}
 
               <div className="toggle-row">
                 <button
                   type="button"
-                  className={`toggle ${attending === "yes" ? "active" : ""}`}
-                  onClick={() => setAttending("yes")}
+                  className={`toggle ${rsvp.attending ? "active" : ""}`}
+                  aria-pressed={rsvp.attending}
+                  onClick={() => rsvp.setAttending(true)}
                 >
                   Joyfully accept
                 </button>
                 <button
                   type="button"
-                  className={`toggle ${attending === "no" ? "active" : ""}`}
-                  onClick={() => setAttending("no")}
+                  className={`toggle ${!rsvp.attending ? "active" : ""}`}
+                  aria-pressed={!rsvp.attending}
+                  onClick={() => rsvp.setAttending(false)}
                 >
                   Regretfully decline
                 </button>
               </div>
 
-              {attending === "yes" && (
+              {rsvp.attending && rsvp.maxGuests > 1 && (
                 <label>
-                  <span className="label">Number of guests</span>
+                  <span className="label">Number of guests &middot; up to {rsvp.maxGuests}</span>
                   <input
                     type="number"
                     min={1}
-                    max={10}
-                    value={guestCount}
-                    onChange={(e) => setGuestCount(Number(e.target.value))}
+                    max={rsvp.maxGuests}
+                    value={rsvp.guestCount}
+                    onChange={(e) => rsvp.setGuestCount(Number(e.target.value))}
                   />
                 </label>
               )}
 
-              {error && <p className="error-text">{error}</p>}
-
-              <button type="submit" className="submit-btn" disabled={loading}>
-                {loading ? "Sending..." : "Send RSVP"}
-              </button>
-            </form>
-          ) : (
-            <div className="thank-you">
-              <p>
-                {attending === "yes"
-                  ? `Yay, ${name.trim() || "Friend"}! We can't wait to celebrate with you.`
-                  : `We'll miss you, ${name.trim() || "Friend"}. Thank you for letting us know.`}
-              </p>
-              {waLink && (
-                <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="submit-btn wa-btn">
-                  Confirm on WhatsApp too
-                </WhatsappConfirmLink>
+              {rsvp.error && (
+                <p className="error-text" role="alert">
+                  {rsvp.error}
+                </p>
               )}
-            </div>
-          )}
 
-          {invite.whatsapp_number && (
-            <div className="contact">
+              <button type="submit" className="submit-btn" disabled={rsvp.loading}>
+                {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
+              </button>
+              {rsvp.changing && (
+                <button type="button" className="bb-text-btn" onClick={rsvp.cancelEdit}>
+                  Keep my earlier reply
+                </button>
+              )}
+            </form>
+          ) : rsvp.saved ? (
+            <div className="thank-you" role="status">
               <p>
-                <span className="script">Phone</span>
-                {/* Shown, but never tappable on a demo (see page.tsx's format-detection
-                    note too): it's a public page anyone can open. */}
-                <span className="pill-tag" style={invite.is_demo ? { pointerEvents: "none", userSelect: "none" } : undefined}>
-                  {invite.whatsapp_number}
-                </span>
+                {rsvp.saved.attending
+                  ? `Yay${rsvp.toName}! We can't wait to celebrate with you.`
+                  : `We'll miss you${rsvp.toName}. Thank you for letting us know.`}
               </p>
+              <p className="bb-thank-summary">{replySummary(rsvp.saved)}</p>
+              <button type="button" className="bb-text-btn" onClick={rsvp.edit}>
+                Change my reply
+              </button>
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -435,15 +408,22 @@ form input {
   cursor: pointer;
 }
 .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.wa-btn { margin-top: 12px; background: #25D366; }
 .thank-you { font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.8rem; max-width: 360px; margin-bottom: 24px; line-height: 1.3; }
-.contact p { display: flex; align-items: baseline; gap: 14px; margin: 0; }
-.contact .script { font-size: 1.5rem; min-width: 70px; }
-.contact .pill-tag {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.03em;
-  background: #FBF1DE; border: 1.5px solid #1c1c1c; border-radius: 999px;
-  padding: 8px 16px;
+.thank-you p { margin: 0; }
+.thank-you .bb-thank-summary { margin-top: 10px; font-family: 'Space Grotesk', sans-serif; font-weight: 400; font-size: 14px; line-height: 1.5; }
+.bb-rsvp-as { display: flex; flex-direction: column; gap: 6px; }
+.bb-rsvp-from { margin: 0; font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.7rem; line-height: 1.1; color: #1c1c1c; overflow-wrap: anywhere; }
+.bb-text-btn {
+  align-self: flex-start; display: inline-flex; align-items: center; min-height: 44px; padding: 0 2px; margin-top: 4px;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: #1c1c1c; background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 4px;
 }
+.bb-text-btn:hover { opacity: 0.7; }
+.bb-rsvp-closed { margin: 0 0 24px; max-width: 360px; font-family: 'Caveat', cursive; font-weight: 700; font-size: 1.6rem; line-height: 1.3; color: #1c1c1c; }
+.bb-welcome { padding: clamp(40px, 6vw, 64px) max(16px, 8vw) 0; text-align: center; }
+.bb-welcome-dear { margin: 0; font-family: 'Caveat', cursive; font-weight: 700; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.05; color: #1c1c1c; overflow-wrap: anywhere; }
+.bb-welcome-seats { margin: 10px 0 0; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(11px, 1.3vw, 13px); text-transform: uppercase; letter-spacing: 0.12em; color: #1c1c1c; }
+.bb-welcome + .hero { padding-top: 40px; }
 .footer { text-align: center; padding: 34px 20px 50px; font-size: 12px; color: rgba(28,28,28,0.5); }
 @media (max-width: 640px) {
   .hero, .details, .rsvp-section { padding: 56px 6vw; }

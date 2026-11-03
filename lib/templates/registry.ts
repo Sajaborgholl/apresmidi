@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import type { Invite } from "@/lib/types";
+import type { InviteGuest } from "@/lib/guestRules";
 import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
@@ -34,7 +35,6 @@ export type TemplateFieldManifest = {
   event_date: boolean;
   venue_name: boolean;
   venue_map_url: boolean;
-  whatsapp_number: boolean;
   photoCount: number; // 0 if the template doesn't use photos at all
 };
 
@@ -49,7 +49,10 @@ export type TemplateEntry = {
   // `embedded`: rendered inside a preview (homepage/template cards, the
   // dashboard's phone, the customize page) rather than opened by a guest.
   // Templates with an opening interaction (Blush Bow's bow) skip it there.
-  component: ComponentType<{ invite: Invite; embedded?: boolean }>;
+  // `guest`: set on a guest's personal link (their name, seats and reply)
+  // and to SAMPLE_GUEST on demos/previews; null on the general link, where
+  // templates show "RSVP through your personal invitation" instead of a form.
+  component: ComponentType<{ invite: Invite; embedded?: boolean; guest?: InviteGuest | null }>;
   fields: TemplateFieldManifest;
   // The template's own dominant/paper background color. Used to wrap the
   // rendered page in a full-height container of the same color, so if the
@@ -71,7 +74,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: true,
-      whatsapp_number: true,
       photoCount: 3,
     },
   },
@@ -86,7 +88,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: false,
       venue_name: false,
       venue_map_url: false,
-      whatsapp_number: true,
       photoCount: 1,
     },
   },
@@ -101,7 +102,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: true,
-      whatsapp_number: true,
       photoCount: 2,
     },
   },
@@ -116,8 +116,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: true,
-      // For the "Confirm on WhatsApp too" link after an RSVP is sent.
-      whatsapp_number: true,
       photoCount: 2,
     },
   },
@@ -132,7 +130,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: false,
-      whatsapp_number: false,
       photoCount: 0,
     },
   },
@@ -147,7 +144,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: false,
-      whatsapp_number: false,
       photoCount: 0,
     },
   },
@@ -162,7 +158,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: false,
-      whatsapp_number: false,
       photoCount: 0,
     },
   },
@@ -177,7 +172,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: true,
-      whatsapp_number: true,
       photoCount: 1,
     },
   },
@@ -192,7 +186,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: true,
-      whatsapp_number: true,
       photoCount: 6,
     },
   },
@@ -207,7 +200,6 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       event_date: true,
       venue_name: true,
       venue_map_url: true,
-      whatsapp_number: true,
       photoCount: 1,
     },
   },

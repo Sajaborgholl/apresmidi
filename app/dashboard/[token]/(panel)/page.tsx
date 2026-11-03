@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Check, X, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
-import { getDashboardInvite, getDashboardRsvps } from "../_lib/data";
-import { summarizeRsvps, relativeTime } from "../_lib/format";
+import { getDashboardGuests, getDashboardInvite, getDashboardRsvps } from "../_lib/data";
+import { summarizeGuests, summarizeRsvps, relativeTime } from "../_lib/format";
 import { Card, CardHeader, StatRow, PageHeader, CountdownPill, EmptyState, OverviewActions } from "../_components/ui";
 import SavedBanner from "../_components/SavedBanner";
 
@@ -19,9 +19,9 @@ export default async function DashboardOverviewPage({
   const { token } = await params;
   const { saved } = await searchParams;
   const invite = await getDashboardInvite(token);
-  const rsvps = await getDashboardRsvps(invite.id);
-  const { accepted, declined, headcount, total } = summarizeRsvps(rsvps);
-  const plusOnes = headcount - accepted.length;
+  const [rsvps, guests] = await Promise.all([getDashboardRsvps(invite.id), getDashboardGuests(invite.id)]);
+  const { accepted, declined, total } = summarizeRsvps(rsvps);
+  const guestSummary = summarizeGuests(guests);
   const yesPct = total > 0 ? (accepted.length / total) * 100 : 0;
   const base = `/dashboard/${token}`;
   // How big each attending party is — the one thing the figures above don't
@@ -74,13 +74,17 @@ export default async function DashboardOverviewPage({
       <StatRow
         stats={[
           {
-            label: "People attending",
-            value: headcount,
-            hint: `${accepted.length} RSVP${accepted.length === 1 ? "" : "s"} + ${plusOnes} extra guest${plusOnes === 1 ? "" : "s"}`,
-            info: "Everyone who's coming, counting each person. One RSVP can include extra guests (+1s), so this can be higher than the number of RSVPs.",
+            label: "Seats confirmed",
+            value: guestSummary.seatsConfirmed,
+            hint: `of ${guestSummary.seatsInvited} seat${guestSummary.seatsInvited === 1 ? "" : "s"} you've reserved`,
+            info: "Everyone who's coming, counting each person. Each guest can confirm up to the seats you reserved for them.",
           },
-          { label: "RSVPs received", value: total },
-          { label: "Can't make it", value: declined.length },
+          {
+            label: "Guests invited",
+            value: guestSummary.total,
+            hint: `${guestSummary.accepted.length} coming · ${guestSummary.declined.length} can't make it`,
+          },
+          { label: "Waiting for a reply", value: guestSummary.waiting.length },
         ]}
       />
 
@@ -88,14 +92,18 @@ export default async function DashboardOverviewPage({
         <Card>
           <CardHeader title="Responses" />
           {total === 0 ? (
-            <EmptyState icon={<ShareNetwork size={24} />} title="No RSVPs yet">
-              <p>Share your guest link to start collecting responses.</p>
+            <EmptyState icon={<ShareNetwork size={24} />} title="No replies yet">
+              <p>
+                {guestSummary.total === 0
+                  ? "Add your guests: each one gets a personal invitation link with their name and seats."
+                  : "Replies will show up here as your guests open their invitations."}
+              </p>
               <Link
-                href={`${base}/share`}
+                href={`${base}/guests`}
                 className="mt-4 inline-flex rounded-full px-4 py-2.5 text-[13px] font-semibold transition hover:opacity-90"
                 style={{ background: "var(--ink)", color: "var(--cream)" }}
               >
-                Share your invite
+                {guestSummary.total === 0 ? "Add your guests" : "See your guests"}
               </Link>
             </EmptyState>
           ) : (
@@ -160,7 +168,7 @@ export default async function DashboardOverviewPage({
                   </div>
                   <p className="text-[12.5px] text-[var(--ink)]/55">
                     {item.kind === "published"
-                      ? "Your guest link went live"
+                      ? "Your invitation went live"
                       : item.attending
                         ? `Attending · ${item.guests} ${item.guests === 1 ? "person" : "people"}`
                         : "Can't make it"}

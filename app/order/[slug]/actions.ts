@@ -78,6 +78,9 @@ async function saveDraftInvite(templateSlug: string, formData: FormData): Promis
   if (!hostNames) {
     throw new OrderInputError("Please enter the host names.");
   }
+  if (!whatsappNumber) {
+    throw new OrderInputError("Please enter your WhatsApp number, including the country code.");
+  }
   // Deliberately simple format check — full deliverability validation
   // (e.g. a verification email) is out of scope here.
   if (!ownerEmail || ownerEmail.length > MAX_LENGTH.email || !EMAIL_PATTERN.test(ownerEmail)) {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 import Reveal from "@/app/_components/Reveal";
 
 // Martini Bachelorette — ported from template-bachelorette-martini-prototype.html,
@@ -42,13 +43,10 @@ function ordinal(day: number) {
   return `${day}${["th", "st", "nd", "rd"][day % 10] ?? "th"}`;
 }
 
-export default function BacheloretteMartini({ invite }: { invite: Invite }) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no">("yes");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export default function BacheloretteMartini({ invite, guest = null }: { invite: Invite; guest?: InviteGuest | null }) {
+  // RSVP comes only from a guest's personal link; the shared save / change
+  // my reply logic lives in useGuestRsvp (./guestRsvp).
+  const rsvp = useGuestRsvp(guest);
 
   // The name box is a fixed 35.5% of the card (sized for "OLIVIA'S"). Longer
   // names shrink to fit on one line instead of overflowing into the bride.
@@ -82,30 +80,12 @@ export default function BacheloretteMartini({ invite }: { invite: Invite }) {
     : null;
   const venue = invite.venue_name ?? "Location coming soon";
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "yes",
-      guest_count: attending === "yes" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
   return (
     <div className="bm-page">
       <style>{CSS}</style>
+
+      {/* A guest's personal invitation opens with their name and seats. */}
+      <GuestWelcome guest={guest} className="bm-welcome" parts={{ dear: "bm-welcome-dear", seats: "bm-welcome-seats" }} />
 
       <section className="bm-card" aria-label="Invitation">
         <Deco className="bm-bride bm-in bm-i0" file="bride-martini.svg" />
@@ -170,53 +150,51 @@ export default function BacheloretteMartini({ invite }: { invite: Invite }) {
         )}
         <p className="bm-where">{venue}</p>
 
-        {!submitted ? (
+        {!guest ? (
+          <RsvpByInvitationNote className="bm-rsvp-closed" />
+        ) : rsvp.showForm ? (
           <>
             <p className="bm-script-note">Will you be there?</p>
-            <form className="bm-form" onSubmit={handleSubmit}>
-              <div>
-                <label className="bm-label" htmlFor="bm-guest-name">
-                  Your name
-                </label>
-                <input
-                  id="bm-guest-name"
-                  className="bm-input"
-                  type="text"
-                  required
-                  autoComplete="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </div>
+            <form className="bm-form" onSubmit={rsvp.submit}>
+              {guest.name && (
+                <div>
+                  <span className="bm-label">Replying as</span>
+                  <p className="bm-from">{guest.name}</p>
+                </div>
+              )}
 
               <div>
                 <span className="bm-label">Attending</span>
                 <div className="bm-choice">
-                  <button type="button" aria-pressed={attending === "yes"} onClick={() => setAttending("yes")}>
+                  <button type="button" aria-pressed={rsvp.attending} onClick={() => rsvp.setAttending(true)}>
                     Count me in
                   </button>
-                  <button type="button" aria-pressed={attending === "no"} onClick={() => setAttending("no")}>
+                  <button type="button" aria-pressed={!rsvp.attending} onClick={() => rsvp.setAttending(false)}>
                     Can&rsquo;t make it
                   </button>
                 </div>
               </div>
 
-              {attending === "yes" && (
+              {rsvp.attending && rsvp.maxGuests > 1 && (
                 <div>
-                  <span className="bm-label">Guests</span>
-                  <div className="bm-stepper">
+                  <span className="bm-label" id="bm-guests-label">
+                    Guests &middot; up to {rsvp.maxGuests}
+                  </span>
+                  <div className="bm-stepper" role="group" aria-labelledby="bm-guests-label">
                     <button
                       type="button"
                       aria-label="Fewer guests"
-                      onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                      disabled={rsvp.guestCount <= 1}
+                      onClick={() => rsvp.setGuestCount(rsvp.guestCount - 1)}
                     >
                       −
                     </button>
-                    <output aria-live="polite">{guestCount}</output>
+                    <output aria-live="polite">{rsvp.guestCount}</output>
                     <button
                       type="button"
                       aria-label="More guests"
-                      onClick={() => setGuestCount((c) => Math.min(6, c + 1))}
+                      disabled={rsvp.guestCount >= rsvp.maxGuests}
+                      onClick={() => rsvp.setGuestCount(rsvp.guestCount + 1)}
                     >
                       +
                     </button>
@@ -224,22 +202,37 @@ export default function BacheloretteMartini({ invite }: { invite: Invite }) {
                 </div>
               )}
 
-              {error && <p className="bm-error">{error}</p>}
+              {rsvp.error && (
+                <p className="bm-error" role="alert">
+                  {rsvp.error}
+                </p>
+              )}
 
-              <button className="bm-submit" type="submit" disabled={loading}>
-                {loading ? "Sending…" : "Send RSVP"}
+              <button className="bm-submit" type="submit" disabled={rsvp.loading}>
+                {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
               </button>
+              {rsvp.changing && (
+                <button type="button" className="bm-text-btn" onClick={rsvp.cancelEdit}>
+                  Keep my earlier reply
+                </button>
+              )}
             </form>
           </>
         ) : (
-          <div className="bm-thanks">
-            <p className="bm-thanks-script">{attending === "yes" ? "See you there!" : "You’ll be missed!"}</p>
-            <p className="bm-thanks-body">
-              {attending === "yes"
-                ? `Cheers, ${name.trim() || "friend"} — your RSVP is in.`
-                : `Thanks for letting us know, ${name.trim() || "friend"}.`}
-            </p>
-          </div>
+          rsvp.saved && (
+            <div className="bm-thanks" role="status">
+              <p className="bm-thanks-script">{rsvp.saved.attending ? "See you there!" : "You’ll be missed!"}</p>
+              <p className="bm-thanks-body">
+                {rsvp.saved.attending
+                  ? `Cheers${rsvp.toName} — your RSVP is in.`
+                  : `Thanks for letting us know${rsvp.toName}.`}
+              </p>
+              <p className="bm-thanks-summary">{replySummary(rsvp.saved)}</p>
+              <button type="button" className="bm-text-btn" onClick={rsvp.edit}>
+                Change my reply
+              </button>
+            </div>
+          )
         )}
       </Reveal>
     </div>
@@ -336,6 +329,27 @@ const CSS = `
   transform: translate(-0.08cqw, -0.82cqw);
 }
 
+/* ---------- Personal welcome (guest links) ---------- */
+.bm-welcome {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: clamp(24px, 6vw, 40px) 16px 4px;
+  text-align: center;
+}
+.bm-welcome p { margin: 0; }
+.bm-welcome-dear {
+  font-family: var(--bm-script);
+  font-size: clamp(30px, 8vw, 42px);
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.bm-welcome .bm-welcome-seats {
+  margin-top: 6px;
+  font-size: clamp(13px, 3.4vw, 16px);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
 /* ---------- RSVP ---------- */
 .bm-rsvp {
   max-width: 480px;
@@ -367,6 +381,35 @@ const CSS = `
 }
 .bm-thanks-script { font-size: 40px; margin: 8px 0 6px; }
 .bm-thanks-body { margin: 0; font-size: 20px; }
+.bm-thanks-summary { margin: 8px 0 0; font-size: 18px; }
+.bm-rsvp-closed { margin: 0; font-size: 20px; line-height: 1.4; }
+.bm-from {
+  margin: 0;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--bm-ink);
+  font-size: 22px;
+  overflow-wrap: anywhere;
+}
+.bm-text-btn {
+  justify-self: center;
+  display: inline-block;
+  min-height: 44px;
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 0;
+  background: transparent;
+  font-family: var(--bm-serif);
+  font-stretch: 62.5%;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: var(--bm-ink);
+  cursor: pointer;
+}
+.bm-thanks .bm-text-btn { margin-top: 14px; }
+.bm-text-btn:focus-visible { outline: 2px solid var(--bm-ink); outline-offset: 3px; }
 
 .bm-form { display: grid; gap: 22px; text-align: left; }
 .bm-label { display: block; font-size: 17px; margin-bottom: 6px; }
@@ -401,6 +444,7 @@ const CSS = `
 .bm-choice button[aria-pressed="true"] { background: var(--bm-ink); color: var(--bm-cream); }
 .bm-stepper { display: flex; align-items: center; gap: 18px; }
 .bm-stepper button { width: 40px; height: 40px; padding: 0; font: 300 20px/1 system-ui, sans-serif; }
+.bm-stepper button:disabled { opacity: 0.35; cursor: default; }
 .bm-stepper output { font-size: 30px; min-width: 24px; text-align: center; }
 .bm-submit {
   margin-top: 6px;

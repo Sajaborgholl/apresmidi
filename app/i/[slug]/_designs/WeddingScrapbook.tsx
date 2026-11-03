@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
-import WhatsappConfirmLink from "./WhatsappConfirmLink";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 
 type IconKey = "heart" | "star" | "rings";
 
@@ -73,51 +73,12 @@ function StickerLayer({ stickers }: { stickers: StickerDef[] }) {
   );
 }
 
-export default function WeddingScrapbook({ invite }: { invite: Invite }) {
+export default function WeddingScrapbook({ invite, guest = null }: { invite: Invite; guest?: InviteGuest | null }) {
   const [revealed, setRevealed] = useState(false);
-  const [attending, setAttending] = useState<boolean | null>(null);
-  const [name, setName] = useState("");
-  const [guestCount, setGuestCount] = useState(1);
-  const [warning, setWarning] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [thankYouMsg, setThankYouMsg] = useState("");
+  // Replies come only from a guest's personal link (shared logic in ./guestRsvp).
+  const rsvp = useGuestRsvp(guest);
 
   const photo = invite.photo_urls?.[0];
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (attending === null) {
-      setWarning("Please let us know if you can make it.");
-      return;
-    }
-    const finalName = name.trim() || "Friend";
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: finalName,
-      attending,
-      guest_count: attending ? guestCount : 0,
-    });
-
-    if (insertError) {
-      setWarning("Something went wrong — please try again.");
-      return;
-    }
-
-    setThankYouMsg(
-      attending
-        ? `Yay, ${finalName}! 🎉<br/>We can't wait to celebrate with you${guestCount > 1 ? ` and your ${guestCount - 1} guest(s)` : ""}.`
-        : `We'll miss you, ${finalName}.<br/>Thank you for letting us know — sending you our love.`
-    );
-    setSubmitted(true);
-  }
-
-  const waText = encodeURIComponent(
-    attending
-      ? `Hi! It's ${name.trim() || "Friend"} — we are beyond excited and wouldn't miss it for the world! We'll be there${guestCount > 1 ? ` with ${guestCount} of us` : ""}, counting down the days already. Can't wait to celebrate this special day with you both! 🎉`
-      : `Hi! It's ${name.trim() || "Friend"} — I'm so sorry we won't be able to make it this time. We're truly disappointed to miss it, but we'll be thinking of you and sending all our love on your special day 💔`
-  );
-  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waText}` : null;
 
   return (
     <>
@@ -163,6 +124,9 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
             <h1 className="names script">{invite.host_names}</h1>
             <p className="tagline serif-caps">are getting married</p>
 
+            {/* A guest's personal invitation greets them by name, under the couple's. */}
+            <GuestWelcome guest={guest} className="sb-welcome" parts={{ dear: "sb-welcome-dear", seats: "sb-welcome-seats" }} />
+
             <div className="scroll-hint">
               <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#8B6B43" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 8 L11 15 L18 8" />
@@ -179,78 +143,86 @@ export default function WeddingScrapbook({ invite }: { invite: Invite }) {
           <div className="card">
             <h2 className="script">RSVP</h2>
 
-            {!submitted ? (
-              <form onSubmit={handleSubmit}>
-                <div className="rsvp-field">
-                  <label htmlFor="guestName">Full name</label>
-                  <input
-                    type="text"
-                    id="guestName"
-                    required
-                    placeholder="Your name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
+            {!guest ? (
+              <RsvpByInvitationNote className="sb-rsvp-closed" />
+            ) : rsvp.showForm ? (
+              <form onSubmit={rsvp.submit}>
+                {guest.name && (
+                  <div className="rsvp-field">
+                    <span className="sb-rsvp-label">Replying as</span>
+                    <p className="sb-rsvp-from">{guest.name}</p>
+                  </div>
+                )}
 
                 <div className="toggle-row">
                   <button
                     type="button"
-                    className={`toggle-btn ${attending === true ? "active" : ""}`}
-                    onClick={() => {
-                      setAttending(true);
-                      setWarning("");
-                    }}
+                    className={`toggle-btn ${rsvp.attending ? "active" : ""}`}
+                    aria-pressed={rsvp.attending}
+                    onClick={() => rsvp.setAttending(true)}
                   >
                     Joyfully accept
                   </button>
                   <button
                     type="button"
-                    className={`toggle-btn ${attending === false ? "active" : ""}`}
-                    onClick={() => {
-                      setAttending(false);
-                      setWarning("");
-                    }}
+                    className={`toggle-btn ${!rsvp.attending ? "active" : ""}`}
+                    aria-pressed={!rsvp.attending}
+                    onClick={() => rsvp.setAttending(false)}
                   >
                     Regretfully decline
                   </button>
                 </div>
 
-                <p className="rsvp-warning">{warning}</p>
+                <p className="rsvp-warning" role="alert">
+                  {rsvp.error}
+                </p>
 
-                {attending && (
+                {rsvp.attending && rsvp.maxGuests > 1 && (
                   <div className="rsvp-field guest-field" style={{ display: "block" }}>
-                    <label htmlFor="guestCount">Number of guests</label>
+                    <label htmlFor="guestCount">Number of guests &middot; up to {rsvp.maxGuests}</label>
                     <input
                       type="number"
                       id="guestCount"
                       min={1}
-                      max={10}
-                      value={guestCount}
-                      onChange={(e) => setGuestCount(Number(e.target.value))}
+                      max={rsvp.maxGuests}
+                      value={rsvp.guestCount}
+                      onChange={(e) => rsvp.setGuestCount(Number(e.target.value))}
                     />
                   </div>
                 )}
 
-                <button type="submit" className="submit-btn">
-                  Submit
+                <button type="submit" className="submit-btn" disabled={rsvp.loading}>
+                  {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Submit"}
                 </button>
-              </form>
-            ) : (
-              <div className="thank-you" style={{ display: "block" }}>
-                <p dangerouslySetInnerHTML={{ __html: thankYouMsg }} />
-                {waLink && (
-                  <WhatsappConfirmLink
-                    href={waLink}
-                    demo={invite.is_demo}
-                    className="submit-btn"
-                    style={{ display: "inline-block", textDecoration: "none", marginTop: "18px", background: "#25D366" }}
-                  >
-                    Confirm on WhatsApp too
-                  </WhatsappConfirmLink>
+                {rsvp.changing && (
+                  <button type="button" className="sb-text-btn" onClick={rsvp.cancelEdit}>
+                    Keep my earlier reply
+                  </button>
                 )}
+              </form>
+            ) : rsvp.saved ? (
+              <div className="thank-you" role="status">
+                <p>
+                  {rsvp.saved.attending ? (
+                    <>
+                      Yay{rsvp.toName}! 🎉
+                      <br />
+                      We can&apos;t wait to celebrate with you.
+                    </>
+                  ) : (
+                    <>
+                      We&apos;ll miss you{rsvp.toName}.
+                      <br />
+                      Thank you for letting us know — sending you our love.
+                    </>
+                  )}
+                </p>
+                <p className="sb-thank-summary">{replySummary(rsvp.saved)}</p>
+                <button type="button" className="sb-text-btn" onClick={rsvp.edit}>
+                  Change my reply
+                </button>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </section>
@@ -364,7 +336,25 @@ section{ position: relative; width: 100%; padding: 90px 24px; display: flex; ali
   transition: opacity 0.2s ease;
 }
 .submit-btn:hover{ opacity: 0.85; }
+.submit-btn:disabled{ opacity: 0.6; cursor: not-allowed; }
 .thank-you{ font-family: 'Caveat', cursive; font-size: 2.1rem; line-height: 1.3; color: var(--ink); }
+.thank-you p{ margin: 0; }
+.thank-you .sb-thank-summary{ margin-top: 12px; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.2rem; line-height: 1.5; color: var(--ink); }
+.sb-rsvp-label{ display: block; font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+.sb-rsvp-from{
+  margin: 0; padding: 10px 12px; font-family: 'Cormorant Garamond', serif; font-size: 1.15rem; font-style: italic;
+  color: var(--ink); border-bottom: 1.5px solid var(--accent); overflow-wrap: anywhere;
+}
+.sb-text-btn{
+  display: block; margin: 10px auto 0; min-height: 44px; padding: 0 10px; border: none; background: transparent; cursor: pointer;
+  font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.05rem; letter-spacing: 0.03em; color: var(--accent);
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.sb-text-btn:hover{ color: var(--ink); }
+.sb-rsvp-closed{ margin: 0; font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 1.25rem; line-height: 1.5; color: var(--ink); }
+.sb-welcome{ margin-top: 30px; padding: 0 16px; max-width: 420px; }
+.sb-welcome-dear{ margin: 0; font-family: 'Caveat', cursive; font-weight: 700; font-size: clamp(1.9rem, 6vw, 2.6rem); line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; }
+.sb-welcome-seats{ margin: 8px 0 0; font-family: 'Cormorant Garamond', serif; font-size: clamp(0.7rem, 2vw, 0.82rem); letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); }
 footer{ text-align: center; padding: 34px 20px 50px; font-style: italic; font-size: 0.85rem; color: var(--accent); }
 .sticker{
   position: absolute; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;

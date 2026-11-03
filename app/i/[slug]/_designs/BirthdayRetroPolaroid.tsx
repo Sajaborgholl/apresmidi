@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
-import WhatsappConfirmLink from "./WhatsappConfirmLink";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Birthday Retro Polaroid — ported from the approved static mockup
 // (template-birthday-retro-polaroid-prototype.html): recreates a Canva
@@ -121,13 +121,20 @@ function placeholderDate(seed: string): string {
   return `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.${year}`;
 }
 
-export default function BirthdayRetroPolaroid({ invite }: { invite: Invite }) {
-  const [guestName, setGuestName] = useState("");
-  const [attending, setAttending] = useState<"accept" | "decline">("accept");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+// RSVP: replies come only from a guest's personal link, so there's no name
+// field — the guest is known (and greeted above the card, the way the
+// source's "Hello, Olivia!" did). The shared logic (save, change my reply)
+// is useGuestRsvp in ./guestRsvp; the general link just points guests to
+// their personal invitation.
+export default function BirthdayRetroPolaroid({
+  invite,
+  guest = null,
+}: {
+  invite: Invite;
+  embedded?: boolean;
+  guest?: InviteGuest | null;
+}) {
+  const rsvp = useGuestRsvp(guest);
 
   const eventDate = invite.event_date ? new Date(invite.event_date) : null;
   // Compact numeric "DD.MM.YYYY" — matching the source design's own date
@@ -141,42 +148,16 @@ export default function BirthdayRetroPolaroid({ invite }: { invite: Invite }) {
     ? eventDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
     : null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!guestName.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: guestName.trim(),
-      attending: attending === "accept",
-      guest_count: attending === "accept" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
-  const waMessage = encodeURIComponent(
-    `Hi! It's ${guestName.trim() || "Friend"} — ${
-      attending === "accept"
-        ? `count me in, can't wait to celebrate${guestCount > 1 ? ` with ${guestCount} of us` : ""}!`
-        : "I'm so sorry, I won't be able to make it this time!"
-    }`
-  );
-  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
-
   return (
     <>
       <style>{CSS}</style>
 
       {/* ============ PAGE 1 — INVITE ============ */}
       <section className="rp-hero-section">
+        {/* A guest's personal invitation opens with their name and seats —
+            in flow above the card, so it never sits on the scaled design. */}
+        <GuestWelcome guest={guest} className="rp-welcome" parts={{ dear: "rp-welcome-dear", seats: "rp-welcome-seats" }} />
+
         <Reveal className="rp-stage">
           <div className="rp-bg-script rp-row-1">happy birthday</div>
           <div className="rp-bg-script rp-row-2">happy birthday</div>
@@ -224,69 +205,79 @@ export default function BirthdayRetroPolaroid({ invite }: { invite: Invite }) {
           <h2 className="rp-rsvp-heading">RSVP</h2>
           <p className="rp-rsvp-sub">Let us know if you&apos;ll be celebrating with {invite.host_names}!</p>
 
-          {!submitted ? (
-            <form className="rp-rsvp-form" onSubmit={handleSubmit}>
-              <label className="rp-rsvp-field">
-                <span>Guest Name</span>
-                <input
-                  type="text"
-                  required
-                  placeholder="Your name"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                />
-              </label>
+          {!guest ? (
+            <RsvpByInvitationNote className="rp-rsvp-closed" />
+          ) : rsvp.showForm ? (
+            <form className="rp-rsvp-form" onSubmit={rsvp.submit}>
+              {guest.name && (
+                <div className="rp-rsvp-field">
+                  <span>Replying as</span>
+                  <p className="rp-rsvp-guest">{guest.name}</p>
+                </div>
+              )}
 
               <div className="rp-rsvp-attend-row" role="group" aria-label="Attending">
                 <button
                   type="button"
-                  className={`rp-rsvp-attend-btn ${attending === "accept" ? "active" : ""}`}
-                  onClick={() => setAttending("accept")}
+                  className={`rp-rsvp-attend-btn ${rsvp.attending ? "active" : ""}`}
+                  aria-pressed={rsvp.attending}
+                  onClick={() => rsvp.setAttending(true)}
                 >
                   Count me in
                 </button>
                 <button
                   type="button"
-                  className={`rp-rsvp-attend-btn ${attending === "decline" ? "active" : ""}`}
-                  onClick={() => setAttending("decline")}
+                  className={`rp-rsvp-attend-btn ${!rsvp.attending ? "active" : ""}`}
+                  aria-pressed={!rsvp.attending}
+                  onClick={() => rsvp.setAttending(false)}
                 >
                   Can&apos;t make it
                 </button>
               </div>
 
-              {attending === "accept" && (
+              {rsvp.attending && rsvp.maxGuests > 1 && (
                 <label className="rp-rsvp-field">
-                  <span>Number of Guests</span>
+                  <span>Number of Guests &middot; up to {rsvp.maxGuests}</span>
                   <input
                     type="number"
                     min={1}
-                    max={10}
-                    value={guestCount}
-                    onChange={(e) => setGuestCount(Number(e.target.value))}
+                    max={rsvp.maxGuests}
+                    value={rsvp.guestCount}
+                    onChange={(e) => rsvp.setGuestCount(Number(e.target.value))}
                   />
                 </label>
               )}
 
-              {error && <p className="rp-rsvp-error">{error}</p>}
+              {rsvp.error && (
+                <p className="rp-rsvp-error" role="alert">
+                  {rsvp.error}
+                </p>
+              )}
 
-              <button type="submit" className="rp-rsvp-submit-btn" disabled={loading}>
-                {loading ? "Sending…" : "Send RSVP"}
+              <button type="submit" className="rp-rsvp-submit-btn" disabled={rsvp.loading}>
+                {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send RSVP"}
               </button>
+              {rsvp.changing && (
+                <button type="button" className="rp-rsvp-text-btn" onClick={rsvp.cancelEdit}>
+                  Keep my earlier reply
+                </button>
+              )}
             </form>
           ) : (
-            <div className="rp-rsvp-thanks">
-              <p className="rp-rsvp-thanks-title">{attending === "accept" ? "Yay!" : "We'll miss you"}</p>
-              <p className="rp-rsvp-thanks-body">
-                {attending === "accept"
-                  ? `Can't wait to celebrate with you, ${guestName.trim() || "friend"}!`
-                  : `Thanks for letting us know, ${guestName.trim() || "friend"}.`}
-              </p>
-              {waLink && (
-                <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="rp-rsvp-submit-btn rp-wa-btn">
-                  Confirm on WhatsApp too
-                </WhatsappConfirmLink>
-              )}
-            </div>
+            rsvp.saved && (
+              <div className="rp-rsvp-thanks" role="status">
+                <p className="rp-rsvp-thanks-title">{rsvp.saved.attending ? "Yay!" : "We'll miss you"}</p>
+                <p className="rp-rsvp-thanks-body">
+                  {rsvp.saved.attending
+                    ? `Can't wait to celebrate with you${rsvp.toName}!`
+                    : `Thanks for letting us know${rsvp.toName}.`}{" "}
+                  {replySummary(rsvp.saved)}
+                </p>
+                <button type="button" className="rp-rsvp-text-btn" onClick={rsvp.edit}>
+                  Change my reply
+                </button>
+              </div>
+            )
           )}
         </Reveal>
       </section>
@@ -641,7 +632,66 @@ const CSS = `
 .rp-rsvp-submit-btn:active { transform: scale(0.98); }
 .rp-rsvp-submit-btn:disabled { opacity: 0.6; cursor: default; }
 
-.rp-wa-btn { margin-top: 16px; background: #25D366; color: #fff; box-shadow: 0 8px 18px rgba(37, 211, 102, 0.35); }
+/* The guest is known from their personal link: their name, read-only, in
+   place of the old name field (same underline look as the inputs). */
+.rp-rsvp-guest {
+  margin: 0;
+  border-bottom: 2px solid rgba(210, 78, 42, 0.25);
+  padding: 0.4em 0.1em 0.6em;
+  font-weight: 500;
+  font-size: 1.1rem;
+  color: var(--rp-ink);
+  overflow-wrap: anywhere;
+}
+
+/* "Change my reply" / "Keep my earlier reply": text links, like "View map". */
+.rp-rsvp-text-btn {
+  align-self: center;
+  min-height: 44px;
+  margin-top: 0.6em;
+  padding: 0 0.4em;
+  border: none;
+  background: none;
+  font-family: var(--rp-font-body);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  color: var(--rp-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.rp-rsvp-form .rp-rsvp-text-btn { margin-top: -1.4em; }
+
+.rp-rsvp-closed {
+  margin: 0;
+  color: var(--rp-ink);
+  font-family: var(--rp-font-script);
+  font-weight: 400;
+  font-size: clamp(1.6rem, 5vw, 2.1rem);
+  line-height: 1.3;
+}
+
+/* ---------- Personal welcome (guest links) ---------- */
+
+.rp-welcome { max-width: 640px; margin: 0 auto 28px; text-align: center; color: var(--rp-ink); }
+.rp-welcome p { margin: 0; }
+.rp-welcome-dear {
+  font-family: var(--rp-font-script);
+  font-weight: 400;
+  font-size: clamp(2.2rem, 7vw, 3.4rem);
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.rp-welcome .rp-welcome-seats {
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: clamp(0.68rem, 1.8vw, 0.8rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  line-height: 1.6;
+}
 
 .rp-rsvp-thanks { animation: rp-fade-up 500ms var(--rp-ease-out) both; }
 

@@ -165,3 +165,39 @@ export async function sendCategoryRequestNotification({
     `,
   });
 }
+
+// Tells the team WhatsApp sending through Kapso is paused (out of credit,
+// project under review, or the API key rejected), so guests' invitations are
+// queued but not going out until it's fixed. Sent once per pause. Same
+// noop-when-unconfigured pattern as above; the caller catches failures.
+export async function sendWhatsappPausedAlert(status: string) {
+  const reasons: Record<string, string> = {
+    paused_credits: "Kapso says the account is out of credit. Top up in Kapso > Billing.",
+    paused_review: "Kapso says the project is under review. Check the Kapso dashboard.",
+    paused_key: "Kapso rejected the API key or phone number ID. Check KAPSO_API_KEY and KAPSO_PHONE_NUMBER_ID in Vercel.",
+  };
+  const reason = reasons[status] ?? `Kapso reported: ${status}`;
+  const to = "saja.borgholl@hotmail.com";
+  const subject = "WhatsApp sending paused";
+  const text = [
+    reason,
+    "",
+    "Guests' invitations stay queued and go out automatically once it's fixed.",
+  ].join("\n");
+
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.log(`[email:noop] RESEND_API_KEY not set — would have sent to ${to}:\n${subject}\n\n${text}`);
+    return;
+  }
+
+  const resend = new Resend(apiKey);
+  await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "Après-midi <onboarding@resend.dev>",
+    to,
+    subject,
+    text,
+    html: `<p>${escapeHtml(reason)}</p>
+      <p>Guests' invitations stay queued and go out automatically once it's fixed.</p>`,
+  });
+}

@@ -24,6 +24,52 @@ export type DashboardRsvp = {
   created_at: string;
 };
 
+// One guest on the host's list, with their personal-link token (the dashboard
+// builds and copies their link) and their reply, if any.
+export type DashboardGuest = {
+  id: string;
+  name: string;
+  phone: string;
+  seats: number;
+  token: string;
+  first_opened_at: string | null;
+  last_opened_at: string | null;
+  open_count: number;
+  created_at: string;
+  // The latest invitation or reminder sent on WhatsApp, if any.
+  delivery: {
+    kind: "invite" | "reminder";
+    status: "queued" | "sending" | "sent" | "delivered" | "read" | "failed" | "cancelled";
+    error: string | null;
+    at: string;
+  } | null;
+  reply: {
+    attending: boolean;
+    guest_count: number;
+    message: string | null;
+    replied_at: string;
+    changed: boolean;
+  } | null;
+};
+
+// Where WhatsApp sending stands for this invitation.
+export type SendingState = {
+  consented: boolean;
+  // Messages still waiting to go out.
+  pending: number;
+  // The Après-midi number: "connected", "disconnected", "need_scan"…
+  whatsapp: string;
+};
+
+export function summarizeGuests(guests: DashboardGuest[]) {
+  const seatsInvited = guests.reduce((sum, g) => sum + g.seats, 0);
+  const accepted = guests.filter((g) => g.reply?.attending);
+  const declined = guests.filter((g) => g.reply && !g.reply.attending);
+  const waiting = guests.filter((g) => !g.reply);
+  const seatsConfirmed = accepted.reduce((sum, g) => sum + (g.reply?.guest_count ?? 0), 0);
+  return { seatsInvited, accepted, declined, waiting, seatsConfirmed, total: guests.length };
+}
+
 export function summarizeRsvps(rsvps: DashboardRsvp[]) {
   const accepted = rsvps.filter((r) => r.attending);
   const declined = rsvps.filter((r) => !r.attending);

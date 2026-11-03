@@ -2,8 +2,9 @@
 
 import dynamic from "next/dynamic";
 import { forwardRef, useEffect, useRef, useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // react-pageflip renders a real canvas/DOM paper-curl (proper curved fold,
 // moving highlight, cast shadow) instead of our hand-rolled clip-path
@@ -25,28 +26,6 @@ const DOT_COUNT = 60;
 // to 3 decimal places keeps plenty of precision for pixels while making
 // the server- and client-rendered strings byte-for-byte identical.
 const r3 = (n: number) => Math.round(n * 1000) / 1000;
-
-// react-pageflip listens for mousedown/touchstart on the book itself (to
-// detect corner-drag gestures) and calls preventDefault() on that event —
-// which blocks the browser's default "focus this element" behavior. It
-// only skips inputs, textareas, etc. it doesn't know about (only <a> and
-// <button> are exempted internally), so form fields inside a flip-book
-// page silently never get focus. Fixing this from a normal React
-// onMouseDown prop doesn't work: React only dispatches synthetic events
-// once the native event has already bubbled all the way up to React's
-// root listener, and page-flip's own real addEventListener sits on an
-// ancestor *below* that root — so its handler (and its preventDefault())
-// already ran by the time our synthetic handler would fire. Attaching a
-// real, non-delegated listener directly on the input itself (via this ref
-// callback) runs at the right moment — right as the event reaches the
-// input — so stopPropagation() here actually keeps it from ever reaching
-// page-flip's listener further up the tree, while leaving the browser's
-// own default focus behavior on the input untouched.
-function stopFlipDrag(node: HTMLElement | null) {
-  if (!node) return;
-  node.addEventListener("mousedown", (e) => e.stopPropagation());
-  node.addEventListener("touchstart", (e) => e.stopPropagation());
-}
 
 const FANS = Array.from({ length: FAN_COUNT }, (_, i) => {
   const angle = (i / FAN_COUNT) * Math.PI * 2 - Math.PI / 2;
@@ -222,10 +201,14 @@ const InvitePage = forwardRef<HTMLDivElement, { invite: Invite; onRsvp: () => vo
 });
 
 type RsvpPageProps = {
-  invite: Invite;
+  guest: InviteGuest | null;
   onBack: () => void;
 };
 
+// RSVP comes only from a guest's personal link (no name field — the guest is
+// known); the shared save / change my reply logic is useGuestRsvp in
+// ./guestRsvp. On the general link the page points to the personal link.
+//
 // Owns all of its own form state locally now — it used to be lifted up
 // into BacheloretteCoastal and passed down as props, but that meant every
 // keystroke re-rendered the *parent*, which recreates the <InvitePage>/
@@ -235,34 +218,8 @@ type RsvpPageProps = {
 // which rebuilds the page's real DOM nodes — wiping input focus after every
 // single character. Keeping this state local means typing only re-renders
 // this one already-mounted component, not the whole book.
-const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ invite, onBack }, ref) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"yes" | "no">("yes");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "yes",
-      guest_count: attending === "yes" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
+const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ guest, onBack }, ref) {
+  const rsvp = useGuestRsvp(guest);
 
   return (
     <div className="card-page" ref={ref}>
@@ -272,42 +229,41 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ i
         <div className="script small">We can&apos;t wait</div>
         <div className="title small">TO CELEBRATE WITH YOU</div>
 
-        {!submitted ? (
-          <form onSubmit={handleSubmit}>
-            <label>
-              Full Name
-              <input
-                ref={stopFlipDrag}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                placeholder="Your name"
-              />
-            </label>
+        {!guest ? (
+          <RsvpByInvitationNote className="bc-rsvp-closed" />
+        ) : rsvp.showForm ? (
+          <form onSubmit={rsvp.submit}>
+            {guest.name && (
+              <p className="bc-replying">
+                Replying as <b>{guest.name}</b>
+              </p>
+            )}
 
             <div className="toggle-group">
               <button
                 type="button"
-                className={`toggle-btn ${attending === "yes" ? "active" : ""}`}
-                onClick={() => setAttending("yes")}
+                className={`toggle-btn ${rsvp.attending ? "active" : ""}`}
+                aria-pressed={rsvp.attending}
+                onClick={() => rsvp.setAttending(true)}
               >
                 Joyfully Accept
               </button>
               <button
                 type="button"
-                className={`toggle-btn ${attending === "no" ? "active" : ""}`}
-                onClick={() => setAttending("no")}
+                className={`toggle-btn ${!rsvp.attending ? "active" : ""}`}
+                aria-pressed={!rsvp.attending}
+                onClick={() => rsvp.setAttending(false)}
               >
                 Regretfully Decline
               </button>
             </div>
 
-            {attending === "yes" && (
+            {rsvp.attending && rsvp.maxGuests > 1 && (
               <label>
-                Number of Guests
+                Number of Guests (up to {rsvp.maxGuests})
                 {/* Explicit +/- buttons instead of a native number-input
                     spinner: <button> is already exempted from page-flip's
-                    own mousedown interception (see stopFlipDrag above), so
+                    own mousedown interception (react-pageflip only exempts <a>/<button>), so
                     this sidesteps that fragility entirely — a real native
                     spinner click could silently fail to register on some
                     browsers/devices inside a flip-book page, which is the
@@ -317,15 +273,17 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ i
                 <div className="stepper">
                   <button
                     type="button"
-                    onClick={() => setGuestCount((c) => Math.max(1, c - 1))}
+                    onClick={() => rsvp.setGuestCount(rsvp.guestCount - 1)}
+                    disabled={rsvp.guestCount <= 1}
                     aria-label="Decrease number of guests"
                   >
                     −
                   </button>
-                  <span aria-live="polite">{guestCount}</span>
+                  <span aria-live="polite">{rsvp.guestCount}</span>
                   <button
                     type="button"
-                    onClick={() => setGuestCount((c) => Math.min(6, c + 1))}
+                    onClick={() => rsvp.setGuestCount(rsvp.guestCount + 1)}
+                    disabled={rsvp.guestCount >= rsvp.maxGuests}
                     aria-label="Increase number of guests"
                   >
                     +
@@ -334,21 +292,36 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ i
               </label>
             )}
 
-            {error && <p className="error-text">{error}</p>}
+            {rsvp.error && (
+              <p className="error-text" role="alert">
+                {rsvp.error}
+              </p>
+            )}
 
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading ? "Sending..." : "Send RSVP"}
+            <button type="submit" className="submit-btn" disabled={rsvp.loading}>
+              {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
             </button>
+            {rsvp.changing && (
+              <button type="button" className="bc-text-btn" onClick={rsvp.cancelEdit}>
+                Keep my earlier reply
+              </button>
+            )}
           </form>
         ) : (
-          <div className="thank-you">
-            <div className="script small">Yay!</div>
-            <p>
-              {attending === "yes"
-                ? `Your RSVP has been received, ${name.trim() || "friend"} — see you at the party!`
-                : `Thanks for letting us know, ${name.trim() || "friend"} — you'll be missed.`}
-            </p>
-          </div>
+          rsvp.saved && (
+            <div className="thank-you" role="status">
+              <div className="script small">{rsvp.saved.attending ? "Yay!" : "Aww!"}</div>
+              <p>
+                {rsvp.saved.attending
+                  ? `Your RSVP has been received${rsvp.toName} — see you at the party!`
+                  : `Thanks for letting us know${rsvp.toName} — you'll be missed.`}{" "}
+                {replySummary(rsvp.saved)}
+              </p>
+              <button type="button" className="bc-text-btn" onClick={rsvp.edit}>
+                Change my reply
+              </button>
+            </div>
+          )
         )}
 
         <button className="back-btn" type="button" onClick={onBack}>
@@ -359,7 +332,7 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ i
   );
 });
 
-export default function BacheloretteCoastal({ invite }: { invite: Invite }) {
+export default function BacheloretteCoastal({ invite, guest = null }: { invite: Invite; guest?: InviteGuest | null }) {
   // react-pageflip's own TS types are thin, so this ref is typed loosely —
   // book.current.pageFlip() returns the underlying PageFlip instance.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -373,13 +346,16 @@ export default function BacheloretteCoastal({ invite }: { invite: Invite }) {
   const CARD_RATIO_W = 360;
   const CARD_RATIO_H = 506;
   const VIEWPORT_PADDING = 28;
+  // A guest's personal link shows a welcome line above the card; leave room
+  // for it so the card still fits the first screen.
+  const welcomeSpace = guest ? 96 : 0;
 
   const [size, setSize] = useState({ width: CARD_RATIO_W, height: CARD_RATIO_H });
 
   useEffect(() => {
     function measure() {
       const availW = window.innerWidth - VIEWPORT_PADDING * 2;
-      const availH = window.innerHeight - VIEWPORT_PADDING * 2;
+      const availH = window.innerHeight - VIEWPORT_PADDING * 2 - welcomeSpace;
       const scale = Math.min(availW / CARD_RATIO_W, availH / CARD_RATIO_H);
       const width = Math.round(CARD_RATIO_W * scale);
       const height = Math.round(CARD_RATIO_H * scale);
@@ -388,13 +364,16 @@ export default function BacheloretteCoastal({ invite }: { invite: Invite }) {
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, []);
+  }, [welcomeSpace]);
 
   return (
     <>
       <style>{CSS}</style>
 
       <div className="page-wrap">
+        {/* A guest's personal invitation opens with their name and seats. */}
+        <GuestWelcome guest={guest} className="bc-welcome" parts={{ dear: "bc-welcome-dear", seats: "bc-welcome-seats" }} />
+
         <div className="book-frame" style={{ width: size.width, height: size.height }}>
           {/*
             size="fixed" + autoSize={false} on purpose: "stretch" let the
@@ -449,7 +428,7 @@ export default function BacheloretteCoastal({ invite }: { invite: Invite }) {
             ref={book}
           >
             <InvitePage invite={invite} onRsvp={() => book.current?.pageFlip().flipNext()} />
-            <RsvpPage invite={invite} onBack={() => book.current?.pageFlip().flipPrev()} />
+            <RsvpPage guest={guest} onBack={() => book.current?.pageFlip().flipPrev()} />
           </HTMLFlipBook>
         </div>
 
@@ -516,6 +495,16 @@ form input:focus { border-color: var(--green-dark); }
 .submit-btn:hover { opacity: 0.92; }
 .thank-you { margin-top: 18px; }
 .thank-you p { font-size: 12.5px; color: #333; max-width: 210px; margin: 6px auto 0; line-height: 1.55; }
+.stepper button:disabled { opacity: 0.4; cursor: default; }
+.bc-replying { margin: 0; font-size: 12px; font-weight: 500; color: var(--green-dark); text-align: center; overflow-wrap: anywhere; }
+.bc-replying b { font-weight: 700; }
+.bc-text-btn { align-self: center; margin-top: -4px; background: none; border: none; color: var(--green-dark); font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 11.5px; letter-spacing: 0.5px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 10px; min-height: 32px; }
+.thank-you .bc-text-btn { margin-top: 8px; }
+.bc-rsvp-closed { margin: 18px auto 0; max-width: 210px; font-size: 12.5px; font-weight: 500; line-height: 1.55; color: var(--green-dark); }
+.bc-welcome { width: 100%; max-width: 420px; margin: 0 0 14px; padding: 0 16px; text-align: center; color: var(--ink); }
+.bc-welcome p { margin: 0; }
+.bc-welcome .bc-welcome-dear { font-family: 'Dancing Script', cursive; font-size: clamp(30px, 8vw, 42px); line-height: 1.15; overflow-wrap: anywhere; }
+.bc-welcome .bc-welcome-seats { margin-top: 6px; font-weight: 700; font-size: clamp(11px, 3vw, 12.5px); letter-spacing: 1.5px; text-transform: uppercase; color: var(--green-dark); }
 .back-btn { margin-top: 14px; background: none; border: none; color: var(--green-dark); font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1px; cursor: pointer; padding: 6px; }
 .hint { margin-top: 20px; font-size: 12.5px; color: #8a7c70; letter-spacing: 0.5px; text-align: center; }
 `;

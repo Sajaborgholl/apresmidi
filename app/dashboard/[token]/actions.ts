@@ -63,6 +63,9 @@ async function saveInviteChanges(token: string, formData: FormData): Promise<voi
   if (fields?.host_names && !hostNames) {
     throw new EditInputError("Please enter the host names.");
   }
+  if (!whatsappNumber) {
+    throw new EditInputError("Please enter your WhatsApp number, including the country code.");
+  }
 
   const update: Record<string, unknown> = {};
   // Only fields this template's manifest actually shows are written, so a
@@ -71,7 +74,8 @@ async function saveInviteChanges(token: string, formData: FormData): Promise<voi
   if (fields?.event_date) update.event_date = eventDate;
   if (fields?.venue_name) update.venue_name = venueName;
   if (fields?.venue_map_url) update.venue_map_url = venueMapUrl;
-  if (fields?.whatsapp_number) update.whatsapp_number = whatsappNumber;
+  // Every invitation has the host's (private) WhatsApp number.
+  update.whatsapp_number = whatsappNumber;
   if (fields && fields.photoCount > 0) {
     const photoUrls = await uploadInvitePhotos(supabaseAdmin, formData, invite.slug, fields.photoCount, {
       existing: invite.photo_urls ?? [],

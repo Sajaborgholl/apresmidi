@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getTemplateBySlug } from "@/lib/templates/registry";
+import { SAMPLE_GUEST } from "@/lib/guestRules";
 import type { Invite } from "@/lib/types";
 
 // Loaded inside an <iframe> by CustomizePanel, on purpose — it's its own
@@ -47,6 +48,8 @@ export default function CustomizePreviewPage() {
   }
 
   const TemplateComponent = entry.component;
-  // A preview: no opening interaction (e.g. Blush Bow's bow) over the draft.
-  return <TemplateComponent invite={invite} embedded />;
+  // A preview: no opening interaction (e.g. Blush Bow's bow) over the draft,
+  // and an unnamed guest, so the host sees the RSVP form without a made-up
+  // name. Each guest's name and seats appear only on their personal link.
+  return <TemplateComponent invite={invite} embedded guest={SAMPLE_GUEST} />;
 }

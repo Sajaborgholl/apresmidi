@@ -192,36 +192,43 @@ export default function CustomizeForm({
         </div>
       )}
 
-      {fields.whatsapp_number && (
-        <div>
-          <label className={labelClass}>WhatsApp number (for RSVP confirmations)</label>
-          <div className="flex gap-2">
-            <select
-              name="whatsapp_country"
-              value={values.whatsapp_country}
-              onChange={(e) => onValueChange("whatsapp_country", e.target.value)}
-              className={`w-32 shrink-0 truncate ${inputFieldClass}`}
-              aria-label="Code"
-            >
-              <option value="">+1</option>
-              {COUNTRY_CODES.map((country) => (
-                <option key={country.name} value={country.name}>
-                  {country.name} ({country.dial})
-                </option>
-              ))}
-            </select>
-            <input
-              name="whatsapp_number"
-              maxLength={MAX_LENGTH.phone}
-              placeholder="555 123 4567"
-              value={values.whatsapp_number}
-              onChange={(e) => onValueChange("whatsapp_number", e.target.value)}
-              className={inputClass}
-              aria-label="WhatsApp number"
-            />
-          </div>
+      {/* Every invitation: the host's own WhatsApp. Private — never shown on
+          the invitation; guests' WhatsApp messages to the Après-midi number
+          are forwarded here. */}
+      <div>
+        <label className={labelClass}>Your WhatsApp number</label>
+        <div className="flex gap-2">
+          <select
+            name="whatsapp_country"
+            value={values.whatsapp_country}
+            onChange={(e) => onValueChange("whatsapp_country", e.target.value)}
+            className={`w-32 shrink-0 truncate ${inputFieldClass}`}
+            aria-label="Code"
+          >
+            <option value="">+1</option>
+            {COUNTRY_CODES.map((country) => (
+              <option key={country.name} value={country.name}>
+                {country.name} ({country.dial})
+              </option>
+            ))}
+          </select>
+          <input
+            name="whatsapp_number"
+            maxLength={MAX_LENGTH.phone}
+            placeholder="555 123 4567"
+            value={values.whatsapp_number}
+            onChange={(e) => onValueChange("whatsapp_number", e.target.value)}
+            className={inputClass}
+            aria-label="WhatsApp number"
+            required
+            inputMode="tel"
+          />
         </div>
-      )}
+        <p className="mt-1 text-[11px] text-[var(--ink)]/45">
+          Private: never shown on your invitation. When guests reply to your invitation message on WhatsApp, we
+          forward it to you here.
+        </p>
+      </div>
 
       {fields.photoCount > 0 && (
         <div>

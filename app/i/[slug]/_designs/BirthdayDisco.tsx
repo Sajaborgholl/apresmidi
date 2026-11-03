@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { submitRsvp } from "../actions";
 import type { Invite } from "@/lib/types";
-import WhatsappConfirmLink from "./WhatsappConfirmLink";
+import type { InviteGuest } from "@/lib/guestRules";
+import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Birthday Disco — ported from the approved static mockup
 // (template-disco-birthday-prototype.html): same pink disco look, but the
@@ -92,13 +91,19 @@ function Decoration({ className, file }: { className: string; file: string }) {
   );
 }
 
-export default function BirthdayDisco({ invite }: { invite: Invite }) {
-  const [name, setName] = useState("");
-  const [attending, setAttending] = useState<"accept" | "decline">("accept");
-  const [guestCount, setGuestCount] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+// RSVP: replies come only from a guest's personal link, so there's no name
+// field — the guest is known. The shared logic (save, change my reply) is
+// useGuestRsvp in ./guestRsvp; the general link just points guests to their
+// personal invitation.
+export default function BirthdayDisco({
+  invite,
+  guest = null,
+}: {
+  invite: Invite;
+  embedded?: boolean;
+  guest?: InviteGuest | null;
+}) {
+  const rsvp = useGuestRsvp(guest);
 
   const eventDate = invite.event_date ? new Date(invite.event_date) : null;
   const dateFormatted = eventDate
@@ -108,41 +113,14 @@ export default function BirthdayDisco({ invite }: { invite: Invite }) {
     ? eventDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
     : null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    setError("");
-
-    const { error: insertError } = await submitRsvp({
-      invite_id: invite.id,
-      guest_name: name.trim(),
-      attending: attending === "accept",
-      guest_count: attending === "accept" ? guestCount : 0,
-    });
-
-    setLoading(false);
-    if (insertError) {
-      setError("Something went wrong — please try again.");
-      return;
-    }
-    setSubmitted(true);
-  }
-
-  const waMessage = encodeURIComponent(
-    `Hi! It's ${name.trim() || "Friend"} — ${
-      attending === "accept"
-        ? `count me in, can't wait to party${guestCount > 1 ? ` with ${guestCount} of us` : ""}!`
-        : "I'm so sorry, I won't be able to make it this time!"
-    }`
-  );
-  const waLink = invite.whatsapp_number ? `https://wa.me/${invite.whatsapp_number}?text=${waMessage}` : null;
-
   return (
     <>
       <style>{CSS}</style>
 
       <div className="bd-hero">
+        {/* A guest's personal invitation opens with their name and seats. */}
+        <GuestWelcome guest={guest} className="bd-welcome" parts={{ dear: "bd-welcome-dear", seats: "bd-welcome-seats" }} />
+
         <p className="bd-eyebrow">You&apos;re invited</p>
 
         <div className="bd-hero-scene">
@@ -209,69 +187,79 @@ export default function BirthdayDisco({ invite }: { invite: Invite }) {
         <h2 className="bd-rsvp-script">RSVP</h2>
         <p className="bd-rsvp-sub">Let us know if you&apos;ll be at the disco!</p>
 
-        {!submitted ? (
-          <form className="bd-form" onSubmit={handleSubmit}>
-            <label>
-              Guest name
-              <input
-                type="text"
-                required
-                placeholder="Your name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </label>
+        {!guest ? (
+          <RsvpByInvitationNote className="bd-rsvp-closed" />
+        ) : rsvp.showForm ? (
+          <form className="bd-form" onSubmit={rsvp.submit}>
+            {guest.name && (
+              <div className="bd-guest">
+                <span className="bd-guest-label">Replying as</span>
+                <p className="bd-guest-name">{guest.name}</p>
+              </div>
+            )}
 
-            <div className="bd-attend-row">
+            <div className="bd-attend-row" role="group" aria-label="Attending">
               <button
                 type="button"
-                className={`bd-attend-btn ${attending === "accept" ? "active" : ""}`}
-                onClick={() => setAttending("accept")}
+                className={`bd-attend-btn ${rsvp.attending ? "active" : ""}`}
+                aria-pressed={rsvp.attending}
+                onClick={() => rsvp.setAttending(true)}
               >
                 Count me in
               </button>
               <button
                 type="button"
-                className={`bd-attend-btn ${attending === "decline" ? "active" : ""}`}
-                onClick={() => setAttending("decline")}
+                className={`bd-attend-btn ${!rsvp.attending ? "active" : ""}`}
+                aria-pressed={!rsvp.attending}
+                onClick={() => rsvp.setAttending(false)}
               >
                 Can&apos;t make it
               </button>
             </div>
 
-            {attending === "accept" && (
+            {rsvp.attending && rsvp.maxGuests > 1 && (
               <label>
-                Number of guests
+                Number of guests &middot; up to {rsvp.maxGuests}
                 <input
                   type="number"
                   min={1}
-                  max={10}
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(Number(e.target.value))}
+                  max={rsvp.maxGuests}
+                  value={rsvp.guestCount}
+                  onChange={(e) => rsvp.setGuestCount(Number(e.target.value))}
                 />
               </label>
             )}
 
-            {error && <p className="bd-error">{error}</p>}
+            {rsvp.error && (
+              <p className="bd-error" role="alert">
+                {rsvp.error}
+              </p>
+            )}
 
-            <button type="submit" className="bd-submit-btn" disabled={loading}>
-              {loading ? "Sending…" : "Send RSVP"}
+            <button type="submit" className="bd-submit-btn" disabled={rsvp.loading}>
+              {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send RSVP"}
             </button>
+            {rsvp.changing && (
+              <button type="button" className="bd-text-btn" onClick={rsvp.cancelEdit}>
+                Keep my earlier reply
+              </button>
+            )}
           </form>
         ) : (
-          <div className="bd-thank-you">
-            <div className="bd-rsvp-script">{attending === "accept" ? "Yay!" : "We'll miss you"}</div>
-            <p>
-              {attending === "accept"
-                ? `Can't wait to party with you, ${name.trim() || "friend"}!`
-                : `Thanks for letting us know, ${name.trim() || "friend"}.`}
-            </p>
-            {waLink && (
-              <WhatsappConfirmLink href={waLink} demo={invite.is_demo} className="bd-submit-btn bd-wa-btn">
-                Confirm on WhatsApp too
-              </WhatsappConfirmLink>
-            )}
-          </div>
+          rsvp.saved && (
+            <div className="bd-thank-you" role="status">
+              <div className="bd-rsvp-script">{rsvp.saved.attending ? "Yay!" : "We'll miss you"}</div>
+              <p>
+                {rsvp.saved.attending
+                  ? `Can't wait to party with you${rsvp.toName}!`
+                  : `Thanks for letting us know${rsvp.toName}.`}{" "}
+                {replySummary(rsvp.saved)}
+              </p>
+              <button type="button" className="bd-text-btn" onClick={rsvp.edit}>
+                Change my reply
+              </button>
+            </div>
+          )
         )}
       </section>
     </>
@@ -547,7 +535,69 @@ const CSS = `
 }
 .bd-submit-btn:hover { opacity: 0.88; }
 .bd-submit-btn:disabled { opacity: 0.6; cursor: default; }
-.bd-wa-btn { margin-top: 18px; background: #25D366; }
 .bd-thank-you { max-width: 380px; margin: 0 auto; font-size: 15px; line-height: 1.8; color: #333; }
 .bd-thank-you .bd-rsvp-script { margin-bottom: 8px; }
+.bd-thank-you p { margin: 0 0 12px; }
+
+/* The guest is known from their personal link: their name, read-only, in
+   place of the old name field (same label + underline look). */
+.bd-guest-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #8b9198;
+  margin-bottom: 8px;
+}
+.bd-guest-name {
+  margin: 0;
+  border-bottom: 2px solid rgba(26,26,26,0.15);
+  font-size: 15px;
+  font-weight: 500;
+  padding: 6px 2px 10px;
+  color: #1a1a1a;
+  overflow-wrap: anywhere;
+}
+/* "Change my reply" / "Keep my earlier reply": text links, like "View map". */
+.bd-text-btn {
+  align-self: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #e85f9c;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.bd-text-btn:hover { color: #c23c7b; }
+.bd-rsvp-closed { max-width: 380px; margin: 0 auto; font-size: 15px; font-weight: 500; line-height: 1.8; color: #333; }
+
+/* ---------- Personal welcome (guest links) ---------- */
+.bd-welcome { max-width: 560px; margin: 0 auto 28px; }
+.bd-welcome p { margin: 0; }
+.bd-welcome-dear {
+  font-family: 'Permanent Marker', cursive;
+  font-weight: 400;
+  font-size: clamp(30px, 6vw, 44px);
+  line-height: 1.2;
+  color: #1a1a1a;
+  transform: rotate(-1.5deg);
+  overflow-wrap: anywhere;
+}
+.bd-welcome .bd-welcome-seats {
+  margin-top: 8px;
+  font-size: clamp(10.5px, 1.6vw, 12px);
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #8b9198;
+  line-height: 1.6;
+}
 `;
