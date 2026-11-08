@@ -5,6 +5,7 @@ import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import WeddingRetroAirmail from "@/app/i/[slug]/_designs/WeddingRetroAirmail";
+import WeddingSweetPea from "@/app/i/[slug]/_designs/WeddingSweetPea";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
 import BacheloretteMartini from "@/app/i/[slug]/_designs/BacheloretteMartini";
 import BacheloretteDoodle from "@/app/i/[slug]/_designs/BacheloretteDoodle";
@@ -63,6 +64,20 @@ export type TemplateEntry = {
 };
 
 export const TEMPLATE_REGISTRY: TemplateEntry[] = [
+  {
+    slug: "wedding-sweet-pea",
+    name: "Sweet Pea Wedding",
+    category: "wedding",
+    component: WeddingSweetPea,
+    previewBackground: "#f3e6ee",
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
+      photoCount: 0,
+    },
+  },
   {
     slug: "wedding-classic",
     name: "Classic Wedding",
