@@ -67,7 +67,7 @@ function Butterfly({ className = "", style }: { className?: string; style?: CSSP
 // ------------------------------------------------------------------ gate
 type GateStage = "closed" | "seal" | "open" | "grow" | "done";
 
-function FoldGate({ names, dateLine, onDone }: { names: string; dateLine: string; onDone: () => void }) {
+function FoldGate({ names, dateLine, onDone, onGone }: { names: string; dateLine: string; onDone: () => void; onGone: () => void }) {
   const [stage, setStage] = useState<GateStage>("closed");
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -77,13 +77,15 @@ function FoldGate({ names, dateLine, onDone }: { names: string; dateLine: string
     if (stage !== "closed") return;
     if (prefersReducedMotion()) {
       setStage("grow");
-      timers.current.push(window.setTimeout(onDone, 700));
+      timers.current.push(window.setTimeout(onDone, 300));
+      timers.current.push(window.setTimeout(onGone, 900));
       return;
     }
     setStage("seal");
     timers.current.push(window.setTimeout(() => setStage("open"), 520));
-    timers.current.push(window.setTimeout(() => setStage("grow"), 3150));
-    timers.current.push(window.setTimeout(onDone, 4250));
+    timers.current.push(window.setTimeout(() => setStage("grow"), 3300));
+    timers.current.push(window.setTimeout(onDone, 3750));
+    timers.current.push(window.setTimeout(onGone, 4700));
   }
 
   return (
@@ -121,6 +123,8 @@ function FoldGate({ names, dateLine, onDone }: { names: string; dateLine: string
           </span>
           <span className="sp-flap-face sp-flap-back" />
         </span>
+        <span className="sp-band" aria-hidden="true" />
+        <span className="sp-sprig" style={{ backgroundImage: `url(${ART}/spray.webp)` }} aria-hidden="true" />
         <span className="sp-seal" style={{ backgroundImage: `url(${ART}/seal.webp)` }} />
         <Butterfly className="sp-out sp-out-1" />
         <Butterfly className="sp-out sp-out-2" />
@@ -402,6 +406,7 @@ function Follower({ active }: { active: boolean }) {
 // ------------------------------------------------------------------ page
 export default function WeddingSweetPea({ invite, embedded = false, guest = null }: { invite: Invite; embedded?: boolean; guest?: InviteGuest | null }) {
   const [opened, setOpened] = useState(embedded);
+  const [gateGone, setGateGone] = useState(embedded);
   const t = parseWallClock(invite.event_date);
   const weekday = t ? DAYS[new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay()] : null;
   const dateLong = t ? `${t.day} ${MONTHS[t.month - 1]} ${t.year}` : null;
@@ -469,7 +474,7 @@ export default function WeddingSweetPea({ invite, embedded = false, guest = null
         <div className="sp-grain" />
       </div>
 
-      {!opened && <FoldGate names={invite.host_names} dateLine={dateDots} onDone={() => setOpened(true)} />}
+      {!gateGone && <FoldGate names={invite.host_names} dateLine={dateDots} onDone={() => setOpened(true)} onGone={() => setGateGone(true)} />}
 
       <main className="sp-page" inert={!opened}>
         <header className="sp-hero">
@@ -571,7 +576,7 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-sky-clouds { position: absolute; inset: -20% 0; will-change: transform; }
 .sp-sky-clouds.far { transform: translate3d(0, calc(var(--sy, 0) * -0.04px), 0); }
 .sp-sky-clouds.near { transform: translate3d(0, calc(var(--sy, 0) * -0.12px), 0); }
-.sp-cloud { position: absolute; display: block; background: url(${ART}/clouds.webp) no-repeat; background-size: 400% 100%; opacity: .9; }
+.sp-cloud { position: absolute; display: block; background: url(${ART}/clouds.webp) no-repeat; background-size: 400% 100%; opacity: .5; filter: brightness(1.25) saturate(.7); }
 .sp-cloud.c1 { width: 62vw; max-width: 380px; aspect-ratio: 2.5/1; top: 18%; left: -14%; background-position: 0 0; animation: sp-drift 46s ease-in-out infinite alternate; }
 .sp-cloud.c2 { width: 54vw; max-width: 340px; aspect-ratio: 2.5/1; top: 46%; right: -12%; background-position: 33.333% 0; animation: sp-drift 38s ease-in-out -9s infinite alternate-reverse; }
 .sp-cloud.c3 { width: 48vw; max-width: 300px; aspect-ratio: 2.5/1; top: 72%; left: 8%; background-position: 66.666% 0; opacity: .6; animation: sp-drift 52s ease-in-out -20s infinite alternate; }
@@ -600,6 +605,7 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-scroll-hint { position: absolute; bottom: 28px; left: 50%; translate: -50% 0; width: 1px; height: 46px; background: rgba(63,58,54,.18); overflow: hidden; }
 .sp-scroll-hint span { position: absolute; left: 0; top: -40%; width: 1px; height: 40%; background: var(--ink); animation: sp-hint 2.2s ease-in-out infinite; }
 @keyframes sp-hint { to { top: 100%; } }
+.sp-root:not(.is-open) .sp-hero > * { opacity: 0; }
 .is-open .sp-hero > * { animation: sp-hero-in 1.2s cubic-bezier(.2,.7,.2,1) both; }
 .is-open .sp-hero .sp-eyebrow { animation-delay: .05s; } .is-open .sp-names { animation-delay: .15s; }
 .is-open .sp-hero-line { animation-delay: .35s; } .is-open .sp-hero-date { animation-delay: .5s; }
@@ -713,8 +719,8 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 }
 @keyframes sp-float { 0%,100% { translate: 0 0; rotate: -1deg; } 50% { translate: 0 -8px; rotate: .6deg; } }
 .st-open .sp-card, .st-grow .sp-card { animation: none; }
-.st-open .sp-card { transform: scale(.58); transition: transform 1.6s cubic-bezier(.55,.05,.25,1); }
-.sp-inside { position: absolute; inset: 0; border-radius: 6px; background: var(--cream) url(${ART}/grain.png); box-shadow: 0 30px 60px -28px rgba(70,60,50,.4), inset 0 0 0 1px var(--line); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.st-open .sp-card { transform: scale(.66); transition: transform 1.6s cubic-bezier(.55,.05,.25,1); }
+.sp-inside { position: absolute; inset: 0; border-radius: 6px; background: var(--cream) url(${ART}/grain.png); box-shadow: 0 40px 70px -30px rgba(70,60,50,.5), 0 2px 6px rgba(70,60,50,.08), inset 0 0 0 1px var(--line); overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .sp-inside::after { content: ""; position: absolute; inset: 10px; border: 1px solid var(--line); border-radius: 3px; pointer-events: none; }
 .sp-inside-text { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding-top: 34%; }
 .sp-inside-text .sp-eyebrow { font-size: 9px; margin-bottom: 10px; }
@@ -732,7 +738,7 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-flap-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #f8f4ec url(${ART}/grain.png); overflow: hidden; }
 .sp-flap-l .sp-flap-face { border-radius: 6px 0 0 6px; }
 .sp-flap-r .sp-flap-face { border-radius: 0 6px 6px 0; }
-.sp-flap-front { box-shadow: inset 0 0 0 1px var(--line); }
+.sp-flap-front { box-shadow: inset 0 0 0 1px var(--line), 0 6px 18px -8px rgba(60,50,40,.25); }
 .sp-flap-front::before { content: ""; position: absolute; inset: 10px; border: 1px solid var(--line); }
 .sp-flap-l .sp-flap-front::before { border-right: 0; } .sp-flap-r .sp-flap-front::before { border-left: 0; }
 .sp-flap-front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0) 60%, rgba(110,95,80,.10)); opacity: 1; transition: opacity 1.6s; }
@@ -741,11 +747,15 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-flap-back::before { content: ""; position: absolute; inset: 8% 6%; background: var(--vine) center / contain no-repeat; opacity: .95; }
 .sp-flap-r .sp-flap-back::before { transform: scaleX(-1); }
 .sp-flap-back::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(110,95,80,.16), rgba(255,255,255,0) 70%); }
-.sp-flap-letter { position: absolute; top: 27%; font: 400 calc(var(--w) * .2)/1 var(--title); color: var(--ink); translate: 0 -50%; opacity: .88; }
+.sp-flap-letter { position: absolute; top: 30%; font: 400 calc(var(--w) * .2)/1 var(--title); color: var(--ink); translate: 0 -50%; opacity: .88; }
 .sp-flap-l .sp-flap-letter { right: 16%; } .sp-flap-r .sp-flap-letter { left: 16%; }
 .st-open .sp-flap-l, .st-grow .sp-flap-l { transform: rotateY(-164deg); }
 .st-open .sp-flap-r, .st-grow .sp-flap-r { transform: rotateY(164deg); }
-.sp-seal { position: absolute; left: 50%; top: 56%; width: calc(var(--w) * .34); aspect-ratio: 1; translate: -50% -50%; background: center / contain no-repeat; z-index: 6; filter: drop-shadow(0 6px 8px rgba(70,45,90,.25)); transition: transform .5s cubic-bezier(.3,1.5,.5,1), opacity .5s ease; }
+.sp-band { position: absolute; left: -2px; right: -2px; top: 50%; height: 22%; z-index: 5; background: linear-gradient(180deg, rgba(214,205,230,.55), rgba(214,205,230,.42)); backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); border-top: 1px solid rgba(255,255,255,.7); border-bottom: 1px solid rgba(154,143,179,.35); box-shadow: 0 3px 8px -4px rgba(60,50,40,.25); transition: transform .7s cubic-bezier(.5,0,.3,1), opacity .5s ease; }
+.sp-sprig { position: absolute; left: 50%; top: 61%; width: calc(var(--w) * .62); aspect-ratio: 16/9; translate: -50% -50%; rotate: -14deg; z-index: 5; background: center / contain no-repeat; pointer-events: none; transition: transform .7s cubic-bezier(.5,0,.3,1), opacity .5s ease; }
+.st-seal .sp-band, .st-open .sp-band, .st-grow .sp-band { transform: translateY(40px); opacity: 0; }
+.st-seal .sp-sprig, .st-open .sp-sprig, .st-grow .sp-sprig { transform: translate(30px, 50px) rotate(10deg); opacity: 0; }
+.sp-seal { position: absolute; left: 50%; top: 61%; width: calc(var(--w) * .38); aspect-ratio: 1; translate: -50% -50%; background: center / contain no-repeat; z-index: 6; filter: drop-shadow(0 6px 8px rgba(70,45,90,.25)); transition: transform .5s cubic-bezier(.3,1.5,.5,1), opacity .5s ease; }
 .sp-card:hover .sp-seal { transform: scale(1.04); }
 .st-seal .sp-seal { animation: sp-seal-pop .6s cubic-bezier(.3,.9,.4,1) forwards; }
 .st-open .sp-seal, .st-grow .sp-seal { opacity: 0; transform: translateY(-160px) rotate(-40deg) scale(.6); }
@@ -756,12 +766,13 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 @keyframes sp-flap { from { --open: 1; } to { --open: .2; } }
 @keyframes sp-out1 { 0% { opacity: 0; transform: translate(-50%, 0) scale(.5); } 15% { opacity: 1; } 50% { transform: translate(-190px, -260px) rotate(-14deg) scale(1); } 100% { opacity: 0; transform: translate(-120px, -70vh) rotate(8deg) scale(.9); } }
 @keyframes sp-out2 { 0% { opacity: 0; transform: translate(-50%, 0) scale(.5); } 15% { opacity: 1; } 50% { transform: translate(150px, -200px) rotate(12deg) scale(.85); } 100% { opacity: 0; transform: translate(220px, -66vh) rotate(-10deg) scale(.8); } }
-.sp-tap { position: relative; font: 400 11px/1 var(--body); letter-spacing: .4em; text-transform: uppercase; color: var(--ink); margin: 0; padding-left: .4em; animation: sp-breathe 2.6s ease-in-out infinite; transition: opacity .4s; }
+.sp-tap { position: relative; font: 400 12px/1 var(--body); letter-spacing: .4em; text-transform: uppercase; color: var(--ink); margin: 0; padding-left: .4em; animation: sp-breathe 2.6s ease-in-out infinite; transition: opacity .4s; }
 @keyframes sp-breathe { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
 .st-seal .sp-tap, .st-open .sp-tap, .st-grow .sp-tap { opacity: 0; animation: none; }
 /* the open card grows into the page */
-.st-grow .sp-card { transform: scale(1.05); opacity: 0; transition: transform 1s cubic-bezier(.4,0,.2,1), opacity .55s ease; }
-.st-grow { opacity: 0; pointer-events: none; transition: opacity .8s ease .3s; }
+.st-grow .sp-card { transform: scale(1.9); opacity: 0; transition: transform 1.25s cubic-bezier(.5,0,.2,1), opacity .7s ease .45s; }
+.st-grow { pointer-events: none; }
+.st-grow .sp-gate-sky, .st-grow .sp-gate-clouds, .st-grow .sp-tap { opacity: 0; transition: opacity .9s ease .35s; }
 @media (prefers-reduced-motion: reduce) {
   .sp-card, .sp-tap, .sp-cloud { animation: none !important; }
   .sp-mist { filter: none; transform: none; }
