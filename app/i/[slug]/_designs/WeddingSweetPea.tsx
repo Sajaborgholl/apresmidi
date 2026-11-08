@@ -267,7 +267,7 @@ function Rsvp({ invite, guest }: { invite: Invite; guest: InviteGuest | null }) 
             )}
             <p className="sp-done-big">{rsvp.saved.attending ? `Yay${rsvp.toName}!` : `We'll miss you${rsvp.toName}.`}</p>
             <p className="sp-text">
-              {rsvp.saved.attending ? `${a}${b ? ` & ${b}` : ""} can't wait to celebrate with you.` : "Thank you for letting us know."} {replySummary(rsvp.saved)}
+              {rsvp.saved.attending ? `${a}${b ? ` & ${b}` : ""} can't wait to celebrate with you. ${replySummary(rsvp.saved)}` : "Thank you for letting us know."}
             </p>
             <button type="button" className="sp-link" onClick={rsvp.edit}>
               Change my reply
@@ -361,7 +361,10 @@ function Follower({ active }: { active: boolean }) {
           range.selectNodeContents(p);
           const rects = range.getClientRects();
           const last = rects[rects.length - 1] ?? r;
-          best = { x: Math.min(last.right + 30, window.innerWidth - 30), y: last.top + last.height * 0.5 };
+          const room = window.innerWidth - last.right;
+          best = room > 64
+            ? { x: last.right + 32, y: last.top + last.height * 0.45 }
+            : { x: Math.min(last.right - 8, window.innerWidth - 34), y: last.top - 26 };
         }
       }
       return best ?? { x: window.innerWidth - 46, y: vh * 0.22 };
@@ -578,9 +581,9 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 
 /* ---------- shared type ---------- */
 .sp-eyebrow { font: 400 11px/1 var(--body); letter-spacing: .34em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 14px; }
-.sp-title { font: 400 clamp(38px, 11vw, 50px)/1.05 var(--title); margin: 0 0 18px; color: var(--ink); letter-spacing: .01em; }
+.sp-title { font: 400 clamp(34px, 10vw, 48px)/1.08 var(--title); text-wrap: balance; margin: 0 0 18px; color: var(--ink); letter-spacing: .01em; }
 .sp-amp { display: block; font-family: var(--title); font-size: .5em; color: var(--lilac-d); margin: .12em 0 .08em; }
-.sp-text { font: 300 16px/1.65 var(--body); margin: 0 0 6px; color: var(--ink); }
+.sp-text { font: 300 16px/1.65 var(--body); margin: 0 0 6px; color: var(--ink); text-wrap: balance; }
 .sp-text-lg { font-size: 19px; font-weight: 400; }
 .sp-big { font: 400 30px/1.2 var(--title); margin: 0 0 6px; }
 .sp-small { font: 400 11px/1.4 var(--body); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
@@ -683,9 +686,10 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 
 /* closing */
 .sp-end { position: relative; padding: 70px 0 30px; }
-.sp-end-names { font: 400 46px/1 var(--title); margin: 0; }
+.sp-end-names { font: 400 clamp(34px, 10.5vw, 46px)/1 var(--title); margin: 0; white-space: nowrap; }
 .sp-end-names .sp-amp { display: inline; font-size: .6em; margin: 0 .25em; }
 .sp-made { font: 400 10px/1 var(--body); letter-spacing: .3em; text-transform: uppercase; color: var(--ink-soft); margin: 54px 0 0; opacity: .7; }
+.is-open:not(.is-embedded) .sp-rest { display: none; }
 .sp-rest { position: relative; margin: 30px auto 0; --open: .7; animation: sp-rest 3.4s ease-in-out infinite; }
 @keyframes sp-rest { 0%,100% { --open: .9; } 50% { --open: .45; } }
 
