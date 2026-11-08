@@ -14,6 +14,7 @@
 // peach blush, butter cream, sage, plum ink.
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
 import { parseWallClock } from "@/lib/calendar";
@@ -70,8 +71,73 @@ type GateStage = "closed" | "seal" | "open" | "grow" | "done";
 function FoldGate({ names, dateLine, onDone, onGone }: { names: string; dateLine: string; onDone: () => void; onGone: () => void }) {
   const [stage, setStage] = useState<GateStage>("closed");
   const timers = useRef<number[]>([]);
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  const gateRef = useRef<HTMLDivElement | null>(null);
+  const sprayRatio = useRef(1400 / 784);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => (sprayRatio.current = img.naturalWidth / img.naturalHeight);
+    img.src = `${ART}/spray.webp`;
+    const t = timers.current;
+    return () => t.forEach(clearTimeout);
+  }, []);
   const [a, b] = splitNames(names);
+
+  // Hand-over: the card's names, line and flowers fly to the exact spot (and
+  // size) of the page's own names, line and flowers, so the guest sees one
+  // set of names travel into place, never two overlapping. Text clones animate
+  // their font size (stays crisp); the flowers animate their painted rect.
+  function morph() {
+    const gate = gateRef.current;
+    if (!gate) return;
+    const T = "1s cubic-bezier(.45,0,.2,1)";
+    const textPairs: [string, string][] = [
+      [".sp-inside-names", ".sp-hero .sp-names"],
+      [".sp-inside-text .sp-eyebrow", ".sp-hero > .sp-eyebrow"],
+    ];
+    for (const [from, to] of textPairs) {
+      const src = gate.querySelector<HTMLElement>(from);
+      const dst = document.querySelector<HTMLElement>(to);
+      if (!src || !dst) continue;
+      const r1 = src.getBoundingClientRect(), r2 = dst.getBoundingClientRect();
+      const cs1 = getComputedStyle(src), cs2 = getComputedStyle(dst);
+      const k = src.offsetWidth ? r1.width / src.offsetWidth : 1;
+      const fs1 = parseFloat(cs1.fontSize) * k, fs2 = parseFloat(cs2.fontSize);
+      const c = src.cloneNode(true) as HTMLElement;
+      Object.assign(c.style, {
+        position: "fixed", left: `${r1.left + r1.width / 2}px`, top: `${r1.top + r1.height / 2}px`, margin: "0", zIndex: "30",
+        transform: "translate(-50%, -50%)", fontFamily: cs1.fontFamily, fontWeight: cs1.fontWeight, fontSize: `${fs1}px`,
+        lineHeight: String(parseFloat(cs2.lineHeight) / fs2 || 1), letterSpacing: `${(parseFloat(cs1.letterSpacing) || 0) / parseFloat(cs1.fontSize)}em`,
+        color: cs1.color, whiteSpace: "nowrap", pointerEvents: "none", transition: `left ${T}, top ${T}, font-size ${T}, color ${T}`,
+      });
+      c.dataset.morph = "1";
+      gate.appendChild(c);
+      src.style.visibility = "hidden";
+      void c.offsetWidth;
+      Object.assign(c.style, { left: `${r2.left + r2.width / 2}px`, top: `${r2.top + r2.height / 2}px`, fontSize: `${fs2}px`, color: cs2.color });
+    }
+    const pop = gate.querySelector<HTMLElement>(".sp-pop-front");
+    const hero = document.querySelector<HTMLElement>(".sp-hero-spray");
+    if (pop && hero) {
+      const contain = (r: DOMRect) => {
+        const q = sprayRatio.current;
+        const w = r.width / r.height > q ? r.height * q : r.width;
+        const h = w / q;
+        return { left: r.left + (r.width - w) / 2, top: r.top + (r.height - h) / 2, width: w, height: h };
+      };
+      const r1 = contain(pop.getBoundingClientRect()), r2 = contain(hero.getBoundingClientRect());
+      const c = document.createElement("span");
+      Object.assign(c.style, {
+        position: "fixed", left: `${r1.left}px`, top: `${r1.top}px`, width: `${r1.width}px`, height: `${r1.height}px`, zIndex: "29",
+        background: `url(${ART}/spray.webp) center / 100% 100% no-repeat`, pointerEvents: "none",
+        transition: `left ${T}, top ${T}, width ${T}, height ${T}`,
+      });
+      c.dataset.morph = "1";
+      gate.appendChild(c);
+      pop.style.visibility = "hidden";
+      void c.offsetWidth;
+      Object.assign(c.style, { left: `${r2.left}px`, top: `${r2.top}px`, width: `${r2.width}px`, height: `${r2.height}px` });
+    }
+  }
 
   function open() {
     if (stage !== "closed") return;
@@ -81,15 +147,22 @@ function FoldGate({ names, dateLine, onDone, onGone }: { names: string; dateLine
       timers.current.push(window.setTimeout(onGone, 900));
       return;
     }
+    // seal pops (0) -> flaps open + push in (380) -> flowers rise (~1.2s) ->
+    // butterflies (~1.5s) -> names fly into the page (2.75s) -> page (3.8s)
     setStage("seal");
-    timers.current.push(window.setTimeout(() => setStage("open"), 520));
-    timers.current.push(window.setTimeout(() => setStage("grow"), 3300));
-    timers.current.push(window.setTimeout(onDone, 3750));
-    timers.current.push(window.setTimeout(onGone, 4700));
+    timers.current.push(window.setTimeout(() => setStage("open"), 300));
+    timers.current.push(window.setTimeout(() => { morph(); setStage("grow"); }, 2750));
+    // show the page's names and drop the flying copies in the same paint,
+    // so the semi-transparent watercolor is never drawn twice (darker flash)
+    timers.current.push(window.setTimeout(() => {
+      flushSync(onDone);
+      gateRef.current?.querySelectorAll<HTMLElement>("[data-morph]").forEach((el) => el.remove());
+    }, 3780));
+    timers.current.push(window.setTimeout(onGone, 3900));
   }
 
   return (
-    <div className={`sp-gate st-${stage}`} role="dialog" aria-label="Invitation">
+    <div ref={gateRef} className={`sp-gate st-${stage}`} role="dialog" aria-label="Invitation">
       <div className="sp-gate-sky" aria-hidden="true" />
       <div className="sp-gate-clouds" aria-hidden="true">
         <span className="sp-cloud c1" />
@@ -126,9 +199,9 @@ function FoldGate({ names, dateLine, onDone, onGone }: { names: string; dateLine
         <span className="sp-band" aria-hidden="true" />
         <span className="sp-sprig" style={{ backgroundImage: `url(${ART}/spray.webp)` }} aria-hidden="true" />
         <span className="sp-seal" style={{ backgroundImage: `url(${ART}/seal.webp)` }} />
-        <Butterfly className="sp-out sp-out-1" />
-        <Butterfly className="sp-out sp-out-2" />
       </button>
+      <Butterfly className="sp-out sp-out-1" />
+      <Butterfly className="sp-out sp-out-2" />
       <p className="sp-tap">Tap to open</p>
     </div>
   );
@@ -453,7 +526,7 @@ export default function WeddingSweetPea({ invite, embedded = false, guest = null
   }, [opened]);
 
   return (
-    <div className={`sp-root ${opened ? "is-open" : ""} ${embedded ? "is-embedded" : ""}`} ref={rootRef}>
+    <div className={`sp-root ${opened ? "is-open" : ""} ${embedded ? "is-embedded" : "from-gate"}`} ref={rootRef}>
       <style>{CSS}</style>
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gilda+Display&family=Jost:wght@300;400;500&display=swap" precedence="default" />
@@ -576,7 +649,7 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-sky-clouds { position: absolute; inset: -20% 0; will-change: transform; }
 .sp-sky-clouds.far { transform: translate3d(0, calc(var(--sy, 0) * -0.04px), 0); }
 .sp-sky-clouds.near { transform: translate3d(0, calc(var(--sy, 0) * -0.12px), 0); }
-.sp-cloud { position: absolute; display: block; background: url(${ART}/clouds.webp) no-repeat; background-size: 400% 100%; opacity: .5; filter: brightness(1.25) saturate(.7); }
+.sp-cloud { position: absolute; display: block; background: url(${ART}/clouds.webp) no-repeat; background-size: 400% 100%; opacity: .75; }
 .sp-cloud.c1 { width: 62vw; max-width: 380px; aspect-ratio: 2.5/1; top: 18%; left: -14%; background-position: 0 0; animation: sp-drift 46s ease-in-out infinite alternate; }
 .sp-cloud.c2 { width: 54vw; max-width: 340px; aspect-ratio: 2.5/1; top: 46%; right: -12%; background-position: 33.333% 0; animation: sp-drift 38s ease-in-out -9s infinite alternate-reverse; }
 .sp-cloud.c3 { width: 48vw; max-width: 300px; aspect-ratio: 2.5/1; top: 72%; left: 8%; background-position: 66.666% 0; opacity: .6; animation: sp-drift 52s ease-in-out -20s infinite alternate; }
@@ -596,7 +669,7 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 /* ---------- page ---------- */
 .sp-page { position: relative; z-index: 1; padding: 0 22px 40px; max-width: 520px; margin: 0 auto; text-align: center; }
 .sp-hero { position: relative; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 120px 0 90px; }
-.sp-hero-spray { position: absolute; top: 3svh; left: 50%; width: min(118vw, 600px); aspect-ratio: 16/9; translate: -50% 0; background: center / contain no-repeat; pointer-events: none; }
+.sp-hero-spray { position: absolute; top: 7svh; left: 50%; width: min(110vw, 560px); aspect-ratio: 16/9; translate: -50% 0; background: center / contain no-repeat; pointer-events: none; }
 .sp-names { font: 400 clamp(58px, 18vw, 86px)/.98 var(--title); margin: 4px 0 18px; display: flex; flex-direction: column; align-items: center; }
 .sp-hero-line { font: 300 15px/1.5 var(--body); letter-spacing: .06em; margin: 0 0 22px; color: var(--ink-soft); }
 .sp-hero-date { font: 400 17px/1 var(--body); letter-spacing: .38em; margin: 0; padding: 14px 0 14px .38em; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -608,6 +681,8 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-root:not(.is-open) .sp-hero > * { opacity: 0; }
 .is-open .sp-hero > * { animation: sp-hero-in 1.2s cubic-bezier(.2,.7,.2,1) both; }
 .is-open .sp-hero .sp-eyebrow { animation-delay: .05s; } .is-open .sp-names { animation-delay: .15s; }
+.is-open.from-gate .sp-hero > .sp-eyebrow, .is-open.from-gate .sp-names, .is-open.from-gate .sp-hero-spray { animation: none; }
+.is-open.from-gate .sp-hero-line { animation-delay: 0s; } .is-open.from-gate .sp-hero-date { animation-delay: .15s; }
 .is-open .sp-hero-line { animation-delay: .35s; } .is-open .sp-hero-date { animation-delay: .5s; }
 @keyframes sp-hero-in { from { opacity: 0; filter: blur(8px); transform: translateY(10px); } }
 .is-embedded .sp-hero > * { animation: none; }
@@ -708,71 +783,89 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 .sp-follower { position: fixed; left: 0; top: 0; z-index: 5; pointer-events: none; will-change: transform; filter: drop-shadow(0 6px 6px rgba(60,50,40,.18)); }
 
 /* ---------- gate: the folded card ---------- */
-.sp-gate { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; transition: opacity 1s ease; }
+.sp-gate { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; overflow: hidden; }
 .sp-gate-sky { position: absolute; inset: 0; background: url(${ART}/sky.webp) center / cover no-repeat, linear-gradient(180deg, #ebe8ee 0%, #f4f0e8 50%, #f3ead6 100%); }
 .sp-gate-clouds { position: absolute; inset: 0; }
 .sp-card {
   --w: min(74vw, 330px); position: relative; width: var(--w); aspect-ratio: 3 / 4.25; border: 0; padding: 0; background: none; cursor: pointer;
   perspective: 1600px; transform-style: preserve-3d; -webkit-tap-highlight-color: transparent;
-  transition: transform 1.1s cubic-bezier(.6,0,.2,1), opacity .9s ease .25s;
   animation: sp-float 5s ease-in-out infinite;
 }
 @keyframes sp-float { 0%,100% { translate: 0 0; rotate: -1deg; } 50% { translate: 0 -8px; rotate: .6deg; } }
-.st-open .sp-card, .st-grow .sp-card { animation: none; }
-.st-open .sp-card { transform: scale(.66); transition: transform 1.6s cubic-bezier(.55,.05,.25,1); }
+.st-seal .sp-card, .st-open .sp-card, .st-grow .sp-card { animation: none; }
+/* opening pushes gently towards the guest: the card never shrinks away */
+.st-open .sp-card { transform: scale(1.16); transition: transform 2.2s cubic-bezier(.45,.05,.25,1); }
+.st-grow .sp-card { transform: scale(1.16); opacity: 0; transition: opacity .55s ease .1s; }
 .sp-inside { position: absolute; inset: 0; border-radius: 6px; background: var(--cream) url(${ART}/grain.png); box-shadow: 0 40px 70px -30px rgba(70,60,50,.5), 0 2px 6px rgba(70,60,50,.08), inset 0 0 0 1px var(--line); overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .sp-inside::after { content: ""; position: absolute; inset: 10px; border: 1px solid var(--line); border-radius: 3px; pointer-events: none; }
-.sp-inside-text { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding-top: 34%; }
+.sp-inside-text { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; padding-top: 34%; opacity: 0; transition: opacity .6s ease .45s; }
+.st-open .sp-inside-text, .st-grow .sp-inside-text { opacity: 1; }
+.st-grow .sp-inside-date { opacity: 0; transition: opacity .3s; }
 .sp-inside-text .sp-eyebrow { font-size: 9px; margin-bottom: 10px; }
 .sp-inside-names { font: 400 calc(var(--w) * .15)/1 var(--title); color: var(--ink); display: flex; flex-direction: column; align-items: center; }
 .sp-inside-date { font: 400 11px/1 var(--body); letter-spacing: .32em; margin-top: 14px; color: var(--ink); }
 .sp-pop { position: absolute; left: -12%; right: -12%; top: -2%; height: 46%; background: center / contain no-repeat; transform-origin: 50% 100%; transform: perspective(500px) rotateX(-88deg); opacity: 0; }
 .sp-pop-back { top: -6%; filter: saturate(.85) brightness(1.04); transform: perspective(500px) rotateX(-88deg) scale(.92); }
-.st-open .sp-pop, .st-grow .sp-pop { animation: sp-popup 1.15s cubic-bezier(.25,1.45,.45,1) .55s both; }
-.st-open .sp-pop-back, .st-grow .sp-pop-back { animation-name: sp-popup-back; animation-delay: .75s; }
-@keyframes sp-popup { from { opacity: 0; transform: perspective(500px) rotateX(-88deg); } 30% { opacity: 1; } to { opacity: 1; transform: perspective(500px) rotateX(0); } }
-@keyframes sp-popup-back { from { opacity: 0; transform: perspective(500px) rotateX(-88deg) scale(.92) scaleX(-1); } 30% { opacity: .9; } to { opacity: .9; transform: perspective(500px) rotateX(0) scale(.92) scaleX(-1); } }
-.sp-flap { position: absolute; top: 0; bottom: 0; width: 50%; transform-style: preserve-3d; transition: transform 1.6s cubic-bezier(.55,.05,.25,1); z-index: 3; }
+/* the flowers rise only once the flaps are out of the way, so the pop-up is seen */
+.st-open .sp-pop, .st-grow .sp-pop { animation: sp-popup 1.05s cubic-bezier(.25,1.4,.45,1) .8s both; }
+.st-open .sp-pop-back, .st-grow .sp-pop-back { animation-name: sp-popup-back; animation-delay: .95s; }
+.st-grow .sp-pop-back { opacity: 0 !important; transition: opacity .3s; }
+@keyframes sp-popup { from { opacity: 0; transform: perspective(500px) rotateX(-88deg); } 25% { opacity: 1; } to { opacity: 1; transform: perspective(500px) rotateX(0); } }
+@keyframes sp-popup-back { from { opacity: 0; transform: perspective(500px) rotateX(-88deg) scale(.92) scaleX(-1); } 25% { opacity: .9; } to { opacity: .9; transform: perspective(500px) rotateX(0) scale(.92) scaleX(-1); } }
+/* flaps overlap by a hair so nothing shows through the centre line */
+.sp-flap { position: absolute; top: 0; bottom: 0; width: calc(50% + 1px); transform-style: preserve-3d; transition: transform 1.45s cubic-bezier(.32,.12,.25,1); z-index: 3; }
 .sp-flap-l { left: 0; transform-origin: 0 50%; }
 .sp-flap-r { right: 0; transform-origin: 100% 50%; }
 .sp-flap-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; background: #f8f4ec url(${ART}/grain.png); overflow: hidden; }
 .sp-flap-l .sp-flap-face { border-radius: 6px 0 0 6px; }
 .sp-flap-r .sp-flap-face { border-radius: 0 6px 6px 0; }
-.sp-flap-front { box-shadow: inset 0 0 0 1px var(--line), 0 6px 18px -8px rgba(60,50,40,.25); }
+.sp-flap-front { box-shadow: inset 0 0 0 1px var(--line); }
 .sp-flap-front::before { content: ""; position: absolute; inset: 10px; border: 1px solid var(--line); }
 .sp-flap-l .sp-flap-front::before { border-right: 0; } .sp-flap-r .sp-flap-front::before { border-left: 0; }
-.sp-flap-front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0) 60%, rgba(110,95,80,.10)); opacity: 1; transition: opacity 1.6s; }
-.sp-flap-r .sp-flap-front::after { background: linear-gradient(270deg, rgba(255,255,255,0) 60%, rgba(110,95,80,.10)); }
+.sp-flap-front::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0) 55%, rgba(110,95,80,.08)); }
+.sp-flap-r .sp-flap-front::after { background: linear-gradient(270deg, rgba(255,255,255,0) 55%, rgba(110,95,80,.08)); }
 .sp-flap-back { transform: rotateY(180deg); background-color: #f2eee6; }
 .sp-flap-back::before { content: ""; position: absolute; inset: 8% 6%; background: var(--vine) center / contain no-repeat; opacity: .95; }
 .sp-flap-r .sp-flap-back::before { transform: scaleX(-1); }
-.sp-flap-back::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(110,95,80,.16), rgba(255,255,255,0) 70%); }
+.sp-flap-back::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(110,95,80,.12), rgba(255,255,255,0) 70%); }
 .sp-flap-letter { position: absolute; top: 30%; font: 400 calc(var(--w) * .2)/1 var(--title); color: var(--ink); translate: 0 -50%; opacity: .88; }
 .sp-flap-l .sp-flap-letter { right: 16%; } .sp-flap-r .sp-flap-letter { left: 16%; }
 .st-open .sp-flap-l, .st-grow .sp-flap-l { transform: rotateY(-164deg); }
 .st-open .sp-flap-r, .st-grow .sp-flap-r { transform: rotateY(164deg); }
-.sp-band { position: absolute; left: -2px; right: -2px; top: 50%; height: 22%; z-index: 5; background: linear-gradient(180deg, rgba(214,205,230,.55), rgba(214,205,230,.42)); backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); border-top: 1px solid rgba(255,255,255,.7); border-bottom: 1px solid rgba(154,143,179,.35); box-shadow: 0 3px 8px -4px rgba(60,50,40,.25); transition: transform .7s cubic-bezier(.5,0,.3,1), opacity .5s ease; }
-.sp-sprig { position: absolute; left: 50%; top: 61%; width: calc(var(--w) * .62); aspect-ratio: 16/9; translate: -50% -50%; rotate: -14deg; z-index: 5; background: center / contain no-repeat; pointer-events: none; transition: transform .7s cubic-bezier(.5,0,.3,1), opacity .5s ease; }
-.st-seal .sp-band, .st-open .sp-band, .st-grow .sp-band { transform: translateY(40px); opacity: 0; }
-.st-seal .sp-sprig, .st-open .sp-sprig, .st-grow .sp-sprig { transform: translate(30px, 50px) rotate(10deg); opacity: 0; }
-.sp-seal { position: absolute; left: 50%; top: 61%; width: calc(var(--w) * .38); aspect-ratio: 1; translate: -50% -50%; background: center / contain no-repeat; z-index: 6; filter: drop-shadow(0 6px 8px rgba(70,45,90,.25)); transition: transform .5s cubic-bezier(.3,1.5,.5,1), opacity .5s ease; }
+/* the vellum band slides off to the side, the sprig drops away, the seal cracks off and spins up */
+.sp-band { position: absolute; left: -2px; right: -2px; top: 50%; height: 22%; z-index: 5; background: linear-gradient(180deg, rgba(214,205,230,.55), rgba(214,205,230,.42)); backdrop-filter: blur(1.5px); -webkit-backdrop-filter: blur(1.5px); border-top: 1px solid rgba(255,255,255,.7); border-bottom: 1px solid rgba(154,143,179,.35); box-shadow: 0 3px 8px -4px rgba(60,50,40,.25); transition: transform .6s cubic-bezier(.55,0,.6,1) .08s, opacity .25s ease .4s; }
+.sp-sprig { position: absolute; left: 50%; top: 61%; width: calc(var(--w) * .62); aspect-ratio: 16/9; translate: -50% -50%; rotate: -14deg; z-index: 5; background: center / contain no-repeat; pointer-events: none; transition: transform .6s cubic-bezier(.55,0,.7,1), opacity .25s ease .38s; }
+.st-seal .sp-band, .st-open .sp-band, .st-grow .sp-band { transform: translateX(-120%) rotate(-4deg); opacity: 0; }
+.st-seal .sp-sprig, .st-open .sp-sprig, .st-grow .sp-sprig { transform: translate(40px, 240px) rotate(38deg); opacity: 0; }
+.sp-seal { position: absolute; left: 50%; top: 61%; width: calc(var(--w) * .38); aspect-ratio: 1; translate: -50% -50%; background: center / contain no-repeat; z-index: 6; filter: drop-shadow(0 6px 8px rgba(70,45,90,.25)); transition: transform .4s cubic-bezier(.3,1.5,.5,1); }
 .sp-card:hover .sp-seal { transform: scale(1.04); }
-.st-seal .sp-seal { animation: sp-seal-pop .6s cubic-bezier(.3,.9,.4,1) forwards; }
-.st-open .sp-seal, .st-grow .sp-seal { opacity: 0; transform: translateY(-160px) rotate(-40deg) scale(.6); }
-@keyframes sp-seal-pop { 0% { transform: scale(1); } 35% { transform: scale(1.18) rotate(6deg); } 100% { transform: translateY(-160px) rotate(-40deg) scale(.6); opacity: 0; } }
-.sp-out { position: absolute; left: 50%; top: 40%; z-index: 7; opacity: 0; width: 96px; height: 72px; filter: drop-shadow(0 8px 8px rgba(63,58,54,.2)); }
-.st-open .sp-out-1, .st-grow .sp-out-1 { animation: sp-out1 2.6s cubic-bezier(.35,.1,.3,1) .9s both, sp-flap .16s ease-in-out infinite alternate; }
-.st-open .sp-out-2, .st-grow .sp-out-2 { animation: sp-out2 2.8s cubic-bezier(.35,.1,.3,1) 1.15s both, sp-flap .18s ease-in-out infinite alternate; }
-@keyframes sp-flap { from { --open: 1; } to { --open: .2; } }
-@keyframes sp-out1 { 0% { opacity: 0; transform: translate(-50%, 0) scale(.5); } 15% { opacity: 1; } 50% { transform: translate(-190px, -260px) rotate(-14deg) scale(1); } 100% { opacity: 0; transform: translate(-120px, -70vh) rotate(8deg) scale(.9); } }
-@keyframes sp-out2 { 0% { opacity: 0; transform: translate(-50%, 0) scale(.5); } 15% { opacity: 1; } 50% { transform: translate(150px, -200px) rotate(12deg) scale(.85); } 100% { opacity: 0; transform: translate(220px, -66vh) rotate(-10deg) scale(.8); } }
-.sp-tap { position: relative; font: 400 12px/1 var(--body); letter-spacing: .4em; text-transform: uppercase; color: var(--ink); margin: 0; padding-left: .4em; animation: sp-breathe 2.6s ease-in-out infinite; transition: opacity .4s; }
+.st-seal .sp-seal, .st-open .sp-seal, .st-grow .sp-seal { animation: sp-seal-pop .7s cubic-bezier(.3,.6,.4,1) forwards; }
+@keyframes sp-seal-pop {
+  0% { transform: scale(1); filter: drop-shadow(0 6px 8px rgba(70,45,90,.25)); }
+  18% { transform: scale(1.16) rotate(-5deg); filter: drop-shadow(0 18px 18px rgba(70,45,90,.3)); }
+  70% { opacity: 1; }
+  100% { transform: translate(110px, -300px) rotate(220deg) scale(.7); opacity: 0; filter: drop-shadow(0 30px 24px rgba(70,45,90,.15)); }
+}
+/* two butterflies flutter out of the card and stay on screen before rising away */
+.sp-out { position: absolute; left: 50%; top: 46%; z-index: 7; opacity: 0; width: 120px; height: 90px; margin: -45px 0 0 -60px; filter: drop-shadow(0 10px 10px rgba(63,58,54,.22)); }
+.st-open .sp-out-1, .st-grow .sp-out-1 { animation: sp-out1 2.3s cubic-bezier(.4,.1,.4,1) 1.15s both, sp-flap .15s ease-in-out infinite alternate; }
+.st-open .sp-out-2, .st-grow .sp-out-2 { animation: sp-out2 2.2s cubic-bezier(.4,.1,.4,1) 1.35s both, sp-flap .17s ease-in-out infinite alternate; }
+@keyframes sp-flap { from { --open: 1; } to { --open: .15; } }
+@keyframes sp-out1 {
+  0% { opacity: 0; transform: translate(0, 0) scale(.35); } 12% { opacity: 1; transform: translate(-24px, -40px) scale(.75) rotate(-8deg); }
+  38% { transform: translate(-105px, -150px) scale(1) rotate(-14deg); } 58% { transform: translate(-40px, -225px) scale(1) rotate(10deg); }
+  80% { opacity: 1; transform: translate(-100px, -300px) scale(.95) rotate(-8deg); } 100% { opacity: 0; transform: translate(-60px, -470px) scale(.85) rotate(6deg); }
+}
+@keyframes sp-out2 {
+  0% { opacity: 0; transform: translate(0, 0) scale(.35); } 12% { opacity: 1; transform: translate(30px, -30px) scale(.7) rotate(10deg); }
+  38% { transform: translate(105px, -110px) scale(.9) rotate(14deg); } 58% { transform: translate(55px, -200px) scale(.9) rotate(-8deg); }
+  80% { opacity: 1; transform: translate(110px, -270px) scale(.88) rotate(8deg); } 100% { opacity: 0; transform: translate(80px, -450px) scale(.8) rotate(-6deg); }
+}
+.sp-tap { position: relative; font: 400 12px/1 var(--body); letter-spacing: .4em; text-transform: uppercase; color: var(--ink); margin: 0; padding-left: .4em; animation: sp-breathe 2.6s ease-in-out infinite; transition: opacity .3s; }
 @keyframes sp-breathe { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
 .st-seal .sp-tap, .st-open .sp-tap, .st-grow .sp-tap { opacity: 0; animation: none; }
-/* the open card grows into the page */
-.st-grow .sp-card { transform: scale(1.9); opacity: 0; transition: transform 1.25s cubic-bezier(.5,0,.2,1), opacity .7s ease .45s; }
 .st-grow { pointer-events: none; }
-.st-grow .sp-gate-sky, .st-grow .sp-gate-clouds, .st-grow .sp-tap { opacity: 0; transition: opacity .9s ease .35s; }
+.st-grow .sp-gate-sky, .st-grow .sp-gate-clouds { opacity: 0; transition: opacity .9s ease .1s; }
 @media (prefers-reduced-motion: reduce) {
   .sp-card, .sp-tap, .sp-cloud { animation: none !important; }
   .sp-mist { filter: none; transform: none; }
