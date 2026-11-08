@@ -660,7 +660,7 @@ body:has(.sp-root) { margin: 0; background: #f1ece3; }
 /* ---------- shared type ---------- */
 .sp-eyebrow { font: 400 11px/1 var(--body); letter-spacing: .34em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 14px; }
 .sp-title { font: 400 clamp(34px, 10vw, 48px)/1.08 var(--title); text-wrap: balance; margin: 0 0 18px; color: var(--ink); letter-spacing: .01em; }
-.sp-amp { display: block; font-family: var(--title); font-size: .5em; color: var(--lilac-d); margin: .12em 0 .08em; }
+.sp-amp { display: block; font-family: var(--title); font-size: .5em; color: inherit; margin: .12em 0 .08em; }
 .sp-text { font: 300 16px/1.65 var(--body); margin: 0 0 6px; color: var(--ink); text-wrap: balance; }
 .sp-text-lg { font-size: 19px; font-weight: 400; }
 .sp-big { font: 400 30px/1.2 var(--title); margin: 0 0 6px; }
