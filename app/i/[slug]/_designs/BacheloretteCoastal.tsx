@@ -1,10 +1,11 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import dynamic from "next/dynamic";
 import { forwardRef, useEffect, useRef, useState } from "react";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // react-pageflip renders a real canvas/DOM paper-curl (proper curved fold,
 // moving highlight, cast shadow) instead of our hand-rolled clip-path
@@ -149,11 +150,13 @@ function ShellIllustration() {
 
 // react-pageflip requires each page to be a forwardRef component so it can
 // grab the DOM node directly.
-const InvitePage = forwardRef<HTMLDivElement, { invite: Invite; onRsvp: () => void }>(function InvitePage(
-  { invite, onRsvp },
+// `canReply`: a guest's personal link. On the general (view-only) link the
+// next page only explains how to reply, so the button says so.
+const InvitePage = forwardRef<HTMLDivElement, { invite: Invite; onRsvp: () => void; canReply: boolean }>(function InvitePage(
+  { invite, onRsvp, canReply },
   ref
 ) {
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
   const dateFormatted = eventDate
     ? eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
     : null;
@@ -193,7 +196,7 @@ const InvitePage = forwardRef<HTMLDivElement, { invite: Invite; onRsvp: () => vo
         <div className="address">{invite.venue_name ?? "Location coming soon"}</div>
 
         <button className="rsvp-btn" type="button" onClick={onRsvp}>
-          RSVP
+          {canReply ? "RSVP" : "How to RSVP"}
         </button>
       </div>
     </div>
@@ -229,8 +232,8 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ g
         <div className="script small">We can&apos;t wait</div>
         <div className="title small">TO CELEBRATE WITH YOU</div>
 
-        {!guest ? (
-          <RsvpByInvitationNote className="bc-rsvp-closed" />
+        {!guest || rsvp.closedNoReply ? (
+          <RsvpByInvitationNote className="bc-rsvp-closed" closed={Boolean(guest)} />
         ) : rsvp.showForm ? (
           <form onSubmit={rsvp.submit}>
             {guest.name && (
@@ -242,16 +245,16 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ g
             <div className="toggle-group">
               <button
                 type="button"
-                className={`toggle-btn ${rsvp.attending ? "active" : ""}`}
-                aria-pressed={rsvp.attending}
+                className={`toggle-btn ${rsvp.attending === true ? "active" : ""}`}
+                aria-pressed={rsvp.attending === true}
                 onClick={() => rsvp.setAttending(true)}
               >
                 Joyfully Accept
               </button>
               <button
                 type="button"
-                className={`toggle-btn ${!rsvp.attending ? "active" : ""}`}
-                aria-pressed={!rsvp.attending}
+                className={`toggle-btn ${rsvp.attending === false ? "active" : ""}`}
+                aria-pressed={rsvp.attending === false}
                 onClick={() => rsvp.setAttending(false)}
               >
                 Regretfully Decline
@@ -260,7 +263,7 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ g
 
             {rsvp.attending && rsvp.maxGuests > 1 && (
               <label>
-                Number of Guests (up to {rsvp.maxGuests})
+                Guests, you included (up to {rsvp.maxGuests})
                 {/* Explicit +/- buttons instead of a native number-input
                     spinner: <button> is already exempted from page-flip's
                     own mousedown interception (react-pageflip only exempts <a>/<button>), so
@@ -292,13 +295,15 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ g
               </label>
             )}
 
+            <RsvpNoteField rsvp={rsvp} label="A note for the bride" className="rsvp-note-field" rows={2} />
+
             {rsvp.error && (
               <p className="error-text" role="alert">
                 {rsvp.error}
               </p>
             )}
 
-            <button type="submit" className="submit-btn" disabled={rsvp.loading}>
+            <button type="submit" className="submit-btn" disabled={rsvp.loading || !rsvp.ready}>
               {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
             </button>
             {rsvp.changing && (
@@ -317,9 +322,11 @@ const RsvpPage = forwardRef<HTMLDivElement, RsvpPageProps>(function RsvpPage({ g
                   : `Thanks for letting us know${rsvp.toName} — you'll be missed.`}{" "}
                 {replySummary(rsvp.saved)}
               </p>
-              <button type="button" className="bc-text-btn" onClick={rsvp.edit}>
+              {rsvp.canChange && (
+                <button type="button" className="bc-text-btn" onClick={rsvp.edit}>
                 Change my reply
               </button>
+              )}
             </div>
           )
         )}
@@ -427,12 +434,12 @@ export default function BacheloretteCoastal({ invite, guest = null }: { invite: 
             disableFlipByClick={false}
             ref={book}
           >
-            <InvitePage invite={invite} onRsvp={() => book.current?.pageFlip().flipNext()} />
+            <InvitePage invite={invite} canReply={Boolean(guest)} onRsvp={() => book.current?.pageFlip().flipNext()} />
             <RsvpPage guest={guest} onBack={() => book.current?.pageFlip().flipPrev()} />
           </HTMLFlipBook>
         </div>
 
-        <p className="hint">Tap RSVP, or drag the corner to turn the page</p>
+        <p className="hint">{guest ? "Tap RSVP, or drag the corner to turn the page" : "Tap the button, or drag the corner to turn the page"}</p>
       </div>
     </>
   );
@@ -476,6 +483,8 @@ html, body { margin: 0; height: 100%; }
 .lead { margin-top: 12px; font-size: 13.5px; font-weight: 500; color: var(--green-dark); }
 .lead b { font-weight: 700; }
 .address { margin-top: 14px; font-size: 15px; font-weight: 700; line-height: 1.4; color: var(--green-dark); }
+/* At most two lines, so a long venue can't push the RSVP button off the card. */
+.address { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .rsvp-btn { margin-top: 14px; padding: 8px 26px; border: 1.5px solid var(--green-dark); border-radius: 999px; background: transparent; color: var(--green-dark); font-family: 'Quicksand', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 1.5px; cursor: pointer; }
 .rsvp-btn:hover { background: var(--green-dark); color: #fff; }
 form { width: 100%; max-width: 230px; margin-top: 12px; display: flex; flex-direction: column; gap: 12px; }

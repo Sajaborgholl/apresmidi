@@ -25,6 +25,19 @@ async function detectPhotoType(file: File): Promise<PhotoType | null> {
   return null;
 }
 
+// Every photo slot must be filled (the designs are built around their
+// photos): returns the 1-based slots with neither a new file in the form nor
+// a saved photo (`existing`, when editing). Empty means all are there.
+export function missingPhotoSlots(formData: FormData, photoCount: number, existing: string[] = []): number[] {
+  const missing: number[] = [];
+  for (let i = 1; i <= photoCount; i++) {
+    const file = formData.get(`photo_${i}`);
+    const hasNew = file instanceof File && file.size > 0;
+    if (!hasNew && !existing[i - 1]) missing.push(i);
+  }
+  return missing;
+}
+
 // Shared by createOrder (app/order/[slug]/actions.ts) and updateInvite
 // (app/dashboard/[token]/actions.ts). Reads photo_1, photo_2, ... up to the
 // template's manifest photoCount (the names CustomizeForm gives its file
@@ -76,9 +89,14 @@ export async function uploadInvitePhotos(
         .from("invite-photos")
         .upload(path, file, { upsert: true, contentType: type.mime });
 
-      if (!uploadError) {
-        url = supabaseAdmin.storage.from("invite-photos").getPublicUrl(path).data.publicUrl;
+      // A failed upload used to be skipped silently: the host thought the
+      // photo was saved and guests saw an empty slot. Now the save stops and
+      // the form (which keeps everything typed) asks them to try again.
+      if (uploadError) {
+        console.error(`uploadInvitePhotos: photo ${i} upload failed`, uploadError);
+        throw new PhotoError(`Photo ${i} couldn't be uploaded. Please try again.`);
       }
+      url = supabaseAdmin.storage.from("invite-photos").getPublicUrl(path).data.publicUrl;
     }
 
     photoUrls.push(url);

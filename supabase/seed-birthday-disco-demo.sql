@@ -17,7 +17,7 @@ select
   'olivia-disco',
   id,
   'Olivia',
-  '2030-11-10 19:00:00+03',
+  '2030-11-10 19:00:00+00',
   '123 Anywhere Street, Any City',
   'https://maps.google.com/?q=123+Anywhere+Street',
   '96170664401',

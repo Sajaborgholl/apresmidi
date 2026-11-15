@@ -27,6 +27,11 @@ export type InviteGuest = {
   reply: GuestReply | null;
   // The sample guest shown on demo invitations: replies aren't saved.
   demo?: boolean;
+  // Replies have closed (the deadline or the event's day is over): no new
+  // replies or changes (an earlier reply is still shown).
+  closed?: boolean;
+  // The host's reply deadline, "YYYY-MM-DD", shown as "Please reply by …".
+  replyBy?: string | null;
 };
 
 // The guest on demo invitations (homepage, template pages) and the customize

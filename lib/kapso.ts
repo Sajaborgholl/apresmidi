@@ -68,8 +68,6 @@ export function classifyError(status: number, body: ErrorBody, retryAfter: strin
 
 // One approved template, with this message's variables and button ending.
 export async function sendTemplate(toDigits: string, t: Pick<FilledTemplate, "name" | "language" | "params" | "buttonSuffix">): Promise<SendResult> {
-  if (!isKapsoConfigured()) return { ok: false, kind: "paused", reason: "key", error: "KAPSO_API_KEY / KAPSO_PHONE_NUMBER_ID not set" };
-
   const components: unknown[] = [
     {
       type: "body",
@@ -79,18 +77,38 @@ export async function sendTemplate(toDigits: string, t: Pick<FilledTemplate, "na
   if (t.buttonSuffix) {
     components.push({ type: "button", sub_type: "url", index: "0", parameters: [{ type: "text", text: t.buttonSuffix }] });
   }
+  return postMessage({
+    messaging_product: "whatsapp",
+    to: toDigits,
+    type: "template",
+    template: { name: t.name, language: { code: t.language }, components },
+  });
+}
+
+// A plain text message. WhatsApp only allows these within 24 hours of the
+// person's last message to us (the "customer service window"), so this is
+// for replying to someone who just wrote: the automatic reply to guests in
+// app/api/whatsapp/webhook. Links in the text get a preview.
+export async function sendText(toDigits: string, text: string): Promise<SendResult> {
+  return postMessage({
+    messaging_product: "whatsapp",
+    to: toDigits,
+    type: "text",
+    text: { body: text, preview_url: true },
+  });
+}
+
+// Sends one message through Kapso and sorts the outcome the way the queue
+// acts on it (see SendResult).
+async function postMessage(payload: Record<string, unknown>): Promise<SendResult> {
+  if (!isKapsoConfigured()) return { ok: false, kind: "paused", reason: "key", error: "KAPSO_API_KEY / KAPSO_PHONE_NUMBER_ID not set" };
 
   let res: Response;
   try {
     res = await fetch(`${META}/${process.env.KAPSO_PHONE_NUMBER_ID}/messages`, {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: toDigits,
-        type: "template",
-        template: { name: t.name, language: { code: t.language }, components },
-      }),
+      body: JSON.stringify(payload),
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });

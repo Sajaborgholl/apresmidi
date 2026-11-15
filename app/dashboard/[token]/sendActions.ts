@@ -7,6 +7,7 @@ import { rateLimit } from "@/lib/rateLimit";
 import { processQueue } from "@/lib/whatsappQueue";
 import { invitationTemplate, reminderTemplate, type FilledTemplate } from "@/lib/whatsappTemplates";
 import { MAX_GUESTS_PER_INVITE } from "@/lib/guestRules";
+import { eventDayPassed, formatReplyBy, replyDeadlinePassed } from "@/lib/calendar";
 
 // Sending guests their invitations (and reminders) on WhatsApp from the
 // Après-midi number, as Meta-approved templates through Kapso. Messages are
@@ -23,6 +24,7 @@ type InviteRow = {
   slug: string;
   host_names: string;
   event_date: string | null;
+  reply_by: string | null;
   send_consent_at: string | null;
   status: string;
   templates: { category: string } | { category: string }[] | null;
@@ -32,7 +34,7 @@ async function liveInvite(token: string) {
   if (typeof token !== "string" || !token) return null;
   const { data } = await getSupabaseAdmin()
     .from("invites")
-    .select("id, slug, host_names, event_date, send_consent_at, status, templates(category)")
+    .select("id, slug, host_names, event_date, reply_by, send_consent_at, status, templates(category)")
     .eq("dashboard_token", token)
     .maybeSingle();
   const invite = data as InviteRow | null;
@@ -43,6 +45,17 @@ async function liveInvite(token: string) {
 }
 
 const NOT_AVAILABLE = "Sending isn't available right now. Please reopen your dashboard link.";
+// Guests can't reply after the event's day, so nothing more is sent.
+const EVENT_PASSED = "Your event date has passed, so invitations and reminders can't be sent. If the date is wrong, change it with Edit invitation.";
+
+// Why nothing more can be sent (guests could no longer reply), or null.
+function sendingClosed(invite: { event_date: string | null; reply_by: string | null }): string | null {
+  if (eventDayPassed(invite.event_date)) return EVENT_PASSED;
+  if (invite.reply_by && replyDeadlinePassed(invite.reply_by)) {
+    return `Replies closed on ${formatReplyBy(invite.reply_by)}. Change the deadline on the Invitation tab to send more.`;
+  }
+  return null;
+}
 const TOO_FAST = "You've sent a lot just now — please wait a few minutes and try again.";
 
 function cleanIds(ids: unknown): string[] {
@@ -89,6 +102,8 @@ async function guestsWithPending(inviteId: string): Promise<Set<string>> {
 export async function sendInvitations(token: string, guestIds: string[], consent = false): Promise<SendResult> {
   const invite = await liveInvite(token);
   if (!invite) return { error: NOT_AVAILABLE };
+  const closedReason = sendingClosed(invite);
+  if (closedReason) return { error: closedReason };
   if (!invite.send_consent_at && !consent) return { needsConsent: true };
   if (!(await rateLimit("dash-send", token, 30, 10 * 60))) return { error: TOO_FAST };
 
@@ -139,6 +154,8 @@ export async function sendInvitations(token: string, guestIds: string[], consent
 export async function sendReminders(token: string, guestIds?: string[]): Promise<SendResult> {
   const invite = await liveInvite(token);
   if (!invite) return { error: NOT_AVAILABLE };
+  const closedReason = sendingClosed(invite);
+  if (closedReason) return { error: closedReason };
   if (!invite.send_consent_at) return { needsConsent: true };
   if (!(await rateLimit("dash-send", token, 30, 10 * 60))) return { error: TOO_FAST };
 
@@ -151,10 +168,12 @@ export async function sendReminders(token: string, guestIds?: string[]): Promise
     supabaseAdmin.from("rsvps").select("guest_id").eq("invite_id", invite.id).not("guest_id", "is", null),
     supabaseAdmin
       .from("guest_messages")
-      .select("guest_id, kind, status, created_at")
+      .select("guest_id, kind, status, created_at, to_phone")
       .eq("invite_id", invite.id)
       .in("kind", ["invite", "reminder"]),
   ]);
+  // An invitation only counts if it reached the guest's current number.
+  const phoneOf = new Map((guests ?? []).map((g) => [g.id, g.phone]));
 
   const replied = new Set((replies ?? []).map((r) => r.guest_id as string));
   const invited = new Set<string>();
@@ -163,7 +182,7 @@ export async function sendReminders(token: string, guestIds?: string[]): Promise
   const now = Date.now();
   for (const m of messages ?? []) {
     const id = m.guest_id as string;
-    if (m.kind === "invite" && ["sent", "delivered", "read"].includes(m.status)) invited.add(id);
+    if (m.kind === "invite" && ["sent", "delivered", "read"].includes(m.status) && m.to_phone === phoneOf.get(id)) invited.add(id);
     if (m.kind === "reminder" && now - new Date(m.created_at).getTime() < REMINDER_GAP_MS) remindedRecently.add(id);
     if (m.status === "queued" || m.status === "sending") pending.add(id);
   }

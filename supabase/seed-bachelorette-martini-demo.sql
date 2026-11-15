@@ -13,7 +13,7 @@ select
   'olivia-martini',
   id,
   'Olivia',
-  '2027-08-07 21:00:00+03',
+  '2027-08-07 21:00:00+00',
   '123 Anywhere St., Any City',
   'live'
 from templates where slug = 'bachelorette-martini'

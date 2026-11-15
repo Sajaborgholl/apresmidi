@@ -1,7 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CheckCircle, WarningCircle, Sparkle, CircleNotch } from "@phosphor-icons/react/dist/ssr";
+import { CheckCircle, WarningCircle, Sparkle, CircleNotch, WhatsappLogo } from "@phosphor-icons/react/dist/ssr";
 import AutoRefresh from "../../../_components/AutoRefresh";
 import ReloadOnBfcacheRestore from "../../../_components/ReloadOnBfcacheRestore";
 import CopyLinkButton from "../../../_components/CopyLinkButton";
@@ -11,6 +11,7 @@ import { purchaseEventId } from "@/lib/purchaseEventId";
 import { confirmInvitePayment } from "@/lib/payments";
 import { startWhishPayment } from "../actions";
 import { BUSINESS_WHATSAPP_NUMBER } from "@/lib/contact";
+import { STANDARD_PLAN } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +35,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PAYMENT_RESULT = { "rate-limited": "pay-limit", failed: "pay-error" } as const;
 const PAYMENT_MESSAGES: Record<string, string> = {
   failure: "Payment didn't go through. You can try again below.",
-  "pay-error": "We couldn't open the payment page just now. Please try again in a moment, or pay via WhatsApp below.",
-  "pay-limit": "Too many payment attempts — please wait a few minutes and try again, or pay via WhatsApp below.",
+  "pay-error": "We couldn't open the payment page just now. Please try again in a moment, or message us on WhatsApp below.",
+  "pay-limit": "Too many payment attempts — please wait a few minutes and try again, or message us on WhatsApp below.",
 };
 
 // Two ways in:
@@ -103,7 +104,7 @@ export default async function OrderConfirmationPage({
   }
 
   const supabaseAdmin = getSupabaseAdmin();
-  const lookup = supabaseAdmin.from("invites").select("host_names, status, slug, dashboard_token, paid_at");
+  const lookup = supabaseAdmin.from("invites").select("host_names, status, slug, dashboard_token, paid_at, templates(name)");
   const { data: invite } = await (orderToken
     ? lookup.eq("order_token", orderToken)
     : lookup.eq("slug", inviteParam as string)
@@ -112,6 +113,10 @@ export default async function OrderConfirmationPage({
   if (!invite) notFound();
 
   const inviteSlug: string = invite.slug;
+  // The design's name, for the WhatsApp message (same object-or-array join
+  // shape as elsewhere: there's no generated Database type).
+  const templateRel = invite.templates as { name: string } | { name: string }[] | null;
+  const templateName = (Array.isArray(templateRel) ? templateRel[0]?.name : templateRel?.name) ?? "invitation";
   // Keeps whichever reference this page was opened with, for TryAgainFallback.
   const selfHref = `/order/${templateSlug}/confirmation?${
     orderToken ? `order=${orderToken}` : `invite=${encodeURIComponent(inviteSlug)}`
@@ -207,28 +212,37 @@ export default async function OrderConfirmationPage({
               className="w-full rounded-full py-3.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
               style={{ background: "var(--ink)", color: "var(--cream)" }}
             >
-              Pay with Whish — $80
+              Pay with Whish — {STANDARD_PLAN.price}
             </button>
           </form>
 
-          {/* Alternative to Whish for customers who'd rather arrange
-              payment over chat than pay by card — opens WhatsApp with a
-              pre-filled message identifying this invite, addressed to the
-              business number above. Unlike Whish, nothing here confirms
-              payment automatically: the invite stays a draft until it's
-              marked paid directly in Supabase once payment is actually
-              received (see confirmInvitePayment in lib/payments.ts for what
-              that flips). */}
+          {/* Card payments aren't set up yet: shown so customers know it's
+              coming, but it can't be pressed. */}
+          <button
+            type="button"
+            disabled
+            aria-disabled="true"
+            className="mt-3 flex w-full cursor-not-allowed items-center justify-center gap-1.5 rounded-full border border-black/10 py-3.5 text-sm font-semibold"
+            style={{ background: "rgba(0,0,0,0.04)", color: "rgba(44,37,29,0.5)" }}
+          >
+            Pay by credit card <span className="font-medium">(coming soon)</span>
+          </button>
+
+          {/* For customers who'd rather talk to us first: opens WhatsApp to
+              the business number with a message naming this design and
+              order (the ref is the invite's slug, to find it in Supabase). */}
+          <p className="mt-6 text-[13px] opacity-60">Prefer to talk to us first?</p>
           <a
             href={`https://wa.me/${BUSINESS_WHATSAPP_NUMBER}?text=${encodeURIComponent(
-              `Hi! I'd like to pay for my invite — ${invite.host_names}, $80. (ref: ${inviteSlug})`
+              `Hi! I'd like the ${templateName} invitation for ${invite.host_names}. (ref: ${inviteSlug})`
             )}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded-full py-3.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
             style={{ background: "#25D366", color: "#fff" }}
           >
-            Pay via WhatsApp
+            <WhatsappLogo size={18} weight="fill" />
+            I want this invitation
           </a>
 
           {/* Dev-only: statically stripped from production builds by the
@@ -296,14 +310,38 @@ export default async function OrderConfirmationPage({
         <h1 className="display text-2xl font-bold md:text-[26px]">You&apos;re all set, {invite.host_names}!</h1>
         <p className="mt-3 text-[14.5px] opacity-65">
           {dashboardUrl
-            ? "Your invite is live. Save both links below, we also emailed them to you."
-            : "Your invite is live. We emailed your private dashboard link to the address you gave us."}
+            ? "Your invitation is live. Next, open your dashboard and add your guests: we send each one their own invitation on WhatsApp."
+            : "Your invitation is live. We emailed your private dashboard link to the address you gave us."}
         </p>
 
-        <div className="mt-8 flex flex-col gap-3">
-          <CopyLinkButton label="Guest link" url={guestUrl} />
+        {/* The dashboard is the next step (adding guests is how RSVPs come
+            in), so it's the main action; the general link is view-only. */}
+        {dashboardUrl && (
+          <>
+            <a
+              href={dashboardUrl}
+              className="mt-7 flex w-full items-center justify-center rounded-full py-3.5 text-sm font-semibold transition hover:opacity-90 active:scale-[0.97]"
+              style={{ background: "var(--ink)", color: "var(--cream)" }}
+            >
+              Open your dashboard
+            </a>
+            <p className="mt-2.5 text-[12.5px] opacity-60">
+              Bookmark it. This link is your only way back in, and we&apos;ve emailed it to you too.
+            </p>
+          </>
+        )}
+
+        <div className="mt-7 flex flex-col gap-3">
           {dashboardUrl && <CopyLinkButton label="Dashboard link" url={dashboardUrl} isPrivate />}
+          <CopyLinkButton label="View-only link (guests can't reply from it)" url={guestUrl} />
         </div>
+
+        <p className="mt-6 text-[12.5px] opacity-60">
+          Lost your dashboard link?{" "}
+          <Link href="/dashboard/recover" className="font-semibold underline underline-offset-2">
+            Email it to me again
+          </Link>
+        </p>
       </div>
     </main>
   );

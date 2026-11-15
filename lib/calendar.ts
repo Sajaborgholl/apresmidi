@@ -22,6 +22,51 @@ export function parseWallClock(eventDate: string | null | undefined): WallClock 
   return { year, month, day, hour, minute };
 }
 
+// The event as a Date for display: built from the typed numbers in whatever
+// timezone the code runs in, so local getters (getDate, getHours) and
+// toLocale*String without a timeZone show exactly what the host typed, for
+// every guest, on the server and in the browser alike. Never use
+// `new Date(event_date)` for display: that reads the stored value as UTC and
+// shifts it into the guest's timezone (6 PM became 9 PM in Beirut).
+export function wallClockDate(eventDate: string | null | undefined): Date | null {
+  const t = parseWallClock(eventDate);
+  return t ? new Date(t.year, t.month - 1, t.day, t.hour, t.minute) : null;
+}
+
+// True once the event's day is over (from the next calendar day on, by
+// today's UTC date: at most a few hours late for Lebanon). Replies close
+// and the dashboard stops sending then. False when there's no date.
+export function eventDayPassed(eventDate: string | null | undefined, now = new Date()): boolean {
+  const t = parseWallClock(eventDate);
+  if (!t) return false;
+  return Date.UTC(t.year, t.month - 1, t.day) < Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
+
+// The reply deadline ("YYYY-MM-DD", set on the dashboard) is over: from the
+// next calendar day on, like eventDayPassed. False when there's none.
+export function replyDeadlinePassed(replyBy: string | null | undefined, now = new Date()): boolean {
+  const m = replyBy?.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return false;
+  return Date.UTC(+m[1], +m[2] - 1, +m[3]) < Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+}
+
+// No more replies: the reply deadline or the event's day is over.
+export function repliesClosed(eventDate: string | null | undefined, replyBy: string | null | undefined, now = new Date()): boolean {
+  return eventDayPassed(eventDate, now) || replyDeadlinePassed(replyBy, now);
+}
+
+// "Wednesday, August 12": a "YYYY-MM-DD" deadline for display, read as the
+// calendar day it is (no timezone shift).
+export function formatReplyBy(replyBy: string): string {
+  const [y, m, d] = replyBy.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 // Wall-clock arithmetic done in UTC so no daylight-saving shift can creep in.
 function addHours(t: WallClock, hours: number): WallClock {
   const d = new Date(Date.UTC(t.year, t.month - 1, t.day, t.hour, t.minute) + hours * 3_600_000);

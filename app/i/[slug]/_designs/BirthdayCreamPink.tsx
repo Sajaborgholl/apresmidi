@@ -1,9 +1,10 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import { useEffect, useRef, useState } from "react";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Birthday Cream & Pink — ported from the approved static mockup
 // (template-birthday-cream-pink-prototype.html): recreates a Canva
@@ -107,9 +108,11 @@ export default function BirthdayCreamPink({
   guest?: InviteGuest | null;
 }) {
   const name = firstName(invite.host_names);
+  // The host's three "What to expect" captions ("" for an empty one).
+  const highlights = [0, 1, 2].map((i) => invite.highlights?.[i]?.trim() ?? "");
   const rsvp = useGuestRsvp(guest);
 
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
   const dateFormatted = eventDate
     ? eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
     : null;
@@ -196,102 +199,87 @@ export default function BirthdayCreamPink({
         </div>
       </section>
 
-      {/* ============ DETAILS ============ */}
+      {/* ============ DETAILS ============
+          The host's dress code (hidden when they gave none) and the design's
+          own fixed "Party Theme" card. */}
       <section className="cp-section" id="cp-details">
-        <div className="cp-inner">
-          <Reveal className="cp-details-heading-wrap">
-            <div className="cp-outline-badge">
-              <span className="cp-spark cp-tl">✦</span>
-              <span className="cp-spark cp-tr">✦</span>
-              <span className="cp-spark cp-bl">✦</span>
-              <span className="cp-spark cp-br">✦</span>
-              <p className="cp-badge-text">Celebrate<br />with {name}</p>
+          <div className="cp-inner">
+            <Reveal className="cp-details-heading-wrap">
+              <div className="cp-outline-badge">
+                <span className="cp-spark cp-tl">✦</span>
+                <span className="cp-spark cp-tr">✦</span>
+                <span className="cp-spark cp-bl">✦</span>
+                <span className="cp-spark cp-br">✦</span>
+                <p className="cp-badge-text">Celebrate<br />with {name}</p>
+              </div>
+            </Reveal>
+
+            <div className="cp-details-grid">
+              {invite.dress_code && (
+                <Reveal className="cp-details-card">
+                  <div className="cp-details-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 3.2a1.8 1.8 0 1 1-1.8 1.8" />
+                      <path d="M12 5v2.2" />
+                      <path d="M2.5 20l8-6.4a2.3 2.3 0 0 1 3 0l8 6.4" />
+                    </svg>
+                  </div>
+                  <h3>Dress code</h3>
+                  <p>{invite.dress_code}</p>
+                </Reveal>
+              )}
+
+              <Reveal className="cp-details-card" delay={80}>
+                <div className="cp-details-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 3.2 19 20H5L12 3.2z" />
+                    <circle cx="12" cy="3.2" r="1.2" fill="currentColor" stroke="none" />
+                    <path d="M8.2 14.5h7.6M9.4 17.3h5.2" />
+                  </svg>
+                </div>
+                <h3>Party Theme</h3>
+                <p>It&apos;s a Pink and White party — {name}&apos;s favorite colors!</p>
+              </Reveal>
             </div>
-          </Reveal>
-
-          <div className="cp-details-grid">
-            <Reveal className="cp-details-card">
-              <div className="cp-details-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 20.5s-7.2-4.4-9.6-8.9C.9 8.2 2.6 4.5 6 4.5c2 0 3.6 1.1 4.5 2.7.9-1.6 2.5-2.7 4.5-2.7 3.4 0 5.1 3.7 3.6 7.1-2.4 4.5-9.6 8.9-9.6 8.9z" />
-                </svg>
-              </div>
-              <h3>{name}&apos;s Wishlist</h3>
-              <p>Ask {name} for ideas</p>
-            </Reveal>
-
-            <Reveal className="cp-details-card" delay={80}>
-              <div className="cp-details-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3.2a1.8 1.8 0 1 1-1.8 1.8" />
-                  <path d="M12 5v2.2" />
-                  <path d="M2.5 20l8-6.4a2.3 2.3 0 0 1 3 0l8 6.4" />
-                </svg>
-              </div>
-              <h3>Outfit Suggestions</h3>
-              <p>Wear something comfortable — it&apos;s going to be an afternoon of games and prizes!</p>
-            </Reveal>
-
-            <Reveal className="cp-details-card" delay={160}>
-              <div className="cp-details-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3.2 19 20H5L12 3.2z" />
-                  <circle cx="12" cy="3.2" r="1.2" fill="currentColor" stroke="none" />
-                  <path d="M8.2 14.5h7.6M9.4 17.3h5.2" />
-                </svg>
-              </div>
-              <h3>Party Theme</h3>
-              <p>It&apos;s a Pink and White party — {name}&apos;s favorite colors!</p>
-            </Reveal>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ============ WHAT TO EXPECT ============ */}
-      <section className="cp-section" id="cp-expect">
-        <div className="cp-inner">
-          <Reveal className="cp-expect-heading-wrap">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="cp-ribbon-badge-img" src="/templates/birthday-cream-pink/what-to-expect-badge.png" alt="What to Expect" />
-          </Reveal>
-
-          <div className="cp-expect-grid">
-            <Reveal className="cp-expect-card">
-              <div className="cp-circle-frame">
-                <div className="cp-frame-inner">
-                  <PhotoSlot url={invite.photo_urls?.[2]} alt="Snacks" />
-                </div>
-              </div>
-              <h3>Afternoon Snacks<br />and Early Dinner</h3>
+      {/* ============ WHAT TO EXPECT ============
+          The host's own three captions; a card hides without its caption,
+          the section when all three are empty. */}
+      {highlights.some(Boolean) && (
+        <section className="cp-section" id="cp-expect">
+          <div className="cp-inner">
+            <Reveal className="cp-expect-heading-wrap">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="cp-ribbon-badge-img" src="/templates/birthday-cream-pink/what-to-expect-badge.png" alt="What to Expect" />
             </Reveal>
 
-            <Reveal className="cp-expect-card" delay={80}>
-              <div className="cp-circle-frame">
-                <div className="cp-frame-inner">
-                  <PhotoSlot url={invite.photo_urls?.[3]} alt="Garden games" />
-                </div>
-              </div>
-              <h3>Garden Games<br />and Fun Prizes</h3>
-            </Reveal>
-
-            <Reveal className="cp-expect-card" delay={160}>
-              <div className="cp-circle-frame">
-                <div className="cp-frame-inner">
-                  <PhotoSlot url={invite.photo_urls?.[4]} alt="Dancing" />
-                </div>
-              </div>
-              <h3>Lots of Dancing<br />and Singing</h3>
-            </Reveal>
+            <div className="cp-expect-grid">
+              {highlights.map((text, i) =>
+                text ? (
+                  <Reveal key={i} className="cp-expect-card" delay={i * 80}>
+                    <div className="cp-circle-frame">
+                      <div className="cp-frame-inner">
+                        <PhotoSlot url={invite.photo_urls?.[2 + i]} alt={text} />
+                      </div>
+                    </div>
+                    <h3>{text}</h3>
+                  </Reveal>
+                ) : null
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ============ CONTACT / RSVP ============ */}
       <section className="cp-section" id="cp-contact">
         <div className="cp-inner cp-contact-flex">
           <Reveal className="cp-contact-left">
             <div className="cp-star-badge cp-small">
-              <p className="cp-badge-text">Count<br />you in?</p>
+              {/* Only a personal link can reply (the general link shows a note instead). */}
+              <p className="cp-badge-text">{guest ? <>Count<br />you in?</> : <>See you<br />there!</>}</p>
             </div>
             <div className="cp-photo-frame">
               <div className="cp-frame-inner">
@@ -302,10 +290,10 @@ export default function BirthdayCreamPink({
 
           <Reveal className="cp-contact-right" delay={100}>
             <h3 className="cp-rsvp-heading">RSVP</h3>
-            <p className="cp-rsvp-sub">Let us know if you&apos;ll be celebrating with {name}!</p>
+            {guest && <p className="cp-rsvp-sub">Let us know if you&apos;ll be celebrating with {name}!</p>}
 
-            {!guest ? (
-              <RsvpByInvitationNote className="cp-rsvp-closed" />
+            {!guest || rsvp.closedNoReply ? (
+              <RsvpByInvitationNote className="cp-rsvp-closed" closed={Boolean(guest)} />
             ) : rsvp.showForm ? (
               <form className="cp-rsvp-form" onSubmit={rsvp.submit}>
                 {guest.name && (
@@ -318,16 +306,16 @@ export default function BirthdayCreamPink({
                 <div className="cp-rsvp-attend-row" role="group" aria-label="Attending">
                   <button
                     type="button"
-                    className={`cp-rsvp-attend-btn ${rsvp.attending ? "active" : ""}`}
-                    aria-pressed={rsvp.attending}
+                    className={`cp-rsvp-attend-btn ${rsvp.attending === true ? "active" : ""}`}
+                    aria-pressed={rsvp.attending === true}
                     onClick={() => rsvp.setAttending(true)}
                   >
                     Count me in
                   </button>
                   <button
                     type="button"
-                    className={`cp-rsvp-attend-btn ${!rsvp.attending ? "active" : ""}`}
-                    aria-pressed={!rsvp.attending}
+                    className={`cp-rsvp-attend-btn ${rsvp.attending === false ? "active" : ""}`}
+                    aria-pressed={rsvp.attending === false}
                     onClick={() => rsvp.setAttending(false)}
                   >
                     Can&apos;t make it
@@ -336,7 +324,7 @@ export default function BirthdayCreamPink({
 
                 {rsvp.attending && rsvp.maxGuests > 1 && (
                   <label className="cp-rsvp-field">
-                    <span>Number of Guests &middot; up to {rsvp.maxGuests}</span>
+                    <span>Guests, you included &middot; up to {rsvp.maxGuests}</span>
                     <input
                       type="number"
                       min={1}
@@ -347,13 +335,15 @@ export default function BirthdayCreamPink({
                   </label>
                 )}
 
+                <RsvpNoteField rsvp={rsvp} label={`A note for ${invite.host_names}`} className="rsvp-note-field" />
+
                 {rsvp.error && (
                   <p className="cp-rsvp-error" role="alert">
                     {rsvp.error}
                   </p>
                 )}
 
-                <button type="submit" className="cp-rsvp-submit-btn" disabled={rsvp.loading}>
+                <button type="submit" className="cp-rsvp-submit-btn" disabled={rsvp.loading || !rsvp.ready}>
                   {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send RSVP"}
                 </button>
                 {rsvp.changing && (
@@ -372,9 +362,11 @@ export default function BirthdayCreamPink({
                       : `Thanks for letting us know${rsvp.toName}.`}{" "}
                     {replySummary(rsvp.saved)}
                   </p>
-                  <button type="button" className="cp-rsvp-text-btn" onClick={rsvp.edit}>
+                  {rsvp.canChange && (
+                    <button type="button" className="cp-rsvp-text-btn" onClick={rsvp.edit}>
                     Change my reply
                   </button>
+                  )}
                 </div>
               )
             )}

@@ -13,6 +13,9 @@ export const MAX_LENGTH = {
   personName: 100,
   phone: 30,
   category: 100,
+  dressCode: 40,
+  guestMessage: 300,
+  highlight: 50,
 } as const;
 
 // E.164: a full international number (country code included) is at most 15

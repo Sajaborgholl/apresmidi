@@ -12,9 +12,9 @@ import { blendAt, progressAt, type ColourStop } from "@/lib/oklch";
 //
 // Real features only — no seating/reservation system exists (RSVP is
 // accept/decline + guest count), guests never share or generate a link
-// themselves (only the host shares theirs), background music (music_url) is a
-// dead field no template renders, and no template collects the guest message
-// the dashboard can show. Don't add any of those here.
+// themselves (Après-midi sends each guest their personal link on WhatsApp),
+// and background music (music_url) is a dead field no template renders.
+// Don't add any of those here.
 //
 // Brand colours only: every resting colour below is a token from globals.css
 // :root, kept as hex because the blend maths needs to parse it. Backgrounds
@@ -52,7 +52,7 @@ const FEATURES: Feature[] = [
     slug: "venue",
     label: "Venue on the map",
     headline: ["One tap to", "the venue"],
-    copy: "One tap opens Google Maps to the exact venue.",
+    copy: "Most designs open the exact venue in Maps with one tap.",
     bg: "#B4C4E5", // --blue
     fg: "#2C251D", // --ink
     image: "/homepage/features/venue.webp",
@@ -70,16 +70,16 @@ const FEATURES: Feature[] = [
     slug: "photos",
     label: "Add your photos",
     headline: ["Make it yours with", "your photos"],
-    copy: "Upload up to six photos and see them in the design instantly.",
+    copy: "Add your own photos and see them in the design instantly.",
     bg: "#FBF0A3", // --yellow-dark
     fg: "#2C251D", // --ink
     image: "/homepage/features/photos.webp",
   },
   {
     slug: "share",
-    label: "Share it anywhere",
-    headline: ["One private link,", "sent anywhere"],
-    copy: "Send your private link by text, WhatsApp, or email.",
+    label: "Sent on WhatsApp for you",
+    headline: ["Each guest gets", "their own invite"],
+    copy: "Add your guests and we send each one a personal invitation on WhatsApp, plus a reminder for anyone who hasn't replied.",
     bg: "#B4C4E5", // --blue
     fg: "#2C251D", // --ink
     image: "/homepage/features/share.webp",

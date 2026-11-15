@@ -23,7 +23,7 @@ select
   'israa-bachelorette',
   id,
   'Israa',
-  '2026-08-16 21:30:00+03',
+  '2026-08-16 21:30:00+00',
   'Merchak Rooftop, Beirut',
   null,
   null,

@@ -1,9 +1,10 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import { useEffect, useRef, useState } from "react";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 import TypewriterText from "./TypewriterText";
 import RibbonCountdown from "./RibbonCountdown";
 import BowGate from "./BowGate";
@@ -103,8 +104,9 @@ export default function WeddingBlushBow({
   // Replies come only from a guest's personal link (shared logic in ./guestRsvp).
   const rsvp = useGuestRsvp(guest);
 
-  const dateFormatted = invite.event_date
-    ? new Date(invite.event_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  const eventDay = wallClockDate(invite.event_date);
+  const dateFormatted = eventDay
+    ? eventDay.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
     : null;
 
   const photo1 = invite.photo_urls?.[0];
@@ -137,7 +139,7 @@ export default function WeddingBlushBow({
           </h1>
           <p className="label">are getting married on</p>
           <span className="script date">{dateFormatted ?? "Date coming soon"}</span>
-          <SaveTheDate invite={invite} />
+          <SaveTheDate invite={invite} guestToken={guest && !guest.demo ? guest.token : undefined} />
         </div>
 
         <div className="frame-wrap angular">
@@ -184,11 +186,14 @@ export default function WeddingBlushBow({
               </a>
             )}
           </div>
-          <div className="card">
-            <div className="card-bow"><Bow size={70} /></div>
-            <h3 className="script">Wear</h3>
-            <p>We want to keep things formal but comfortable! Smart casual or cocktail attire.</p>
-          </div>
+          {/* The host's dress code; no card when they didn't give one. */}
+          {invite.dress_code && (
+            <div className="card">
+              <div className="card-bow"><Bow size={70} /></div>
+              <h3 className="script">Wear</h3>
+              <p>{invite.dress_code}</p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -205,11 +210,12 @@ export default function WeddingBlushBow({
 
         <div className="rsvp-content">
           <h2 className="script">
-            <TypewriterText text="RSVP with us before our big day!" />
+            {/* Only a personal link can reply (the general link shows a note instead). */}
+            <TypewriterText text={guest ? "RSVP with us before our big day!" : "We can't wait to celebrate with you!"} />
           </h2>
 
-          {!guest ? (
-            <RsvpByInvitationNote className="bb-rsvp-closed" />
+          {!guest || rsvp.closedNoReply ? (
+            <RsvpByInvitationNote className="bb-rsvp-closed" closed={Boolean(guest)} />
           ) : rsvp.showForm ? (
             <form onSubmit={rsvp.submit}>
               {guest.name && (
@@ -222,16 +228,16 @@ export default function WeddingBlushBow({
               <div className="toggle-row">
                 <button
                   type="button"
-                  className={`toggle ${rsvp.attending ? "active" : ""}`}
-                  aria-pressed={rsvp.attending}
+                  className={`toggle ${rsvp.attending === true ? "active" : ""}`}
+                  aria-pressed={rsvp.attending === true}
                   onClick={() => rsvp.setAttending(true)}
                 >
                   Joyfully accept
                 </button>
                 <button
                   type="button"
-                  className={`toggle ${!rsvp.attending ? "active" : ""}`}
-                  aria-pressed={!rsvp.attending}
+                  className={`toggle ${rsvp.attending === false ? "active" : ""}`}
+                  aria-pressed={rsvp.attending === false}
                   onClick={() => rsvp.setAttending(false)}
                 >
                   Regretfully decline
@@ -240,7 +246,7 @@ export default function WeddingBlushBow({
 
               {rsvp.attending && rsvp.maxGuests > 1 && (
                 <label>
-                  <span className="label">Number of guests &middot; up to {rsvp.maxGuests}</span>
+                  <span className="label">Guests, you included &middot; up to {rsvp.maxGuests}</span>
                   <input
                     type="number"
                     min={1}
@@ -251,13 +257,15 @@ export default function WeddingBlushBow({
                 </label>
               )}
 
+              <RsvpNoteField rsvp={rsvp} label={"A note for the couple"} className="rsvp-note-field" />
+
               {rsvp.error && (
                 <p className="error-text" role="alert">
                   {rsvp.error}
                 </p>
               )}
 
-              <button type="submit" className="submit-btn" disabled={rsvp.loading}>
+              <button type="submit" className="submit-btn" disabled={rsvp.loading || !rsvp.ready}>
                 {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
               </button>
               {rsvp.changing && (
@@ -274,15 +282,16 @@ export default function WeddingBlushBow({
                   : `We'll miss you${rsvp.toName}. Thank you for letting us know.`}
               </p>
               <p className="bb-thank-summary">{replySummary(rsvp.saved)}</p>
-              <button type="button" className="bb-text-btn" onClick={rsvp.edit}>
+              {rsvp.canChange && (
+                <button type="button" className="bb-text-btn" onClick={rsvp.edit}>
                 Change my reply
               </button>
+              )}
             </div>
           ) : null}
         </div>
       </section>
 
-      <footer className="footer">Invitation crafted with love — order yours</footer>
       </div>
     </>
   );
@@ -424,7 +433,6 @@ form input {
 .bb-welcome-dear { margin: 0; font-family: 'Caveat', cursive; font-weight: 700; font-size: clamp(2.2rem, 6vw, 3.4rem); line-height: 1.05; color: #1c1c1c; overflow-wrap: anywhere; }
 .bb-welcome-seats { margin: 10px 0 0; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(11px, 1.3vw, 13px); text-transform: uppercase; letter-spacing: 0.12em; color: #1c1c1c; }
 .bb-welcome + .hero { padding-top: 40px; }
-.footer { text-align: center; padding: 34px 20px 50px; font-size: 12px; color: rgba(28,28,28,0.5); }
 @media (max-width: 640px) {
   .hero, .details, .rsvp-section { padding: 56px 6vw; }
   .details-heading { gap: 8px; }

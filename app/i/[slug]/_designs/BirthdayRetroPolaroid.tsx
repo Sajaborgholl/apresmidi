@@ -1,9 +1,10 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import { useEffect, useRef, useState } from "react";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Birthday Retro Polaroid — ported from the approved static mockup
 // (template-birthday-retro-polaroid-prototype.html): recreates a Canva
@@ -17,9 +18,8 @@ import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "
 // name — there's no such field on Invite (a guest's name is only known
 // once they fill out the RSVP form itself), so that's replaced with a
 // generic "You're Invited!" rather than inventing a field that can't
-// exist. "dresscode: chic retro" is kept as fixed decorative copy (this
-// template's own theme, the same way BirthdayDisco's disco flavor text
-// is fixed) since there's no dress-code field to bind it to.
+// exist. The "dresscode:" line shows the host's own dress code, and is
+// left out when they didn't give one.
 //
 // Three raster layers — the polaroid backing card, the washi-tape strip,
 // and the demo photo — are exact full-resolution exports fetched
@@ -100,27 +100,6 @@ function PhotoSlot({ url, alt }: { url: string | undefined; alt: string }) {
   );
 }
 
-// A placeholder date for invites that haven't set event_date yet, so the
-// hero never shows an empty/"coming soon" gap where the source design's
-// bold "29.01.2030" always sits. Derived from the invite's own id rather
-// than Math.random(): this component renders on the server first, then
-// hydrates on the client — a value that's actually random per render
-// would differ between those two passes and trigger a hydration
-// mismatch. Hashing a stable prop instead gives a date that looks
-// arbitrary but stays identical across server and client (and across
-// reloads), for the same invite.
-function placeholderDate(seed: string): string {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = (hash * 31 + seed.charCodeAt(i)) | 0;
-  }
-  const abs = Math.abs(hash);
-  const day = (abs % 28) + 1;
-  const month = ((abs >> 5) % 12) + 1;
-  const year = 2026 + ((abs >> 9) % 4);
-  return `${String(day).padStart(2, "0")}.${String(month).padStart(2, "0")}.${year}`;
-}
-
 // RSVP: replies come only from a guest's personal link, so there's no name
 // field — the guest is known (and greeted above the card, the way the
 // source's "Hello, Olivia!" did). The shared logic (save, change my reply)
@@ -136,14 +115,16 @@ export default function BirthdayRetroPolaroid({
 }) {
   const rsvp = useGuestRsvp(guest);
 
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
   // Compact numeric "DD.MM.YYYY" — matching the source design's own date
   // style (it was "29.01.2030" in a box sized for exactly that many
   // characters). A "long" weekday/month format easily wraps to 3 lines in
   // that box, overflowing down into the address text below it.
   const dateFormatted = eventDate
     ? eventDate.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" }).replaceAll("/", ".")
-    : placeholderDate(invite.id);
+    : // No date yet: say so plainly (short enough for the design's
+      // "29.01.2030"-sized box) rather than showing a made-up date.
+      "Date TBA";
   const timeFormatted = eventDate
     ? eventDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
     : null;
@@ -194,7 +175,8 @@ export default function BirthdayRetroPolaroid({
             )}
           </p>
 
-          <p className="rp-txt rp-txt-right rp-dresscode">dresscode: chic retro</p>
+          {/* The host's dress code (kept short by the form for this small box). */}
+          {invite.dress_code && <p className="rp-txt rp-txt-right rp-dresscode">dresscode: {invite.dress_code}</p>}
         </Reveal>
       </section>
 
@@ -203,10 +185,11 @@ export default function BirthdayRetroPolaroid({
         <Reveal className="rp-page">
           <p className="rp-rsvp-eyebrow">One more thing</p>
           <h2 className="rp-rsvp-heading">RSVP</h2>
-          <p className="rp-rsvp-sub">Let us know if you&apos;ll be celebrating with {invite.host_names}!</p>
+          {/* Only a personal link can reply (the general link shows a note instead). */}
+          {guest && <p className="rp-rsvp-sub">Let us know if you&apos;ll be celebrating with {invite.host_names}!</p>}
 
-          {!guest ? (
-            <RsvpByInvitationNote className="rp-rsvp-closed" />
+          {!guest || rsvp.closedNoReply ? (
+            <RsvpByInvitationNote className="rp-rsvp-closed" closed={Boolean(guest)} />
           ) : rsvp.showForm ? (
             <form className="rp-rsvp-form" onSubmit={rsvp.submit}>
               {guest.name && (
@@ -219,16 +202,16 @@ export default function BirthdayRetroPolaroid({
               <div className="rp-rsvp-attend-row" role="group" aria-label="Attending">
                 <button
                   type="button"
-                  className={`rp-rsvp-attend-btn ${rsvp.attending ? "active" : ""}`}
-                  aria-pressed={rsvp.attending}
+                  className={`rp-rsvp-attend-btn ${rsvp.attending === true ? "active" : ""}`}
+                  aria-pressed={rsvp.attending === true}
                   onClick={() => rsvp.setAttending(true)}
                 >
                   Count me in
                 </button>
                 <button
                   type="button"
-                  className={`rp-rsvp-attend-btn ${!rsvp.attending ? "active" : ""}`}
-                  aria-pressed={!rsvp.attending}
+                  className={`rp-rsvp-attend-btn ${rsvp.attending === false ? "active" : ""}`}
+                  aria-pressed={rsvp.attending === false}
                   onClick={() => rsvp.setAttending(false)}
                 >
                   Can&apos;t make it
@@ -237,7 +220,7 @@ export default function BirthdayRetroPolaroid({
 
               {rsvp.attending && rsvp.maxGuests > 1 && (
                 <label className="rp-rsvp-field">
-                  <span>Number of Guests &middot; up to {rsvp.maxGuests}</span>
+                  <span>Guests, you included &middot; up to {rsvp.maxGuests}</span>
                   <input
                     type="number"
                     min={1}
@@ -248,13 +231,15 @@ export default function BirthdayRetroPolaroid({
                 </label>
               )}
 
+              <RsvpNoteField rsvp={rsvp} label={`A note for ${invite.host_names}`} className="rsvp-note-field" />
+
               {rsvp.error && (
                 <p className="rp-rsvp-error" role="alert">
                   {rsvp.error}
                 </p>
               )}
 
-              <button type="submit" className="rp-rsvp-submit-btn" disabled={rsvp.loading}>
+              <button type="submit" className="rp-rsvp-submit-btn" disabled={rsvp.loading || !rsvp.ready}>
                 {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send RSVP"}
               </button>
               {rsvp.changing && (
@@ -273,9 +258,11 @@ export default function BirthdayRetroPolaroid({
                     : `Thanks for letting us know${rsvp.toName}.`}{" "}
                   {replySummary(rsvp.saved)}
                 </p>
-                <button type="button" className="rp-rsvp-text-btn" onClick={rsvp.edit}>
+                {rsvp.canChange && (
+                  <button type="button" className="rp-rsvp-text-btn" onClick={rsvp.edit}>
                   Change my reply
                 </button>
+                )}
               </div>
             )
           )}

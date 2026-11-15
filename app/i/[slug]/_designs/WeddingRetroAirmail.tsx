@@ -351,8 +351,8 @@ function RetroRsvp({ invite, date, guest }: { invite: Invite; date: string | nul
           <h2 className="ra-rsvp-title">Kindly reply</h2>
         </header>
 
-        {!guest ? (
-          <RsvpByInvitationNote className="ra-rsvp-closed" />
+        {!guest || rsvp.closedNoReply ? (
+          <RsvpByInvitationNote className="ra-rsvp-closed" closed={Boolean(guest)} />
         ) : !rsvp.showForm && rsvp.saved ? (
           <div className="ra-rsvp-done" role="status">
             <Postmark names={invite.host_names} date={date} />
@@ -363,9 +363,11 @@ function RetroRsvp({ invite, date, guest }: { invite: Invite; date: string | nul
               {rsvp.saved.attending ? "We can't wait to celebrate with you." : "Thank you for letting us know."}{" "}
               {replySummary(rsvp.saved)}
             </p>
-            <button type="button" className="ra-link ra-rsvp-change" onClick={rsvp.edit}>
+            {rsvp.canChange && (
+              <button type="button" className="ra-link ra-rsvp-change" onClick={rsvp.edit}>
               Change my reply
             </button>
+            )}
           </div>
         ) : (
           <form className="ra-rsvp-form" onSubmit={rsvp.submit}>
@@ -456,7 +458,7 @@ function RetroRsvp({ invite, date, guest }: { invite: Invite; date: string | nul
                   {rsvp.error}
                 </p>
               )}
-              <button type="submit" className="ra-rsvp-send" disabled={rsvp.loading}>
+              <button type="submit" className="ra-rsvp-send" disabled={rsvp.loading || !rsvp.ready}>
                 {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send by airmail"}
               </button>
               {rsvp.changing && (
@@ -572,7 +574,10 @@ export default function WeddingRetroAirmail({ invite, guest = null }: { invite: 
               <p>{date ?? "Date coming soon"}</p>
               {date && (
                 <p>
-                  <SaveTheDate invite={invite} triggerClassName="ra-link" triggerLabel="Save the date on your calendar" />
+                  <SaveTheDate
+                    invite={invite}
+                    guestToken={guest && !guest.demo ? guest.token : undefined}
+                    triggerClassName="ra-link" triggerLabel="Save the date on your calendar" />
                 </p>
               )}
             </div>

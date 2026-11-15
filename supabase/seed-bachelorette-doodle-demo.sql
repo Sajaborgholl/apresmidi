@@ -13,7 +13,7 @@ select
   'sarina-doodle',
   id,
   'Sarina',
-  '2027-08-07 20:00:00+03',
+  '2027-08-07 20:00:00+00',
   '123 Any Where St., Any City',
   'live'
 from templates where slug = 'bachelorette-doodle'

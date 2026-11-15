@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import type { Invite } from "@/lib/types";
+import { wallClockDate } from "@/lib/calendar";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 
 type IconKey = "heart" | "star" | "rings";
 
@@ -79,6 +80,11 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
   const rsvp = useGuestRsvp(guest);
 
   const photo = invite.photo_urls?.[0];
+  const eventDate = wallClockDate(invite.event_date);
+  const dateText = eventDate
+    ? eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    : null;
+  const timeText = eventDate ? eventDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) : null;
 
   return (
     <>
@@ -108,12 +114,12 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={photo}
-                    alt={`${invite.host_names} as children`}
+                    alt={invite.host_names}
                     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
                   />
                 )}
               </div>
-              <p className="polaroid-caption">{invite.host_names}, once upon a time</p>
+              <p className="polaroid-caption">{invite.host_names}</p>
             </div>
 
             <p className={`tap-hint ${revealed ? "hidden" : ""}`}>go on, tap the photo</p>
@@ -137,14 +143,38 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
         </div>
       </section>
 
+      {/* When and where, styled like the RSVP card below. */}
+      <section id="details">
+        <div className="section-content">
+          <div className="card">
+            <h2 className="script">The details</h2>
+            <div className="detail-row">
+              <p className="detail-label">When</p>
+              <p className="detail-value">{dateText ?? "Date coming soon"}</p>
+              {timeText && <p className="detail-value">{timeText}</p>}
+            </div>
+            <div className="divider" />
+            <div className="detail-row">
+              <p className="detail-label">Where</p>
+              <p className="detail-value">{invite.venue_name ?? "Venue coming soon"}</p>
+              {invite.venue_map_url && (
+                <a className="map-button" href={invite.venue_map_url} target="_blank" rel="noopener noreferrer">
+                  View map
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="rsvp">
         <StickerLayer stickers={RSVP_STICKERS} />
         <div className="section-content">
           <div className="card">
             <h2 className="script">RSVP</h2>
 
-            {!guest ? (
-              <RsvpByInvitationNote className="sb-rsvp-closed" />
+            {!guest || rsvp.closedNoReply ? (
+              <RsvpByInvitationNote className="sb-rsvp-closed" closed={Boolean(guest)} />
             ) : rsvp.showForm ? (
               <form onSubmit={rsvp.submit}>
                 {guest.name && (
@@ -157,16 +187,16 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
                 <div className="toggle-row">
                   <button
                     type="button"
-                    className={`toggle-btn ${rsvp.attending ? "active" : ""}`}
-                    aria-pressed={rsvp.attending}
+                    className={`toggle-btn ${rsvp.attending === true ? "active" : ""}`}
+                    aria-pressed={rsvp.attending === true}
                     onClick={() => rsvp.setAttending(true)}
                   >
                     Joyfully accept
                   </button>
                   <button
                     type="button"
-                    className={`toggle-btn ${!rsvp.attending ? "active" : ""}`}
-                    aria-pressed={!rsvp.attending}
+                    className={`toggle-btn ${rsvp.attending === false ? "active" : ""}`}
+                    aria-pressed={rsvp.attending === false}
                     onClick={() => rsvp.setAttending(false)}
                   >
                     Regretfully decline
@@ -179,7 +209,7 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
 
                 {rsvp.attending && rsvp.maxGuests > 1 && (
                   <div className="rsvp-field guest-field" style={{ display: "block" }}>
-                    <label htmlFor="guestCount">Number of guests &middot; up to {rsvp.maxGuests}</label>
+                    <label htmlFor="guestCount">Guests, you included &middot; up to {rsvp.maxGuests}</label>
                     <input
                       type="number"
                       id="guestCount"
@@ -191,7 +221,9 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
                   </div>
                 )}
 
-                <button type="submit" className="submit-btn" disabled={rsvp.loading}>
+                <RsvpNoteField rsvp={rsvp} label={"A note for the couple"} className="rsvp-note-field" />
+
+                <button type="submit" className="submit-btn" disabled={rsvp.loading || !rsvp.ready}>
                   {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Submit"}
                 </button>
                 {rsvp.changing && (
@@ -218,16 +250,17 @@ export default function WeddingScrapbook({ invite, guest = null }: { invite: Inv
                   )}
                 </p>
                 <p className="sb-thank-summary">{replySummary(rsvp.saved)}</p>
-                <button type="button" className="sb-text-btn" onClick={rsvp.edit}>
+                {rsvp.canChange && (
+                  <button type="button" className="sb-text-btn" onClick={rsvp.edit}>
                   Change my reply
                 </button>
+                )}
               </div>
             ) : null}
           </div>
         </div>
       </section>
 
-      <footer>Invitation crafted with love</footer>
     </>
   );
 }
@@ -259,6 +292,7 @@ body{
 .serif-caps{ font-family: 'Cormorant Garamond', serif; letter-spacing: 0.35em; text-transform: uppercase; color: var(--accent); }
 section{ position: relative; width: 100%; padding: 90px 24px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 #hero{ min-height: 100vh; padding-top: 60px; }
+#details{ padding-bottom: 0; }
 .stickers-layer{ position: absolute; inset: 0; pointer-events: none; z-index: 1; }
 .section-content{ position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; text-align: center; }
 #heroGroup{
@@ -355,7 +389,6 @@ section{ position: relative; width: 100%; padding: 90px 24px; display: flex; ali
 .sb-welcome{ margin-top: 30px; padding: 0 16px; max-width: 420px; }
 .sb-welcome-dear{ margin: 0; font-family: 'Caveat', cursive; font-weight: 700; font-size: clamp(1.9rem, 6vw, 2.6rem); line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; }
 .sb-welcome-seats{ margin: 8px 0 0; font-family: 'Cormorant Garamond', serif; font-size: clamp(0.7rem, 2vw, 0.82rem); letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); }
-footer{ text-align: center; padding: 34px 20px 50px; font-style: italic; font-size: 0.85rem; color: var(--accent); }
 .sticker{
   position: absolute; width: 74px; height: 74px; display: flex; align-items: center; justify-content: center;
   box-shadow: 0 6px 14px rgba(74,63,53,0.22); pointer-events: none;

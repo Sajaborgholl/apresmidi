@@ -6,10 +6,10 @@ import { STANDARD_PLAN } from "@/lib/plans";
 import Link from "next/link";
 import { Monitor, DeviceMobile, Lock, Eye, X, WarningCircle } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
-import { buildWhatsappNumber, type FormState, type Invite } from "@/lib/types";
-import { dialCodeForCountry } from "@/lib/countryCodes";
+import type { FormState, Invite } from "@/lib/types";
 import { slugify } from "../_lib/slugify";
 import CustomizeForm, { EMPTY_VALUES, type CustomizeValues } from "./CustomizeForm";
+import EmailVerifyDialog from "./EmailVerifyDialog";
 import { createOrder } from "../actions";
 import ReloadOnBfcacheRestore from "@/app/_components/ReloadOnBfcacheRestore";
 import { useHydrated } from "@/lib/useHydrated";
@@ -98,6 +98,15 @@ export default function CustomizePanel({
     null
   );
   const errorRef = useRef<HTMLDivElement>(null);
+  // A problem caught here before anything is sent (a missing photo); shown
+  // in the same box as the server's errors.
+  const [clientError, setClientError] = useState<string | null>(null);
+  // New orders: the email is asked, confirmed and verified in a dialog at
+  // "Continue to payment". The form's data waits here meanwhile, and a
+  // verified email is remembered so a retry after an error doesn't ask again.
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState<{ email: string; id: string } | null>(null);
+  const pendingOrder = useRef<FormData | null>(null);
   // The submit buttons stay disabled until the page is interactive — see
   // handleSubmit, which a click before hydration would bypass.
   const hydrated = useHydrated();
@@ -124,11 +133,25 @@ export default function CustomizePanel({
   const stageRef = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<PreviewStage | null>(null);
 
+  // Edit mode only: anything changed since the saved invite? Guards the
+  // Back link and closing the tab so a host can't lose edits by accident.
+  const dirty =
+    edit !== undefined &&
+    ((Object.keys(edit.initialValues) as (keyof CustomizeValues)[]).some((k) => values[k] !== edit.initialValues[k]) ||
+      photoPreviews.some((p, i) => p !== savedPhoto(i)));
+  useEffect(() => {
+    if (!dirty || isPending) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty, isPending]);
+
   function handleValueChange(name: keyof CustomizeValues, value: string) {
     setValues((prev) => ({ ...prev, [name]: value }));
   }
 
   function handlePhotoChange(index: number, file: File | null) {
+    setClientError(null);
     setPhotoPreviews((prev) => {
       const next = [...prev];
       // Local-only preview via a temporary browser URL — nothing is
@@ -144,11 +167,41 @@ export default function CustomizePanel({
   // retry after an error would then silently drop the photos.
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // Every photo is required. The file inputs are hidden behind the photo
+    // tiles, so the browser's own "required" check can't point at them.
+    const missing = photoPreviews.map((p, i) => (p ? 0 : i + 1)).filter(Boolean);
+    if (missing.length > 0) {
+      setClientError(
+        fields.photoCount === 1 ? "Please add a photo." : `Please add all ${fields.photoCount} photos (missing: photo ${missing.join(", ")}).`
+      );
+      requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+      return;
+    }
+    setClientError(null);
     const formData = new FormData(e.currentTarget);
-    // New orders only (not a host editing a live invite from the dashboard).
-    if (!edit) trackPixel("InitiateCheckout", { content_ids: [slug], content_type: "product", value: STANDARD_PLAN.priceUsd, currency: "USD" });
+    // Editing a live invite from the dashboard: saved straight away.
+    if (edit) {
+      startTransition(() => formAction(formData));
+      return;
+    }
+    trackPixel("InitiateCheckout", { content_ids: [slug], content_type: "product", value: STANDARD_PLAN.priceUsd, currency: "USD" });
+    pendingOrder.current = formData;
+    // Reuse the email verified earlier, unless the server just said that
+    // verification no longer counts (expired or already used).
+    const reverify = Boolean(formState?.error?.includes("verify your email"));
+    if (verifiedEmail && !reverify) submitOrder(verifiedEmail.email, verifiedEmail.id);
+    else setEmailDialogOpen(true);
+  }
+
+  // Creates the order with the verified email (createOrder checks the code).
+  function submitOrder(email: string, verificationId: string) {
+    const formData = pendingOrder.current;
+    if (!formData) return;
+    formData.set("owner_email", email);
+    formData.set("email_verification", verificationId);
     startTransition(() => formAction(formData));
   }
+
 
   // The message sits at the top of the form, which can be scrolled away
   // (and on phones the submit button is in a bar at the bottom), so bring it
@@ -169,10 +222,14 @@ export default function CustomizePanel({
       event_date: values.event_date || null,
       venue_name: values.venue_name || null,
       venue_map_url: values.venue_map_url || null,
+      dress_code: values.dress_code || null,
+      guest_message: values.guest_message || null,
+      highlights: [values.highlight_1, values.highlight_2, values.highlight_3].some(Boolean)
+        ? [values.highlight_1, values.highlight_2, values.highlight_3]
+        : null,
       primary_color: null,
       photo_urls: photoPreviews.length > 0 ? photoPreviews.map((p) => p ?? "") : null,
       music_url: null,
-      whatsapp_number: buildWhatsappNumber(dialCodeForCountry(values.whatsapp_country), values.whatsapp_number),
     }),
     [values, photoPreviews]
   );
@@ -270,8 +327,18 @@ export default function CustomizePanel({
       <ReloadOnBfcacheRestore />
       {/* ---------- Top chrome ---------- */}
       <div className="flex items-center justify-between gap-4 px-6 py-3.5">
-        <Link href={edit?.backHref ?? `/#occasion-${category}`} className="text-sm font-semibold transition hover:opacity-70">
-          &#8592; Back
+        <Link
+          href={edit?.backHref ?? `/#occasion-${category}`}
+          onClick={(e) => {
+            if (dirty && !window.confirm("Leave without saving? Your changes will be lost.")) e.preventDefault();
+          }}
+          className={
+            edit
+              ? "inline-flex items-center rounded-full border border-black/15 px-4 py-2 text-sm font-semibold transition hover:border-black/30 active:scale-[0.97]"
+              : "text-sm font-semibold transition hover:opacity-70"
+          }
+        >
+          &#8592; {edit ? "Back to dashboard" : "Back"}
         </Link>
 
         {/* Device toggle only makes sense on desktop — a real phone is
@@ -329,12 +396,12 @@ export default function CustomizePanel({
           </>
         ) : (
           <>
-            <span>Nothing&apos;s saved yet. Your link will be</span>
+            <span>Nothing&apos;s saved yet. Your invitation&apos;s link will be</span>
             <strong
               className="font-semibold text-[var(--ink)]"
               title="A few random characters are added when your invite is created, so guests can't guess someone else's link."
             >
-              {SITE_HOST}/{baseSlugPreview}-••••••
+              {SITE_HOST}/i/{baseSlugPreview}-••••••
             </strong>
           </>
         )}
@@ -424,7 +491,7 @@ export default function CustomizePanel({
             Everything updates on the left as you type.
           </p>
 
-          {formState?.error && !isPending && (
+          {(clientError || (formState?.error && !isPending)) && (
             <div
               ref={errorRef}
               role="alert"
@@ -432,14 +499,13 @@ export default function CustomizePanel({
               style={{ background: "rgba(180,84,84,0.08)", color: "#B45454" }}
             >
               <WarningCircle size={17} weight="fill" className="mt-0.5 shrink-0" />
-              {formState.error}
+              {clientError ?? formState?.error}
             </div>
           )}
 
           <CustomizeForm
             fields={fields}
             category={category}
-            hideEmail={Boolean(edit)}
             values={values}
             onValueChange={handleValueChange}
             photoPreviews={photoPreviews}
@@ -475,6 +541,19 @@ export default function CustomizePanel({
           {edit ? (isPending ? "Saving…" : "Save changes") : isPending ? "Creating…" : "Continue to payment"}
         </button>
       </div>
+
+      {/* Outside the form on purpose: the dialog has forms of its own. */}
+      {!edit && (
+        <EmailVerifyDialog
+          open={emailDialogOpen}
+          onClose={() => setEmailDialogOpen(false)}
+          onVerified={(email, id) => {
+            setVerifiedEmail({ email, id });
+            setEmailDialogOpen(false);
+            submitOrder(email, id);
+          }}
+        />
+      )}
     </div>
   );
 }

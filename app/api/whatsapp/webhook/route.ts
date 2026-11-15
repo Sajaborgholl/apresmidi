@@ -1,8 +1,7 @@
 import { after, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rateLimit";
-import { processQueue } from "@/lib/whatsappQueue";
-import { guestReplyTemplate } from "@/lib/whatsappTemplates";
+import { sendText } from "@/lib/kapso";
 import { validKapsoSignature } from "@/lib/kapsoSignature";
 
 // Kapso's webhook for the Après-midi number (registered with
@@ -12,12 +11,12 @@ import { validKapsoSignature } from "@/lib/kapsoSignature";
 //
 //   whatsapp.message.sent / delivered / read / failed -> our message's status
 //   whatsapp.message.received -> a guest wrote to the Après-midi number:
-//                                forward it to the host's own WhatsApp
+//                                reply once (a day) with their personal link
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const FORWARDS_PER_GUEST_PER_DAY = 20;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 type Json = Record<string, unknown>;
 const obj = (v: unknown): Json => (v && typeof v === "object" && !Array.isArray(v) ? (v as Json) : {});
@@ -56,33 +55,21 @@ async function onStatus(event: string, payload: Json) {
   }
 }
 
-// The text of an incoming message, or a short label for media.
-function incomingText(message: Json): string {
-  const text = obj(message.text).body ?? obj(message.kapso).content;
-  if (typeof text === "string" && text.trim()) return text.trim();
-  const interactive = obj(message.interactive);
-  const reply = obj(interactive.button_reply).title ?? obj(interactive.list_reply).title ?? obj(message.button).text;
-  if (typeof reply === "string" && reply.trim()) return reply.trim();
-  const labels: Record<string, string> = {
-    image: "[sent a photo]",
-    audio: "[sent a voice message]",
-    video: "[sent a video]",
-    sticker: "[sent a sticker]",
-    document: "[sent a file]",
-    location: "[sent a location]",
-  };
-  return labels[String(message.type)] ?? "";
-}
-
-// Returns true if a forward was queued.
-async function onReceived(payload: Json): Promise<boolean> {
+// A guest wrote to the Après-midi number (nobody reads it). Instead of
+// forwarding to the host, it answers once a day with the guest's personal
+// link, so they reply where the host will see it. The same message every
+// time, even after the event (their page then says replies have closed).
+// Free, and needs no Meta template: their own message opens WhatsApp's
+// 24-hour window for a normal text reply. Not queued: the queue only sends
+// approved templates, and a missed reply isn't worth retrying.
+async function onReceived(payload: Json): Promise<void> {
   const message = obj(payload.message);
   const phone = String(message.from ?? obj(payload.conversation).phone_number ?? "").replace(/\D/g, "");
-  const text = incomingText(message);
-  if (phone.length < 7 || phone.length > 15 || !text) return false;
+  if (phone.length < 7 || phone.length > 15) return;
 
   const supabaseAdmin = getSupabaseAdmin();
   // Who is this? The guest we most recently sent an invitation/reminder to.
+  // Anyone we never invited gets no reply.
   const { data: last } = await supabaseAdmin
     .from("guest_messages")
     .select("invite_id, guest_id")
@@ -92,46 +79,19 @@ async function onReceived(payload: Json): Promise<boolean> {
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  if (!last?.guest_id) return false;
+  if (!last?.guest_id) return;
 
   const [{ data: guest }, { data: invite }] = await Promise.all([
-    supabaseAdmin.from("guests").select("id, name, phone").eq("id", last.guest_id).maybeSingle(),
-    supabaseAdmin
-      .from("invites")
-      .select("id, host_names, event_date, whatsapp_number, status, templates(category)")
-      .eq("id", last.invite_id)
-      .maybeSingle(),
+    supabaseAdmin.from("guests").select("id, name, token").eq("id", last.guest_id).maybeSingle(),
+    supabaseAdmin.from("invites").select("slug, host_names, status").eq("id", last.invite_id).maybeSingle(),
   ]);
-  if (!guest || !invite?.whatsapp_number || invite.status !== "live") return false;
-  // Never forward a host's own messages (that would bounce between numbers).
-  if (phone === invite.whatsapp_number) return false;
-  const { count: hostNumbers } = await supabaseAdmin
-    .from("invites")
-    .select("id", { count: "exact", head: true })
-    .eq("whatsapp_number", phone)
-    .eq("status", "live");
-  if (hostNumbers) return false;
-  if (!(await rateLimit("wa-forward", guest.id, FORWARDS_PER_GUEST_PER_DAY, 24 * 60 * 60))) return false;
+  if (!guest || !invite || invite.status !== "live") return;
+  if (!(await rateLimit("wa-autoreply", guest.id, 1, 24 * 60 * 60))) return;
 
-  const rel = invite.templates as { category: string } | { category: string }[] | null;
-  const category = (Array.isArray(rel) ? rel[0]?.category : rel?.category) ?? null;
-  const t = guestReplyTemplate({ hostNames: invite.host_names, category, eventDate: invite.event_date }, guest, text);
-  const { error } = await supabaseAdmin.from("guest_messages").insert({
-    invite_id: invite.id,
-    guest_id: guest.id,
-    kind: "forward",
-    to_phone: invite.whatsapp_number,
-    body: t.preview,
-    template_name: t.name,
-    template_language: t.language,
-    template_params: t.params,
-    button_suffix: t.buttonSuffix,
-  });
-  if (error) {
-    console.error("whatsapp webhook: forward queue failed", error);
-    return false;
-  }
-  return true;
+  const link = `${SITE_URL}/i/${invite.slug}/g/${guest.token}`;
+  const text = `Hi ${guest.name}! Messages to this number aren't read. To reply to ${invite.host_names}'s invitation, tap your personal link: ${link}`;
+  const result = await sendText(phone, text);
+  if (!result.ok) console.error(`whatsapp webhook: auto-reply to guest ${guest.id} failed`, result.error);
 }
 
 export async function POST(request: Request) {
@@ -153,7 +113,6 @@ export async function POST(request: Request) {
 
   // Answer quickly (Kapso waits 10 seconds at most) and do the work after.
   after(async () => {
-    let forwarded = false;
     for (const [i, item] of items.entries()) {
       const payload = obj(item);
       const event = headerEvent || String(payload.event ?? "");
@@ -162,12 +121,11 @@ export async function POST(request: Request) {
         // message share a key, so the event name is part of it.
         if (idempotency && !(await rateLimit("kapso-wh", `${event}:${idempotency}:${i}`, 1, 2 * 24 * 60 * 60))) continue;
         if (event in STATUS_EVENTS) await onStatus(event, payload);
-        else if (event === "whatsapp.message.received") forwarded = (await onReceived(payload)) || forwarded;
+        else if (event === "whatsapp.message.received") await onReceived(payload);
       } catch (err) {
         console.error(`whatsapp webhook: ${event} failed`, err);
       }
     }
-    if (forwarded) await processQueue(40_000);
   });
 
   return NextResponse.json({ received: true });

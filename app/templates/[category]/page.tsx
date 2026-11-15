@@ -71,7 +71,7 @@ export default async function CategoryPage({ params }: { params: Params }) {
           </Link>
           <h1 className="display mt-4 text-3xl font-bold md:text-5xl">{categoryRow.name} invitations</h1>
           <p className="mt-3 max-w-xl text-base opacity-70 md:text-lg">
-            Pick a design, add your details and share one link. Guests RSVP right on the invite.
+            Pick a design and add your details and guests. We send each guest a personal invitation on WhatsApp, and every reply lands in your dashboard.
           </p>
         </Reveal>
 

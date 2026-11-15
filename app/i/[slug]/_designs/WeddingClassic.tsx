@@ -1,8 +1,9 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Wedding Classic — replaced with the black-and-white editorial design
 // (script headline + photo banner + Where/When + RSVP), matching the
@@ -27,7 +28,7 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
   // Replies come only from a guest's personal link (shared logic in ./guestRsvp).
   const rsvp = useGuestRsvp(guest);
 
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
 
   // Matches the reference design's compact "10.22.22" numeric date.
   const shortDate = eventDate
@@ -93,9 +94,7 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
                 {timeFormatted && (
                   <>
                     <br />
-                    Ceremony at {timeFormatted}
-                    <br />
-                    Reception to follow
+                    {timeFormatted}
                   </>
                 )}
               </div>
@@ -107,8 +106,8 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
           <h2 className="wc-script wc-rsvp-script">RSVP</h2>
           {!showThanks && <p className="wc-rsvp-sub">We can&apos;t wait to celebrate with you</p>}
 
-          {!guest ? (
-            <RsvpByInvitationNote className="wc-rsvp-closed" />
+          {!guest || rsvp.closedNoReply ? (
+            <RsvpByInvitationNote className="wc-rsvp-closed" closed={Boolean(guest)} />
           ) : rsvp.showForm ? (
             <form onSubmit={rsvp.submit}>
               {guest.name && (
@@ -121,16 +120,16 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
               <div className="wc-attend-row">
                 <button
                   type="button"
-                  className={`wc-attend-btn ${rsvp.attending ? "active" : ""}`}
-                  aria-pressed={rsvp.attending}
+                  className={`wc-attend-btn ${rsvp.attending === true ? "active" : ""}`}
+                  aria-pressed={rsvp.attending === true}
                   onClick={() => rsvp.setAttending(true)}
                 >
                   Joyfully accept
                 </button>
                 <button
                   type="button"
-                  className={`wc-attend-btn ${!rsvp.attending ? "active" : ""}`}
-                  aria-pressed={!rsvp.attending}
+                  className={`wc-attend-btn ${rsvp.attending === false ? "active" : ""}`}
+                  aria-pressed={rsvp.attending === false}
                   onClick={() => rsvp.setAttending(false)}
                 >
                   Regretfully decline
@@ -139,7 +138,7 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
 
               {rsvp.attending && rsvp.maxGuests > 1 && (
                 <label>
-                  Number of guests &middot; up to {rsvp.maxGuests}
+                  Guests, you included &middot; up to {rsvp.maxGuests}
                   <input
                     type="number"
                     min={1}
@@ -150,13 +149,15 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
                 </label>
               )}
 
+              <RsvpNoteField rsvp={rsvp} label={"A note for the couple"} className="rsvp-note-field" />
+
               {rsvp.error && (
                 <p className="wc-error" role="alert">
                   {rsvp.error}
                 </p>
               )}
 
-              <button type="submit" className="wc-submit-btn" disabled={rsvp.loading}>
+              <button type="submit" className="wc-submit-btn" disabled={rsvp.loading || !rsvp.ready}>
                 {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
               </button>
               {rsvp.changing && (
@@ -174,14 +175,15 @@ export default function WeddingClassic({ invite, guest = null }: { invite: Invit
                 {rsvp.saved.attending ? "We can't wait to celebrate with you." : "Thank you for letting us know."}{" "}
                 {replySummary(rsvp.saved)}
               </p>
-              <button type="button" className="wc-text-btn" onClick={rsvp.edit}>
+              {rsvp.canChange && (
+                <button type="button" className="wc-text-btn" onClick={rsvp.edit}>
                 Change my reply
               </button>
+              )}
             </div>
           ) : null}
         </section>
 
-        <footer className="wc-footer">Invitation crafted with love — order yours</footer>
       </div>
     </>
   );
@@ -301,7 +303,6 @@ const CSS = `
 .wc-welcome-dear { margin: 0; font-family: 'BD Script', cursive; font-weight: 400; font-size: clamp(34px, 5vw, 56px); line-height: 1.1; overflow-wrap: anywhere; }
 .wc-welcome-seats { margin: 10px 0 0; font-family: 'Cinzel', serif; font-size: clamp(10.5px, 1.2vw, 12px); letter-spacing: 3px; text-transform: uppercase; color: rgba(17,17,17,0.6); }
 .wc-welcome + .wc-header { padding-top: 26px; }
-.wc-footer { text-align: center; font-size: 11px; letter-spacing: 1px; color: rgba(17,17,17,0.4); padding: 30px 20px 50px; font-family: 'Cinzel', serif; }
 @media (max-width: 720px) {
   .wc-header { flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 32px; }
   .wc-photo-row { flex-direction: column; }

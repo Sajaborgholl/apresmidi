@@ -80,7 +80,7 @@ export default function TemplateCard({
 
       <div className="mt-4 flex items-baseline justify-between gap-3 px-1">
         <h3 className="display text-lg font-bold">{template.name}</h3>
-        <span className="shrink-0 text-sm opacity-60">From {STANDARD_PLAN.price}</span>
+        <span className="shrink-0 text-sm opacity-60">{STANDARD_PLAN.price}</span>
       </div>
     </div>
   );

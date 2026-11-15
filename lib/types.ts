@@ -30,10 +30,15 @@ export type Invite = {
   primary_color: string | null;
   photo_urls: string[] | null;
   music_url: string | null;
-  whatsapp_number: string | null;
-  // Demo invites are public showcases (homepage, template pages): templates
-  // keep their contact actions (WhatsApp, phone) inert on them. Absent on the
-  // customize page's live preview, which is never a demo.
+  // Optional words from the host (see TemplateFieldManifest), and the reply
+  // deadline ("YYYY-MM-DD") set on the dashboard.
+  dress_code?: string | null;
+  guest_message?: string | null;
+  highlights?: string[] | null;
+  reply_by?: string | null;
+  // Demo invites are public showcases (homepage, template pages): replies on
+  // them aren't saved and calendar actions are inert. Absent on the customize
+  // page's live preview, which is never a demo.
   is_demo?: boolean | null;
   // The guest-link slug. Absent on the customize page's live preview (the
   // invite doesn't exist yet).
@@ -48,16 +53,6 @@ export type Invite = {
 // name/thumbnail, and the registry only if it needs to render a live
 // preview. Pricing now lives entirely in the Standard/Premium plans
 // section (app/_components/Pricing.tsx), not per category/template.
-// Shared between the customize form's live preview (CustomizePanel.tsx) and
-// the server action that actually stores the invite (actions.ts) — the
-// RSVP link is built as `wa.me/<digits>`, which needs the country code and
-// local number joined with no "+", spaces, or dashes. Kept in one place so
-// the preview and the real submission can't compute this differently.
-export function buildWhatsappNumber(countryCode: string, number: string): string | null {
-  const digits = `${countryCode}${number}`.replace(/\D/g, "");
-  return digits || null;
-}
-
 export type TemplateMeta = {
   id: string;
   slug: string;

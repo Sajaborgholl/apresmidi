@@ -17,7 +17,15 @@ export const STANDARD_PLAN = {
   price: "$80",
   // Same price as a number, for the Meta Purchase / checkout events.
   priceUsd: 80,
-  features: ["Your chosen template, exactly as designed", "Live guest RSVP page", "Private RSVP dashboard"],
+  // Keep in step with what the product does: MAX_GUESTS_PER_INVITE in
+  // lib/guestRules.ts, and the WhatsApp sending in app/dashboard.
+  features: [
+    "Your chosen template, exactly as designed",
+    "A personal invitation for each guest, sent on WhatsApp",
+    "Reminders for guests who haven't replied",
+    "Private dashboard with every reply and note",
+    "Up to 500 guests",
+  ],
 };
 
 export const REQUEST_PLANS: Record<InquiryPlan, { name: string; price: string; intro: string }> = {
@@ -45,10 +53,11 @@ export const PLUS_ADDON_GROUPS = [
   {
     group: "Guest experience",
     addons: [
-      { name: "Countdown", description: "A live timer to your day" },
-      { name: "Add to calendar", description: "One tap to save the date" },
+      // Some designs already include a countdown or "save the date":
+      // these add them to a design that doesn't.
+      { name: "Countdown", description: "A live timer to your day, on any design" },
+      { name: "Add to calendar", description: "One tap to save the date, on any design" },
       { name: "Event schedule", description: "The timeline of your day" },
-      { name: "Guest wishes", description: "Guests leave a message with their RSVP" },
     ],
   },
   {

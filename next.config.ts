@@ -37,13 +37,17 @@ const nextConfig: NextConfig = {
       },
       {
         // These URLs carry secrets (the dashboard token, the order token), so
-        // links out of them tell the next site nothing at all.
+        // links out of them tell other sites nothing at all. "same-origin",
+        // not "no-referrer": with no-referrer, browsers send `Origin: null` on
+        // the page's own form posts, and Next.js rejects every Server Action
+        // whose origin it can't match to this site ("Invalid Server Actions
+        // request"), which broke ordering, paying and the dashboard's actions.
         source: "/dashboard/:path*",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [{ key: "Referrer-Policy", value: "same-origin" }],
       },
       {
         source: "/order/:path*",
-        headers: [{ key: "Referrer-Policy", value: "no-referrer" }],
+        headers: [{ key: "Referrer-Policy", value: "same-origin" }],
       },
       {
         // The customize page (and its preview iframe + confirmation page)

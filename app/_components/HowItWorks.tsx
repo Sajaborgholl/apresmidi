@@ -14,7 +14,7 @@
 import {
   SquaresFourIcon,
   PencilSimpleIcon,
-  LinkSimpleIcon,
+  PaperPlaneTiltIcon,
   UsersThreeIcon,
 } from "@phosphor-icons/react/dist/ssr";
 
@@ -67,12 +67,14 @@ const STEPS: Step[] = [
     titleFade: 0.6,
   },
   {
-    title: ["Share the", "Link"],
+    // The real flow: the host adds guests and Après-midi sends each one a
+    // personal invitation on WhatsApp (the general link is view-only).
+    title: ["Add Guests,", "We Send It"],
     bg: "var(--yellow)",
     fg: "var(--ink)",
     iconBg: "rgba(31,36,48,0.08)",
     numeralOpacity: 0.3,
-    Icon: LinkSimpleIcon,
+    Icon: PaperPlaneTiltIcon,
     titleFade: 0.6,
   },
   {

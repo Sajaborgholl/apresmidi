@@ -19,16 +19,22 @@ export default function SaveTheDate({
   category = "wedding",
   triggerClassName = "pill",
   triggerLabel = "Save the date",
+  guestToken,
 }: {
   invite: Invite;
   category?: string;
   triggerClassName?: string;
   triggerLabel?: string;
+  // A real guest's personal-link token: the calendar entry then links to
+  // their own invitation, where they can reply (the general link can't).
+  guestToken?: string;
 }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
 
-  const guestUrl = invite.slug ? `${BASE_URL}/i/${invite.slug}` : BASE_URL;
+  const guestUrl = invite.slug
+    ? `${BASE_URL}/i/${invite.slug}${guestToken ? `/g/${guestToken}` : ""}`
+    : BASE_URL;
   const event = calendarEvent({
     title: eventTitle(invite.host_names, category),
     eventDate: invite.event_date,
@@ -65,7 +71,7 @@ export default function SaveTheDate({
   // The real guest page serves the file from the route; the customize page's
   // preview has no saved invite yet, so it builds the same file inline.
   const appleHref = invite.slug
-    ? `/i/${invite.slug}/calendar.ics`
+    ? `/i/${invite.slug}/calendar.ics${guestToken ? `?g=${encodeURIComponent(guestToken)}` : ""}`
     : `data:text/calendar;charset=utf-8,${encodeURIComponent(icsFile(event, "preview@apresmidi"))}`;
 
   const options = [

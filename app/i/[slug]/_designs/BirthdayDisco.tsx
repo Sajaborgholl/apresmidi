@@ -1,8 +1,9 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 
 // Birthday Disco — ported from the approved static mockup
 // (template-disco-birthday-prototype.html): same pink disco look, but the
@@ -105,7 +106,7 @@ export default function BirthdayDisco({
 }) {
   const rsvp = useGuestRsvp(guest);
 
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
   const dateFormatted = eventDate
     ? eventDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
     : null;
@@ -185,10 +186,10 @@ export default function BirthdayDisco({
 
       <section className="bd-rsvp">
         <h2 className="bd-rsvp-script">RSVP</h2>
-        <p className="bd-rsvp-sub">Let us know if you&apos;ll be at the disco!</p>
+        {guest && <p className="bd-rsvp-sub">Let us know if you&apos;ll be at the disco!</p>}
 
-        {!guest ? (
-          <RsvpByInvitationNote className="bd-rsvp-closed" />
+        {!guest || rsvp.closedNoReply ? (
+          <RsvpByInvitationNote className="bd-rsvp-closed" closed={Boolean(guest)} />
         ) : rsvp.showForm ? (
           <form className="bd-form" onSubmit={rsvp.submit}>
             {guest.name && (
@@ -201,16 +202,16 @@ export default function BirthdayDisco({
             <div className="bd-attend-row" role="group" aria-label="Attending">
               <button
                 type="button"
-                className={`bd-attend-btn ${rsvp.attending ? "active" : ""}`}
-                aria-pressed={rsvp.attending}
+                className={`bd-attend-btn ${rsvp.attending === true ? "active" : ""}`}
+                aria-pressed={rsvp.attending === true}
                 onClick={() => rsvp.setAttending(true)}
               >
                 Count me in
               </button>
               <button
                 type="button"
-                className={`bd-attend-btn ${!rsvp.attending ? "active" : ""}`}
-                aria-pressed={!rsvp.attending}
+                className={`bd-attend-btn ${rsvp.attending === false ? "active" : ""}`}
+                aria-pressed={rsvp.attending === false}
                 onClick={() => rsvp.setAttending(false)}
               >
                 Can&apos;t make it
@@ -219,7 +220,7 @@ export default function BirthdayDisco({
 
             {rsvp.attending && rsvp.maxGuests > 1 && (
               <label>
-                Number of guests &middot; up to {rsvp.maxGuests}
+                Guests, you included &middot; up to {rsvp.maxGuests}
                 <input
                   type="number"
                   min={1}
@@ -230,13 +231,15 @@ export default function BirthdayDisco({
               </label>
             )}
 
+            <RsvpNoteField rsvp={rsvp} label={`A note for ${invite.host_names}`} className="rsvp-note-field" />
+
             {rsvp.error && (
               <p className="bd-error" role="alert">
                 {rsvp.error}
               </p>
             )}
 
-            <button type="submit" className="bd-submit-btn" disabled={rsvp.loading}>
+            <button type="submit" className="bd-submit-btn" disabled={rsvp.loading || !rsvp.ready}>
               {rsvp.loading ? "Sending…" : rsvp.changing ? "Update my reply" : "Send RSVP"}
             </button>
             {rsvp.changing && (
@@ -255,9 +258,11 @@ export default function BirthdayDisco({
                   : `Thanks for letting us know${rsvp.toName}.`}{" "}
                 {replySummary(rsvp.saved)}
               </p>
-              <button type="button" className="bd-text-btn" onClick={rsvp.edit}>
+              {rsvp.canChange && (
+                <button type="button" className="bd-text-btn" onClick={rsvp.edit}>
                 Change my reply
               </button>
+              )}
             </div>
           )
         )}

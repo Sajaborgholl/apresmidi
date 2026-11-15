@@ -1,10 +1,11 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 import Reveal from "@/app/_components/Reveal";
 
 // Doodle Bachelorette — ported from template-bachelorette-doodle-prototype.html,
@@ -79,7 +80,7 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
     };
   }, [invite.host_names]);
 
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
   const dateLabel = eventDate
     ? `${eventDate.toLocaleDateString("en-US", { month: "long" })} ${ordinal(eventDate.getDate())}, ${eventDate.getFullYear()}`
     : "Date coming soon";
@@ -123,10 +124,12 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
             <p className="bb-text bb-hand">{dateLabel}</p>
           </div>
           <div className="bb-el bb-addr bb-tilt bb-in" style={rise(340)}>
-            <p className="bb-text bb-hand">{venue}</p>
+            {/* At most two lines (smaller when long), so it never runs into the note below. */}
+            <p className={`bb-text bb-hand bb-addr-text${venue.length > 40 ? " bb-addr-long" : ""}`}>{venue}</p>
           </div>
           <div className="bb-el bb-note bb-tilt bb-in" style={rise(380)}>
-            <p className="bb-text bb-hand">Kindly RSVP below</p>
+            {/* Only a personal link can reply (the general link shows a note instead). */}
+            <p className="bb-text bb-hand">{guest ? "Kindly RSVP below" : "Can't wait to celebrate!"}</p>
           </div>
         </section>
       </div>
@@ -149,8 +152,8 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
           </div>
 
           <div className="bb-rsvp">
-            {!guest ? (
-              <RsvpByInvitationNote className="bb-rsvp-closed" />
+            {!guest || rsvp.closedNoReply ? (
+              <RsvpByInvitationNote className="bb-rsvp-closed" closed={Boolean(guest)} />
             ) : rsvp.showForm ? (
               <form className="bb-form" onSubmit={rsvp.submit}>
                 {guest.name && (
@@ -166,7 +169,7 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
                     <button
                       type="button"
                       className="bb-btn"
-                      aria-pressed={rsvp.attending}
+                      aria-pressed={rsvp.attending === true}
                       onClick={() => rsvp.setAttending(true)}
                     >
                       Count me in
@@ -174,7 +177,7 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
                     <button
                       type="button"
                       className="bb-btn"
-                      aria-pressed={!rsvp.attending}
+                      aria-pressed={rsvp.attending === false}
                       onClick={() => rsvp.setAttending(false)}
                     >
                       Can&rsquo;t make it
@@ -185,7 +188,7 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
                 {rsvp.attending && rsvp.maxGuests > 1 && (
                   <div>
                     <span className="bb-label" id="bb-guests-label">
-                      Guests &middot; up to {rsvp.maxGuests}
+                      Guests, you included &middot; up to {rsvp.maxGuests}
                     </span>
                     <div className="bb-stepper" role="group" aria-labelledby="bb-guests-label">
                       <button
@@ -211,13 +214,15 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
                   </div>
                 )}
 
+                <RsvpNoteField rsvp={rsvp} label={`A note for ${invite.host_names}`} className="rsvp-note-field" />
+
                 {rsvp.error && (
                   <p className="bb-error" role="alert">
                     {rsvp.error}
                   </p>
                 )}
 
-                <button className="bb-btn bb-submit" type="submit" disabled={rsvp.loading}>
+                <button className="bb-btn bb-submit" type="submit" disabled={rsvp.loading || !rsvp.ready}>
                   {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
                 </button>
                 {rsvp.changing && (
@@ -236,9 +241,11 @@ export default function BacheloretteDoodle({ invite, guest = null }: { invite: I
                       : `Thanks for letting us know${rsvp.toName}.`}
                   </p>
                   <p className="bb-thanks-body">{replySummary(rsvp.saved)}</p>
-                  <button type="button" className="bb-text-btn" onClick={rsvp.edit}>
+                  {rsvp.canChange && (
+                    <button type="button" className="bb-text-btn" onClick={rsvp.edit}>
                     Change my reply
                   </button>
+                  )}
                 </div>
               )
             )}
@@ -330,6 +337,8 @@ const CSS = `
 .bb-name .bb-text { transform: translate(-0.08cqw, -1.786cqw); }
 .bb-title .bb-text { transform: translate(-0.08cqw, -1.866cqw); }
 .bb-addr .bb-text, .bb-note .bb-text { font-size: 3.611cqw; line-height: 5cqw; transform: translateY(-0.681cqw); }
+.bb-addr .bb-addr-text { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.bb-addr .bb-addr-long { font-size: 2.9cqw; line-height: 4.1cqw; }
 
 /* ---------- Page 2 ---------- */
 .bb-p2-disco-ball { left: 50.645%; top: -4.063%; width: 46.936%; height: 31.296%; }

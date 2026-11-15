@@ -14,7 +14,7 @@ select
   'rebecca-cream-pink',
   id,
   'Rebecca',
-  '2030-09-20 17:00:00+03',
+  '2030-09-20 17:00:00+00',
   'Eateria 27, 2507 Snowbird Lane, Bellevue, NE 68005',
   'https://maps.google.com/?q=2507+Snowbird+Lane+Bellevue+NE',
   '96170664401',

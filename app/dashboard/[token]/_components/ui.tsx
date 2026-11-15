@@ -1,78 +1,259 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { PencilSimple, ShareNetwork } from "@phosphor-icons/react/dist/ssr";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { daysUntil } from "../_lib/format";
 import InfoTip from "./InfoTip";
 
-// Small building blocks shared by every dashboard section, so the cards,
-// pills and headers stay visually identical from page to page. No hooks or
-// server-only imports, so client components (GuestsTable) can use it too.
-// Colors come only from the brand tokens in app/globals.css.
+// Small building blocks shared by every dashboard section, so buttons,
+// cards, badges and headers look identical from page to page. No hooks or
+// server-only imports, so client components can use them too (the
+// interactive pieces live in ui-client.tsx). Colours come only from the
+// tokens in app/globals.css.
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-2xl border border-black/[0.07] bg-white p-6 ${className}`}>{children}</section>;
+// ---------------------------------------------------------------- buttons
+
+// "light" sits on a dark surface; "whatsapp" opens WhatsApp.
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "light" | "whatsapp";
+export type ButtonSize = "sm" | "md";
+
+const VARIANT: Record<ButtonVariant, string> = {
+  primary: "bg-[var(--ink)] text-[var(--cream)] hover:opacity-90",
+  secondary: "border border-black/15 bg-white text-[var(--ink)] hover:border-black/30",
+  ghost: "text-[var(--ink)]/70 hover:bg-black/[0.05] hover:text-[var(--ink)]",
+  danger: "bg-[var(--danger)] text-white hover:opacity-90",
+  light: "bg-[var(--cream)] text-[var(--ink)] hover:bg-white",
+  whatsapp: "bg-[var(--whatsapp)] text-white hover:opacity-90",
+};
+const SIZE: Record<ButtonSize, string> = {
+  sm: "min-h-[34px] px-3 text-[13px]",
+  md: "min-h-[42px] px-4 text-[14px]",
+};
+
+// The class string, for the odd element that can't be a <Button> (a file
+// input's label, a download link).
+export function buttonClass(variant: ButtonVariant = "secondary", size: ButtonSize = "md", extra = "") {
+  return `inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-semibold transition active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--blue-dark)] ${VARIANT[variant]} ${SIZE[size]} ${extra}`;
 }
 
-export function CardHeader({ title, href, linkLabel = "View all" }: { title: string; href?: string; linkLabel?: string }) {
+type ButtonProps = {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  icon?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  // A link instead of a button; `external` opens it in a new tab.
+  href?: string;
+  external?: boolean;
+  download?: string;
+} & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children">;
+
+export function Button({ variant = "secondary", size = "md", icon, children, className = "", href, external, download, type = "button", ...rest }: ButtonProps) {
+  const cls = buttonClass(variant, size, className);
+  const inner = (
+    <>
+      {icon}
+      {children}
+    </>
+  );
+  if (href !== undefined) {
+    if (external || download !== undefined) {
+      return (
+        <a href={href} className={cls} download={download} {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+          {inner}
+        </a>
+      );
+    }
+    return (
+      <Link href={href} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
   return (
-    <div className="mb-5 flex items-center justify-between gap-3">
-      <h2 className="display text-[17px] font-bold">{title}</h2>
-      {href && (
-        <Link href={href} className="text-[13px] font-semibold text-[var(--blue-dark)] transition hover:opacity-70">
-          {linkLabel}
-        </Link>
+    <button type={type} className={cls} {...rest}>
+      {inner}
+    </button>
+  );
+}
+
+// A round icon-only button; `label` is required since there's no text.
+export function IconButton({
+  label,
+  children,
+  className = "",
+  ...rest
+}: { label: string; children: ReactNode; className?: string } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children">) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[var(--ink)]/60 transition hover:bg-black/[0.06] hover:text-[var(--ink)] active:scale-[0.94] disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-[var(--blue-dark)] ${className}`}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------- surfaces
+
+export function Card({
+  title,
+  description,
+  action,
+  children,
+  className = "",
+  padded = true,
+}: {
+  title?: ReactNode;
+  description?: ReactNode;
+  action?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  // false for content that runs edge to edge (a list with its own rows).
+  padded?: boolean;
+}) {
+  const head = title || action;
+  return (
+    <section className={`rounded-[20px] border border-[var(--line)] bg-white ${className}`}>
+      {head && (
+        <div className={`flex items-start justify-between gap-3 ${padded ? "px-5 pt-5 sm:px-6 sm:pt-6" : "border-b border-[var(--line)] px-5 py-4 sm:px-6"}`}>
+          <div className="min-w-0">
+            {title && <h2 className="display text-[16px] font-bold leading-tight">{title}</h2>}
+            {description && <p className="mt-1 text-[13px] text-[var(--ink)]/65">{description}</p>}
+          </div>
+          {action && <div className="flex shrink-0 items-center gap-2">{action}</div>}
+        </div>
       )}
+      {padded ? <div className={`px-5 pb-5 sm:px-6 sm:pb-6 ${head ? "pt-4" : "pt-5 sm:pt-6"}`}>{children}</div> : children}
+    </section>
+  );
+}
+
+export function PageHeader({ title, subtitle, actions }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode }) {
+  return (
+    <header className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        <h1 className="display text-[26px] font-bold leading-tight tracking-[-0.01em] md:text-[32px]">{title}</h1>
+        {subtitle && <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[14px] text-[var(--ink)]/60">{subtitle}</div>}
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+    </header>
+  );
+}
+
+export function EmptyState({
+  icon,
+  title,
+  children,
+  action,
+}: {
+  icon: ReactNode;
+  title: string;
+  children?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2.5 px-6 py-12 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--cream)] text-[var(--ink)]/45">{icon}</span>
+      <p className="display text-[16px] font-bold">{title}</p>
+      {children && <div className="max-w-sm text-[14px] leading-relaxed text-[var(--ink)]/65">{children}</div>}
+      {action && <div className="mt-2">{action}</div>}
     </div>
   );
 }
 
-export function Pill({ accent, children }: { accent?: boolean; children: ReactNode }) {
+// ---------------------------------------------------------------- figures
+
+export function StatTile({
+  label,
+  value,
+  suffix,
+  hint,
+  info,
+  children,
+}: {
+  label: string;
+  value: number | string;
+  // Small text after the number ("of 30").
+  suffix?: string;
+  hint?: ReactNode;
+  // Only for a figure that genuinely needs explaining.
+  info?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-        accent ? "bg-[var(--blue)]/35 text-[var(--ink)]" : "bg-black/[0.05] text-[var(--ink)]/60"
-      }`}
+    <div className="rounded-[20px] border border-[var(--line)] bg-white p-4 sm:p-5">
+      <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--ink)]/65">
+        {label}
+        {info && <InfoTip label={`About ${label}`}>{info}</InfoTip>}
+      </p>
+      <p className="mt-2 flex items-baseline gap-1.5">
+        <span className="display text-[30px] font-bold leading-none tabular-nums sm:text-[34px]">{value}</span>
+        {suffix && <span className="text-[13px] font-medium text-[var(--ink)]/65">{suffix}</span>}
+      </p>
+      {hint && <p className="mt-1.5 text-[13px] text-[var(--ink)]/65">{hint}</p>}
+      {children}
+    </div>
+  );
+}
+
+export function ProgressBar({ value, max, label }: { value: number; max: number; label: string }) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  return (
+    <div
+      className="mt-3 h-1.5 overflow-hidden rounded-full bg-black/[0.07]"
+      role="progressbar"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={value}
     >
+      <div className="h-full rounded-full bg-[var(--blue-dark)] transition-[width] duration-500" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- badges
+
+// Filled tones are for a guest's reply (what the host cares about);
+// "outline" is for the quieter WhatsApp delivery states, so the two never
+// look alike side by side.
+export type BadgeTone = "neutral" | "coming" | "waiting" | "danger" | "info" | "outline";
+
+// Every tone sets its own border colour (transparent when filled) so all
+// badges are the same height.
+const TONE: Record<BadgeTone, string> = {
+  neutral: "border-transparent bg-black/[0.06] text-[var(--ink)]/70",
+  outline: "border-black/[0.14] bg-white text-[var(--ink)]/70",
+  coming: "border-transparent bg-[var(--coming-soft)] text-[var(--coming)]",
+  waiting: "border-transparent bg-[var(--waiting-soft)] text-[var(--waiting)]",
+  danger: "border-transparent bg-[var(--danger-soft)] text-[var(--danger)]",
+  info: "border-transparent bg-[var(--blue)]/30 text-[var(--ink)]",
+};
+
+export function Badge({ tone = "neutral", icon, title, children }: { tone?: BadgeTone; icon?: ReactNode; title?: string; children: ReactNode }) {
+  return (
+    <span title={title} className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2.5 py-[3px] text-[12px] font-semibold leading-none ${TONE[tone]}`}>
+      {icon}
       {children}
     </span>
   );
 }
 
-export type Stat = {
-  label: string;
-  value: number | string;
-  // One line under the number saying what it's made of.
-  hint?: ReactNode;
-  // Only for a figure that genuinely needs explaining (People attending).
-  info?: ReactNode;
-};
-
-// The headline figures as one plain row on the page background, split by
-// hairlines — not a card each. Stacks into rows on a phone.
-export function StatRow({ stats }: { stats: Stat[] }) {
-  return (
-    <div className="grid grid-cols-1 divide-y divide-black/[0.08] border-y border-black/[0.08] sm:grid-cols-3 sm:divide-x sm:divide-y-0">
-      {stats.map((s) => (
-        <div key={s.label} className="flex items-baseline justify-between gap-4 py-4 sm:block sm:px-6 sm:py-5 sm:first:pl-0">
-          <p className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--ink)]/55">
-            {s.label}
-            {s.info && <InfoTip label={`About ${s.label}`}>{s.info}</InfoTip>}
-          </p>
-          <div className="text-right sm:text-left">
-            <p className="display text-[30px] font-bold leading-none tabular-nums sm:mt-2 sm:text-[36px]">{s.value}</p>
-            {s.hint && <p className="mt-1.5 text-[12.5px] text-[var(--ink)]/50">{s.hint}</p>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+// A guest's reply, worded the same on every page.
+export function ReplyBadge({ reply }: { reply: { attending: boolean; guest_count: number | null } | null }) {
+  if (!reply) return <Badge tone="waiting">Waiting</Badge>;
+  if (!reply.attending) return <Badge>Not coming</Badge>;
+  return <Badge tone="coming">Coming · {reply.guest_count ?? 1}</Badge>;
 }
 
-export function Avatar({ name, muted }: { name: string; muted?: boolean }) {
+export function Avatar({ name, muted, size = "md" }: { name: string; muted?: boolean; size?: "sm" | "md" }) {
   return (
     <span
-      className={`display flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold ${
-        muted ? "bg-black/[0.05] text-[var(--ink)]/45" : "bg-[var(--blue)]/40 text-[var(--ink)]"
+      aria-hidden="true"
+      className={`display flex shrink-0 items-center justify-center rounded-full font-bold ${size === "sm" ? "h-8 w-8 text-[12px]" : "h-9 w-9 text-[13px]"} ${
+        muted ? "bg-black/[0.05] text-[var(--ink)]/65" : "bg-[var(--blue)]/40 text-[var(--ink)]"
       }`}
     >
       {name.trim().charAt(0).toUpperCase() || "?"}
@@ -80,69 +261,10 @@ export function Avatar({ name, muted }: { name: string; muted?: boolean }) {
   );
 }
 
-export function StatusPill({ attending }: { attending: boolean }) {
-  return attending ? <Pill accent>Attending</Pill> : <Pill>Declined</Pill>;
-}
-
-export function EmptyState({ icon, title, children }: { icon: ReactNode; title: string; children?: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-black/15 px-6 py-12 text-center">
-      <span className="text-[var(--ink)]/35">{icon}</span>
-      <p className="display text-[15px] font-bold">{title}</p>
-      {children && <div className="max-w-sm text-[13.5px] text-[var(--ink)]/55">{children}</div>}
-    </div>
-  );
-}
-
-// "In 12 days" / "Today" / "34 days ago" — a small pill next to the event
-// line, rather than a sentence in the header.
+// "In 12 days" / "Today" / "34 days ago".
 export function CountdownPill({ eventDate }: { eventDate: string | null }) {
   const days = daysUntil(eventDate);
   if (days === null) return null;
   const text = days === 0 ? "Today" : days > 0 ? `In ${days} day${days === 1 ? "" : "s"}` : `${-days} day${days === -1 ? "" : "s"} ago`;
-  return <Pill accent={days >= 0}>{text}</Pill>;
-}
-
-export function PageHeader({
-  title,
-  subtitle,
-  actions,
-}: {
-  title: string;
-  subtitle?: ReactNode;
-  actions?: ReactNode;
-}) {
-  return (
-    <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-      <div className="min-w-0">
-        <h1 className="display text-[26px] font-bold leading-tight md:text-[30px]">{title}</h1>
-        {subtitle && <div className="mt-2 flex flex-wrap items-center gap-2 text-[14px] text-[var(--ink)]/60">{subtitle}</div>}
-      </div>
-      {actions && <div className="flex shrink-0 gap-2">{actions}</div>}
-    </header>
-  );
-}
-
-// Only the Overview gets header actions; every other section is one click
-// away in the sidebar already.
-export function OverviewActions({ token }: { token: string }) {
-  return (
-    <>
-      <Link
-        href={`/dashboard/${token}/share`}
-        className="inline-flex items-center gap-1.5 rounded-full border border-black/15 bg-white px-4 py-2.5 text-[13px] font-semibold transition hover:border-black/30 active:scale-[0.97]"
-      >
-        <ShareNetwork size={15} />
-        Share
-      </Link>
-      <Link
-        href={`/dashboard/${token}/edit`}
-        className="inline-flex items-center gap-1.5 rounded-full px-4 py-2.5 text-[13px] font-semibold transition hover:opacity-90 active:scale-[0.97]"
-        style={{ background: "var(--ink)", color: "var(--cream)" }}
-      >
-        <PencilSimple size={15} />
-        Edit invitation
-      </Link>
-    </>
-  );
+  return <Badge tone={days >= 0 ? "info" : "neutral"}>{text}</Badge>;
 }

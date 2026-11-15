@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Image as ImageIcon } from "@phosphor-icons/react";
 import type { TemplateFieldManifest } from "@/lib/templates/registry";
 import { ALLOWED_PHOTO_TYPES, MAX_PHOTO_SIZE_MB } from "@/lib/types";
-import { COUNTRY_CODES } from "@/lib/countryCodes";
 import { MAX_LENGTH } from "@/lib/validation";
 
 const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
@@ -10,24 +9,30 @@ const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
 // Plain-string values for every possible field. CustomizeForm only reads
 // the ones a given template's manifest actually turns on — the rest are
 // simply ignored/not rendered.
+// (The host's email isn't here: it's asked for, confirmed and verified in a
+// dialog at "Continue to payment" — EmailVerifyDialog.tsx.)
 export type CustomizeValues = {
-  owner_email: string;
   host_names: string;
   event_date: string;
   venue_name: string;
   venue_map_url: string;
-  whatsapp_country: string;
-  whatsapp_number: string;
+  dress_code: string;
+  guest_message: string;
+  highlight_1: string;
+  highlight_2: string;
+  highlight_3: string;
 };
 
 export const EMPTY_VALUES: CustomizeValues = {
-  owner_email: "",
   host_names: "",
   event_date: "",
   venue_name: "",
   venue_map_url: "",
-  whatsapp_country: "",
-  whatsapp_number: "",
+  dress_code: "",
+  guest_message: "",
+  highlight_1: "",
+  highlight_2: "",
+  highlight_3: "",
 };
 
 // No width baked in here — composed with the actual width utility at each
@@ -41,15 +46,13 @@ const inputClass = `w-full ${inputFieldClass}`;
 const labelClass = "mb-1.5 block text-[12.5px] font-semibold text-[var(--ink)]/65";
 
 // Renders only the inputs a given template's field manifest (step 1) says
-// it actually uses — e.g. Bachelorette shows no WhatsApp field and no
-// photo pickers at all, while Classic shows every field plus 3 photo
-// slots. Controlled (value + onChange) so the live preview reacts
+// it actually uses — e.g. Bachelorette shows no photo pickers at all, while
+// Classic shows every field plus 3 photo slots. Controlled (value + onChange) so the live preview reacts
 // instantly to typing — still has real `name` attributes too, so
 // submitting this as a normal form keeps working via FormData.
 export default function CustomizeForm({
   fields,
   category,
-  hideEmail,
   values,
   onValueChange,
   photoPreviews,
@@ -57,9 +60,6 @@ export default function CustomizeForm({
 }: {
   fields: TemplateFieldManifest;
   category: string;
-  // Editing a live invite from the dashboard: the owner email is checkout
-  // info that's already on file, not something edited here.
-  hideEmail?: boolean;
   values: CustomizeValues;
   onValueChange: (name: keyof CustomizeValues, value: string) => void;
   photoPreviews: (string | undefined)[];
@@ -112,28 +112,6 @@ export default function CustomizeForm({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Every new order needs this regardless of the template's field
-          manifest, since it's checkout-level contact info (receipt +
-          dashboard link), not invite content. Hidden only when editing. */}
-      {!hideEmail && (
-        <div>
-          <label className={labelClass}>Your email *</label>
-          <input
-            name="owner_email"
-            maxLength={MAX_LENGTH.email}
-            type="email"
-            required
-            placeholder="you@email.com"
-            value={values.owner_email}
-            onChange={(e) => onValueChange("owner_email", e.target.value)}
-            className={inputClass}
-          />
-          <p className="mt-1 text-[11px] text-[var(--ink)]/45">
-            We&apos;ll send your dashboard and guest links here once payment is confirmed.
-          </p>
-        </div>
-      )}
-
       {fields.host_names && (
         <div>
           <label className={labelClass}>{isSingleHost ? "Host name *" : "Host names *"}</label>
@@ -151,10 +129,11 @@ export default function CustomizeForm({
 
       {fields.event_date && (
         <div>
-          <label className={labelClass}>Event date &amp; time</label>
+          <label className={labelClass}>Event date &amp; time *</label>
           <input
             name="event_date"
             type="datetime-local"
+            required
             value={values.event_date}
             onChange={(e) => onValueChange("event_date", e.target.value)}
             className={inputClass}
@@ -182,7 +161,13 @@ export default function CustomizeForm({
           <input
             name="venue_map_url"
             maxLength={MAX_LENGTH.venueMapUrl}
-            type="url"
+            // Text, not type="url": the browser would reject a pasted
+            // "maps.app.goo.gl/…" without https://, which the server accepts
+            // and completes (lib/validation.ts).
+            type="text"
+            inputMode="url"
+            autoCapitalize="off"
+            spellCheck={false}
             placeholder="https://maps.google.com/..."
             value={values.venue_map_url}
             onChange={(e) => onValueChange("venue_map_url", e.target.value)}
@@ -192,49 +177,66 @@ export default function CustomizeForm({
         </div>
       )}
 
-      {/* Every invitation: the host's own WhatsApp. Private — never shown on
-          the invitation; guests' WhatsApp messages to the Après-midi number
-          are forwarded here. */}
-      <div>
-        <label className={labelClass}>Your WhatsApp number</label>
-        <div className="flex gap-2">
-          <select
-            name="whatsapp_country"
-            value={values.whatsapp_country}
-            onChange={(e) => onValueChange("whatsapp_country", e.target.value)}
-            className={`w-32 shrink-0 truncate ${inputFieldClass}`}
-            aria-label="Code"
-          >
-            <option value="">+1</option>
-            {COUNTRY_CODES.map((country) => (
-              <option key={country.name} value={country.name}>
-                {country.name} ({country.dial})
-              </option>
-            ))}
-          </select>
+      {/* Optional words, only on designs with a place for them. Empty ones
+          leave that spot out of the invitation. */}
+      {fields.dress_code && (
+        <div>
+          <label className={labelClass}>Dress code</label>
           <input
-            name="whatsapp_number"
-            maxLength={MAX_LENGTH.phone}
-            placeholder="555 123 4567"
-            value={values.whatsapp_number}
-            onChange={(e) => onValueChange("whatsapp_number", e.target.value)}
+            name="dress_code"
+            maxLength={MAX_LENGTH.dressCode}
+            placeholder="e.g. Cocktail attire"
+            value={values.dress_code}
+            onChange={(e) => onValueChange("dress_code", e.target.value)}
             className={inputClass}
-            aria-label="WhatsApp number"
-            required
-            inputMode="tel"
           />
+          <p className="mt-1 text-[11px] text-[var(--ink)]/45">Optional. Leave it empty to hide it.</p>
         </div>
-        <p className="mt-1 text-[11px] text-[var(--ink)]/45">
-          Private: never shown on your invitation. When guests reply to your invitation message on WhatsApp, we
-          forward it to you here.
-        </p>
-      </div>
+      )}
+
+      {fields.guest_message && (
+        <div>
+          <label className={labelClass}>A note for your guests</label>
+          <textarea
+            name="guest_message"
+            maxLength={MAX_LENGTH.guestMessage}
+            rows={3}
+            placeholder="A few words for the people you're inviting"
+            value={values.guest_message}
+            onChange={(e) => onValueChange("guest_message", e.target.value)}
+            className={`${inputClass} resize-y`}
+          />
+          <p className="mt-1 text-[11px] text-[var(--ink)]/45">Optional. Leave it empty to hide it.</p>
+        </div>
+      )}
+
+      {(fields.highlights ?? 0) > 0 && (
+        <div>
+          <label className={labelClass}>What to expect</label>
+          <div className="flex flex-col gap-2">
+            {(["highlight_1", "highlight_2", "highlight_3"] as const).slice(0, fields.highlights).map((key, i) => (
+              <input
+                key={key}
+                name={key}
+                maxLength={MAX_LENGTH.highlight}
+                placeholder={["e.g. Dinner and drinks", "e.g. Games and prizes", "e.g. Dancing all night"][i]}
+                value={values[key]}
+                onChange={(e) => onValueChange(key, e.target.value)}
+                className={inputClass}
+                aria-label={`What to expect ${i + 1}`}
+              />
+            ))}
+          </div>
+          <p className="mt-1 text-[11px] text-[var(--ink)]/45">Optional. Shown under your photos; empty lines are hidden.</p>
+        </div>
+      )}
 
       {fields.photoCount > 0 && (
         <div>
-          <label className={labelClass}>Photos</label>
+          <label className={labelClass}>Photos *</label>
           <p className="mb-2 -mt-1 text-[11px] text-[var(--ink)]/45">
-            JPG, PNG or WebP, max {MAX_PHOTO_SIZE_MB}MB per photo.
+            {fields.photoCount === 1 ? "A photo is needed" : `All ${fields.photoCount} photos are needed`}. JPG, PNG or
+            WebP, max {MAX_PHOTO_SIZE_MB}MB per photo.
           </p>
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: fields.photoCount }, (_, i) => {

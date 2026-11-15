@@ -1,9 +1,10 @@
 "use client";
 
+import { wallClockDate } from "@/lib/calendar";
 import { useEffect, useRef, useState } from "react";
 import type { Invite } from "@/lib/types";
 import type { InviteGuest } from "@/lib/guestRules";
-import { GuestWelcome, RsvpByInvitationNote, replySummary, useGuestRsvp } from "./guestRsvp";
+import { GuestWelcome, RsvpByInvitationNote, RsvpNoteField, replySummary, useGuestRsvp } from "./guestRsvp";
 import Reveal from "@/app/_components/Reveal";
 
 // Martini Bachelorette — ported from template-bachelorette-martini-prototype.html,
@@ -69,7 +70,7 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
     };
   }, [invite.host_names]);
 
-  const eventDate = invite.event_date ? new Date(invite.event_date) : null;
+  const eventDate = wallClockDate(invite.event_date);
   const dayLabel = eventDate ? ordinal(eventDate.getDate()) : null;
   const monthLabel = eventDate ? eventDate.toLocaleDateString("en-US", { month: "long" }) : null;
   const dateFormatted = eventDate
@@ -111,7 +112,7 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
         </div>
 
         <div className="bm-el bm-title bm-in bm-i3">
-          <h1 className="bm-text bm-cond">Bachelorette weekend</h1>
+          <h1 className="bm-text bm-cond">Bachelorette party</h1>
         </div>
 
         <Deco className="bm-star-e bm-in bm-i6" file="star-doodle.svg" />
@@ -134,7 +135,8 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
         <Deco className="bm-star-d bm-in bm-i6" file="star-doodle.svg" />
 
         <div className="bm-el bm-address bm-in bm-i4">
-          <p className="bm-text bm-cond">{venue}</p>
+          {/* Long venues wrap onto two smaller lines instead of running off the card. */}
+          <p className={`bm-text bm-cond${venue.length > 20 ? " bm-address-long" : ""}`}>{venue}</p>
         </div>
 
         <Deco className="bm-coupes bm-in bm-i5" file="coupe-glasses.svg" />
@@ -150,8 +152,8 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
         )}
         <p className="bm-where">{venue}</p>
 
-        {!guest ? (
-          <RsvpByInvitationNote className="bm-rsvp-closed" />
+        {!guest || rsvp.closedNoReply ? (
+          <RsvpByInvitationNote className="bm-rsvp-closed" closed={Boolean(guest)} />
         ) : rsvp.showForm ? (
           <>
             <p className="bm-script-note">Will you be there?</p>
@@ -166,10 +168,10 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
               <div>
                 <span className="bm-label">Attending</span>
                 <div className="bm-choice">
-                  <button type="button" aria-pressed={rsvp.attending} onClick={() => rsvp.setAttending(true)}>
+                  <button type="button" aria-pressed={rsvp.attending === true} onClick={() => rsvp.setAttending(true)}>
                     Count me in
                   </button>
-                  <button type="button" aria-pressed={!rsvp.attending} onClick={() => rsvp.setAttending(false)}>
+                  <button type="button" aria-pressed={rsvp.attending === false} onClick={() => rsvp.setAttending(false)}>
                     Can&rsquo;t make it
                   </button>
                 </div>
@@ -178,7 +180,7 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
               {rsvp.attending && rsvp.maxGuests > 1 && (
                 <div>
                   <span className="bm-label" id="bm-guests-label">
-                    Guests &middot; up to {rsvp.maxGuests}
+                    Guests, you included &middot; up to {rsvp.maxGuests}
                   </span>
                   <div className="bm-stepper" role="group" aria-labelledby="bm-guests-label">
                     <button
@@ -202,13 +204,15 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
                 </div>
               )}
 
+              <RsvpNoteField rsvp={rsvp} label={`A note for ${invite.host_names}`} className="rsvp-note-field" />
+
               {rsvp.error && (
                 <p className="bm-error" role="alert">
                   {rsvp.error}
                 </p>
               )}
 
-              <button className="bm-submit" type="submit" disabled={rsvp.loading}>
+              <button className="bm-submit" type="submit" disabled={rsvp.loading || !rsvp.ready}>
                 {rsvp.loading ? "Sending..." : rsvp.changing ? "Update my reply" : "Send RSVP"}
               </button>
               {rsvp.changing && (
@@ -228,9 +232,11 @@ export default function BacheloretteMartini({ invite, guest = null }: { invite: 
                   : `Thanks for letting us know${rsvp.toName}.`}
               </p>
               <p className="bm-thanks-summary">{replySummary(rsvp.saved)}</p>
-              <button type="button" className="bm-text-btn" onClick={rsvp.edit}>
+              {rsvp.canChange && (
+                <button type="button" className="bm-text-btn" onClick={rsvp.edit}>
                 Change my reply
               </button>
+              )}
             </div>
           )
         )}
@@ -327,6 +333,17 @@ const CSS = `
   font-size: 5.04cqw;
   line-height: 7.056cqw;
   transform: translate(-0.08cqw, -0.82cqw);
+}
+/* A venue too long for one line: two smaller lines, then cut off. */
+.bm-address .bm-address-long {
+  white-space: normal;
+  font-size: 2.9cqw;
+  line-height: 3.15cqw;
+  transform: translate(-0.08cqw, -0.2cqw);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* ---------- Personal welcome (guest links) ---------- */

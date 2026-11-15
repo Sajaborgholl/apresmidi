@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import AutoRefresh from "@/app/_components/AutoRefresh";
 import Sidebar from "../_components/Sidebar";
-import { getDashboardInvite, getDashboardRsvps } from "../_lib/data";
+import { getDashboardGuests, getDashboardInvite, getDashboardRsvps } from "../_lib/data";
 
 // Reachable only by knowing the (long, random) dashboard_token — never
 // intentionally linked to from anywhere crawlable, but keep it out of
@@ -25,7 +25,7 @@ export default async function DashboardPanelLayout({
 }) {
   const { token } = await params;
   const invite = await getDashboardInvite(token);
-  const rsvps = await getDashboardRsvps(invite.id);
+  const [rsvps, guests] = await Promise.all([getDashboardRsvps(invite.id), getDashboardGuests(invite.id)]);
 
   return (
     <div
@@ -43,9 +43,12 @@ export default async function DashboardPanelLayout({
         token={token}
         hostNames={invite.host_names}
         templateName={invite.template?.name ?? null}
+        eventDate={invite.event_date}
+        guestCount={guests.length}
         messageCount={rsvps.filter((r) => r.message).length}
       />
-      <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 md:px-10 lg:py-10">
+      {/* Bottom padding on phones clears the fixed tab bar. */}
+      <main className="min-w-0 flex-1 px-4 pb-[calc(96px+env(safe-area-inset-bottom))] pt-6 sm:px-6 md:px-10 lg:py-10">
         <div className="mx-auto max-w-[1120px]">{children}</div>
       </main>
     </div>

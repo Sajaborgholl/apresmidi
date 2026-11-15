@@ -10,10 +10,9 @@ import { Copy, Check, WhatsappLogo } from "@phosphor-icons/react";
 //
 // `shareText`, when passed, adds a second button that opens `wa.me` with
 // that text pre-filled — no phone number, so it opens WhatsApp's own
-// contact/group picker rather than messaging one specific number (unlike
-// the guest-facing templates' wa.me links, which target the host's own
-// whatsapp_number for RSVP replies). Only pass this for links meant to be
-// shared outward (the guest link) — never for the private dashboard link.
+// contact/group picker rather than messaging one specific number. Only pass
+// this for links meant to be shared outward (the view-only link), never for
+// the private dashboard link.
 export default function CopyLinkButton({
   label,
   url,

@@ -9,8 +9,9 @@ import { createWhishPayment } from "@/lib/whish";
 import type { FormState } from "@/lib/types";
 import { readInviteFields } from "@/lib/inviteFields";
 import { EMAIL_PATTERN, MAX_LENGTH } from "@/lib/validation";
-import { PhotoError, uploadInvitePhotos } from "@/lib/invitePhotos";
+import { PhotoError, missingPhotoSlots, uploadInvitePhotos } from "@/lib/invitePhotos";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { eventDayPassed } from "@/lib/calendar";
 
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -38,11 +39,6 @@ function randomSlugSuffix(): string {
 // form with everything the customer typed and picked still in place —
 // a thrown error would replace the whole page with the error screen.
 export async function createOrder(templateSlug: string, _prevState: FormState, formData: FormData): Promise<FormState> {
-  // Checked before anything is uploaded: each order can carry up to 3 photos.
-  if (!(await rateLimit("create-order", await clientIp(), 10, 60 * 60))) {
-    return { error: "Too many orders from your connection — please try again in an hour." };
-  }
-
   let orderToken: string;
   try {
     orderToken = await saveDraftInvite(templateSlug, formData);
@@ -62,6 +58,9 @@ export async function createOrder(templateSlug: string, _prevState: FormState, f
 // message is written for them and shown as-is.
 class OrderInputError extends Error {}
 
+// What createOrder's rate limit returns: shown as-is, like OrderInputError.
+const TOO_MANY_ORDERS = "Too many orders from your connection — please try again in an hour.";
+
 // Validates the submission, uploads its photos and inserts the draft invite.
 // Returns the new invite's order_token.
 async function saveDraftInvite(templateSlug: string, formData: FormData): Promise<string> {
@@ -72,19 +71,52 @@ async function saveDraftInvite(templateSlug: string, formData: FormData): Promis
   if ("error" in read) {
     throw new OrderInputError(read.error);
   }
-  const { hostNames, eventDate, venueName, venueMapUrl, whatsappNumber } = read.fields;
+  const { hostNames, eventDate, venueName, venueMapUrl, dressCode, guestMessage, highlights } = read.fields;
   const ownerEmail = String(formData.get("owner_email") ?? "").trim();
 
   if (!hostNames) {
     throw new OrderInputError("Please enter the host names.");
   }
-  if (!whatsappNumber) {
-    throw new OrderInputError("Please enter your WhatsApp number, including the country code.");
+  // A new invitation for a day that's already over can't collect replies or
+  // send anything (both close after the event's day).
+  if (eventDayPassed(eventDate)) {
+    throw new OrderInputError("That date has already passed. Please check the event date.");
   }
-  // Deliberately simple format check — full deliverability validation
-  // (e.g. a verification email) is out of scope here.
+  // Required now: every message, the calendar button and the reply deadline
+  // rely on it, and every photo slot, since the designs are built around them.
+  const templateFields = getTemplateBySlug(templateSlug)?.fields;
+  if (templateFields?.event_date && !eventDate) {
+    throw new OrderInputError("Please choose the event date and time.");
+  }
+  const missing = missingPhotoSlots(formData, templateFields?.photoCount ?? 0);
+  if (missing.length > 0) {
+    throw new OrderInputError(`Please add ${missing.length === 1 ? "the missing photo" : "all the photos"} (photo ${missing.join(", ")}).`);
+  }
+  // A simple format check here; that it's really theirs is proven by the
+  // code check below.
   if (!ownerEmail || ownerEmail.length > MAX_LENGTH.email || !EMAIL_PATTERN.test(ownerEmail)) {
     throw new OrderInputError("Please enter a valid email address.");
+  }
+  // The dashboard link goes to this address and is the only way back in, so
+  // it must have been confirmed with a code first (EmailVerifyDialog.tsx,
+  // emailActions.ts): a verified, unused code for this exact email from the
+  // last hour. It's marked used once the invite is saved, below.
+  const verificationId = String(formData.get("email_verification") ?? "");
+  const { data: verification } = verificationId
+    ? await supabaseAdmin
+        .from("email_verifications")
+        .select("id, email, verified_at, used_at, created_at")
+        .eq("id", verificationId)
+        .maybeSingle()
+    : { data: null };
+  if (
+    !verification ||
+    !verification.verified_at ||
+    verification.used_at ||
+    verification.email.toLowerCase() !== ownerEmail.toLowerCase() ||
+    Date.now() - new Date(verification.created_at).getTime() > 60 * 60 * 1000
+  ) {
+    throw new OrderInputError("Please verify your email again.");
   }
 
   const { data: template } = await supabaseAdmin
@@ -114,10 +146,15 @@ async function saveDraftInvite(templateSlug: string, formData: FormData): Promis
     inviteSlug = `${baseSlug}-${randomSlugSuffix()}`;
   }
 
+  // Counted only once everything above checked out, so a host fixing typos
+  // isn't locked out; still before anything is uploaded.
+  if (!(await rateLimit("create-order", await clientIp(), 10, 60 * 60))) {
+    throw new OrderInputError(TOO_MANY_ORDERS);
+  }
+
   // Upload any photos that came with the submission — see
   // lib/invitePhotos.ts for the slot/position rules.
-  const registryEntry = getTemplateBySlug(templateSlug);
-  const photoCount = registryEntry?.fields.photoCount ?? 0;
+  const photoCount = templateFields?.photoCount ?? 0;
   const photoUrls = await uploadInvitePhotos(supabaseAdmin, formData, inviteSlug, photoCount);
 
   // The confirmation page's private reference — never the slug, which is the
@@ -137,7 +174,10 @@ async function saveDraftInvite(templateSlug: string, formData: FormData): Promis
     event_date: eventDate,
     venue_name: venueName,
     venue_map_url: venueMapUrl,
-    whatsapp_number: whatsappNumber,
+    // Only for designs that show them (the form only asks for those).
+    ...(templateFields?.dress_code ? { dress_code: dressCode } : {}),
+    ...(templateFields?.guest_message ? { guest_message: guestMessage } : {}),
+    ...(templateFields?.highlights ? { highlights } : {}),
     photo_urls: photoUrls.length > 0 ? photoUrls : null,
     status: "draft",
   });
@@ -150,6 +190,8 @@ async function saveDraftInvite(templateSlug: string, formData: FormData): Promis
   if (insertError) {
     throw new Error(`Could not create invite: ${insertError.message}`);
   }
+  // This email confirmation can't be used for another order.
+  await supabaseAdmin.from("email_verifications").update({ used_at: new Date().toISOString() }).eq("id", verification.id);
 
   return orderToken;
 }

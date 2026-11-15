@@ -3,7 +3,7 @@
 //
 //   npx tsx scripts/kapso-templates.ts preview   # print what would be submitted
 //   npx tsx scripts/kapso-templates.ts submit    # submit all for review
-//   npx tsx scripts/kapso-templates.ts submit apresmidi_guest_reply  # just these
+//   npx tsx scripts/kapso-templates.ts submit apresmidi_reminder_v2  # just these
 //   npx tsx scripts/kapso-templates.ts status    # PENDING / APPROVED / REJECTED
 //
 // The button links use NEXT_PUBLIC_SITE_URL (or SITE_URL=… on the command

@@ -26,13 +26,6 @@ type CategoryRow = {
   sort_order: number | null;
 };
 
-type RecentInviteRow = {
-  slug: string;
-  host_names: string;
-  event_date: string | null;
-  templates: { name: string } | { name: string }[] | null;
-};
-
 type TemplateRow = {
   id: string;
   slug: string;
@@ -41,16 +34,6 @@ type TemplateRow = {
   thumbnail_url: string | null;
   video_url: string | null;
 };
-
-// Temporarily hides the "Recently designed" section — flip back to true to
-// restore it. Left in place (rather than deleting the section) so it's a
-// one-line change either way.
-const SHOW_RECENTLY_DESIGNED = false;
-
-function templateName(templates: RecentInviteRow["templates"]) {
-  if (!templates) return "Invitation";
-  return Array.isArray(templates) ? templates[0]?.name ?? "Invitation" : templates.name;
-}
 
 export default async function Home() {
   const supabaseAdmin = getSupabaseAdmin();
@@ -95,14 +78,6 @@ export default async function Home() {
       ? [{ id: t.id, name: t.name, thumbnail_url: t.thumbnail_url, video_url: t.video_url }]
       : [],
   );
-
-  const { data: recentInvitesRaw } = await supabaseAdmin
-    .from("invites")
-    .select("slug, host_names, event_date, templates(name)")
-    .eq("status", "live")
-    .order("created_at", { ascending: false })
-    .limit(3);
-  const recentInvites: RecentInviteRow[] = recentInvitesRaw ?? [];
 
   return (
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>
@@ -247,57 +222,6 @@ export default async function Home() {
 
       <RequestCategorySection />
 
-      {SHOW_RECENTLY_DESIGNED && (
-      <section className="px-6 md:px-12 py-14">
-        <h2 className="display font-bold text-2xl md:text-3xl mb-8">Recently designed</h2>
-        {recentInvites.length > 0 ? (
-          <div className="grid md:grid-cols-3 gap-5">
-            {recentInvites.map((invite, i) => (
-              <Link
-                key={invite.slug}
-                href={`/i/${invite.slug}`}
-                className="rounded-3xl h-56 md:h-72 p-6 flex flex-col justify-between transition hover:opacity-90"
-                style={
-                  i === 0
-                    ? { background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }
-                    : { background: CARD_COLORS[i % CARD_COLORS.length] }
-                }
-              >
-                <span className="text-xs font-medium uppercase tracking-wide opacity-60">
-                  {templateName(invite.templates)}
-                </span>
-                <div>
-                  <p className="script text-4xl leading-tight">{invite.host_names}</p>
-                  {invite.event_date && (
-                    <p className="text-sm mt-2 opacity-70">
-                      {new Date(invite.event_date).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <div
-            className="rounded-3xl py-14 px-6 flex flex-col items-center justify-center text-center gap-4"
-            style={{ background: "#fff", border: "1px solid rgba(0,0,0,0.08)" }}
-          >
-            <p className="text-neutral-600">No live invites yet, yours could be the first.</p>
-            <a
-              href="#occasions"
-              className="rounded-full px-5 py-2 text-sm font-medium"
-              style={{ background: "var(--ink)", color: "var(--cream)" }}
-            >
-              Start one
-            </a>
-          </div>
-        )}
-      </section>
-      )}
 
       <FeatureScroll />
 

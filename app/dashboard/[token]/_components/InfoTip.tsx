@@ -64,7 +64,7 @@ export default function InfoTip({ label, children }: { label: string; children: 
         onClick={() => setOpen(true)}
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
-        className="-m-1 flex items-center justify-center rounded-full p-1 text-[var(--ink)]/35 transition hover:text-[var(--ink)]/70 focus-visible:text-[var(--ink)]/70 focus-visible:outline-2 focus-visible:outline-[var(--blue-dark)]"
+        className="-m-1 flex items-center justify-center rounded-full p-1 text-[var(--ink)]/50 transition hover:text-[var(--ink)]/70 focus-visible:text-[var(--ink)]/70 focus-visible:outline-2 focus-visible:outline-[var(--blue-dark)]"
       >
         <Info size={14} weight="bold" />
       </button>
@@ -76,7 +76,7 @@ export default function InfoTip({ label, children }: { label: string; children: 
         id={id}
         role="tooltip"
         style={{ marginLeft: -shift }}
-        className={`pointer-events-none absolute left-[-10px] top-full z-20 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-xl bg-[var(--ink)] px-3.5 py-2.5 text-left text-[12.5px] font-normal leading-relaxed text-[var(--cream)] shadow-[0_12px_32px_-8px_rgba(44,37,29,0.35)] transition duration-150 ease-out motion-reduce:transition-none ${
+        className={`pointer-events-none absolute left-[-10px] top-full z-20 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-xl bg-[var(--ink)] px-3.5 py-2.5 text-left text-[13px] font-normal leading-relaxed text-[var(--cream)] shadow-[0_12px_32px_-8px_rgba(44,37,29,0.35)] transition duration-150 ease-out motion-reduce:transition-none ${
           open ? "visible translate-y-0 opacity-100" : "invisible -translate-y-1 opacity-0"
         }`}
       >

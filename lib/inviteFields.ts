@@ -1,13 +1,15 @@
-import { buildWhatsappNumber } from "@/lib/types";
-import { dialCodeForCountry } from "@/lib/countryCodes";
-import { MAX_LENGTH, WHATSAPP_DIGITS, checkMapLink, isValidEventDate } from "@/lib/validation";
+import { MAX_LENGTH, checkMapLink, isValidEventDate } from "@/lib/validation";
 
 export type InviteFields = {
   hostNames: string;
   eventDate: string | null;
   venueName: string | null;
   venueMapUrl: string | null;
-  whatsappNumber: string | null;
+  dressCode: string | null;
+  guestMessage: string | null;
+  // Three "What to expect" captions, in order ("" for an empty one), or null
+  // when all are empty.
+  highlights: string[] | null;
 };
 
 // Reads the invite-content fields of the customize form and checks their
@@ -43,14 +45,17 @@ export function readInviteFields(formData: FormData): { fields: InviteFields } |
     venueMapUrl = map.url;
   }
 
-  // A country code on its own (no number typed) is no number at all — it
-  // used to be saved as just the code, giving guests a dead WhatsApp button.
-  const localDigits = text("whatsapp_number").replace(/\D/g, "");
-  const whatsappNumber = localDigits
-    ? buildWhatsappNumber(dialCodeForCountry(text("whatsapp_country")), localDigits)
-    : null;
-  if (whatsappNumber && (whatsappNumber.length < WHATSAPP_DIGITS.min || whatsappNumber.length > WHATSAPP_DIGITS.max)) {
-    return { error: "Please enter a valid WhatsApp number, including the country code." };
+  const dressCode = text("dress_code");
+  if (dressCode.length > MAX_LENGTH.dressCode) {
+    return { error: `The dress code can be at most ${MAX_LENGTH.dressCode} characters.` };
+  }
+  const guestMessage = text("guest_message");
+  if (guestMessage.length > MAX_LENGTH.guestMessage) {
+    return { error: `The note for your guests can be at most ${MAX_LENGTH.guestMessage} characters.` };
+  }
+  const highlightTexts = [1, 2, 3].map((n) => text(`highlight_${n}`));
+  if (highlightTexts.some((h) => h.length > MAX_LENGTH.highlight)) {
+    return { error: `Each "What to expect" line can be at most ${MAX_LENGTH.highlight} characters.` };
   }
 
   return {
@@ -59,7 +64,9 @@ export function readInviteFields(formData: FormData): { fields: InviteFields } |
       eventDate: eventDate || null,
       venueName: venueName || null,
       venueMapUrl,
-      whatsappNumber,
+      dressCode: dressCode || null,
+      guestMessage: guestMessage || null,
+      highlights: highlightTexts.some(Boolean) ? highlightTexts : null,
     },
   };
 }

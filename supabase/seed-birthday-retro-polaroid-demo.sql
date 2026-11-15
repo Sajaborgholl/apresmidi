@@ -18,7 +18,7 @@ select
   'avery-retro-polaroid',
   id,
   'Avery',
-  '2030-01-29 21:00:00+03',
+  '2030-01-29 21:00:00+00',
   '123 Anywhere St., Any City',
   'https://maps.google.com/?q=123+Anywhere+St',
   '96170664401',

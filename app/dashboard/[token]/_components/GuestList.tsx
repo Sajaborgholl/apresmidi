@@ -1,268 +1,98 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import {
-  AddressBook,
+  ArrowSquareOut,
+  BellRinging,
+  ChatCircleText,
   Check,
+  Checks,
   Copy,
   DownloadSimple,
-  Eye,
-  FileArrowUp,
   MagnifyingGlass,
-  PencilSimple,
   PaperPlaneTilt,
+  PencilSimple,
   Plus,
+  StopCircle,
   Trash,
   UsersThree,
+  WarningCircle,
   X,
 } from "@phosphor-icons/react";
-import { COUNTRY_CODES, dialCodeForCountry } from "@/lib/countryCodes";
-import { MAX_GUESTS_PER_INVITE, MAX_SEATS_PER_GUEST, checkGuest, formatPhone } from "@/lib/guestRules";
-import { MAX_LENGTH } from "@/lib/validation";
-import { useHydrated } from "@/lib/useHydrated";
-import { addGuest, deleteGuest, importGuests, updateGuest } from "../guestActions";
-import type { DashboardGuest, SendingState } from "../_lib/format";
-import SendPanel, { useSender } from "./SendPanel";
-import { relativeTime } from "../_lib/format";
-import { contactPicker, pickContacts, readGuestFile, withCountryCode, type ImportRow } from "../_lib/guestImport";
-import { Avatar, Pill } from "./ui";
+import { formatPhone } from "@/lib/guestRules";
+import { deleteGuest, deleteGuests, updateGuest } from "../guestActions";
+import { canRemind, notYetInvited, relativeTime, type DashboardGuest, type SendingState } from "../_lib/format";
+import { downloadCsv, sheetText } from "../_lib/csv";
+import AddGuestsSheet from "./AddGuestsSheet";
+import GuestForm from "./GuestForm";
+import SendSheet, { ConsentSheet, type SendMode } from "./SendSheet";
+import { Avatar, Badge, Button, EmptyState, PageHeader, ReplyBadge } from "./ui";
+import { Menu, Segmented, Sheet, ToastView, useConfirm, useToast, type MenuItem } from "./ui-client";
+import { useSender } from "./useSender";
 
-type Filter = "all" | "waiting" | "coming" | "declined";
+type Filter = "all" | "notsent" | "waiting" | "coming" | "declined";
+type Sort = "added" | "name" | "reply";
 
-const DEFAULT_COUNTRY = "Lebanon";
-
-// Same protection as GuestsTable: cells starting with = + - @ would run as
-// spreadsheet formulas on the host's machine.
-function sheetText(value: string) {
-  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+// Why a WhatsApp message didn't arrive, in words a host can act on. Meta's
+// raw reason is kept in the badge's tooltip; these cover the usual codes.
+function deliveryHint(error: string | null): string {
+  if (error?.includes("131026")) return "This number may not be on WhatsApp. Check it, or copy their link and send it yourself.";
+  if (error?.includes("131049")) return "WhatsApp held it back to avoid sending too much. Try again tomorrow.";
+  return "WhatsApp couldn't deliver it. Check the number, or copy their link and send it yourself.";
 }
-function csvCell(value: string | number) {
-  const s = String(value);
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+export type OpenSheet = "add" | SendMode | null;
 
-const DELIVERY_LABEL: Record<NonNullable<DashboardGuest["delivery"]>["status"], string> = {
-  queued: "Waiting to send",
-  sending: "Sending…",
-  sent: "Sent",
-  delivered: "Delivered",
-  read: "Read",
-  failed: "Not delivered",
-  cancelled: "Stopped",
-};
-
-function DeliveryLine({ guest }: { guest: DashboardGuest }) {
+// Where a guest's WhatsApp invitation stands, as one badge. Outlined, with
+// WhatsApp's own ticks, so it never looks like the (filled) reply badge.
+function DeliveryBadge({ guest }: { guest: DashboardGuest }) {
   const d = guest.delivery;
-  if (!d) return <span className="text-[12px] text-[var(--ink)]/45">Invitation not sent</span>;
-  const what = d.kind === "reminder" ? "Reminder" : "Invitation";
-  if (d.status === "failed") {
-    return (
-      <span className="text-[12px] font-semibold text-[#b3261e]" title={d.error ?? undefined}>
-        {what} not delivered{d.error ? ` — ${d.error.slice(0, 80)}` : ""}
-      </span>
-    );
+  if (!d) return <Badge tone="outline">Not sent</Badge>;
+  const what = d.kind === "reminder" ? "Reminder" : "Invite";
+  switch (d.status) {
+    case "queued":
+    case "sending":
+      return <Badge tone="info">Sending…</Badge>;
+    case "cancelled":
+      return <Badge tone="outline">Stopped</Badge>;
+    case "failed":
+      // The raw reason (from Meta) is for us, not the host: it stays in the tooltip.
+      return (
+        <Badge tone="danger" icon={<WarningCircle size={12} weight="bold" />} title={d.error ?? undefined}>
+          Not delivered
+        </Badge>
+      );
+    case "read":
+      return (
+        <Badge tone="outline" icon={<Checks size={13} weight="bold" className="text-[var(--blue-dark)]" />}>
+          {what} read
+        </Badge>
+      );
+    case "delivered":
+      return (
+        <Badge tone="outline" icon={<Checks size={13} weight="bold" />}>
+          {what} delivered
+        </Badge>
+      );
+    default:
+      return (
+        <Badge tone="outline" icon={<Check size={12} weight="bold" />}>
+          {what} sent
+        </Badge>
+      );
   }
-  return (
-    <span className="text-[12px] text-[var(--ink)]/55">
-      {what} {DELIVERY_LABEL[d.status].toLowerCase()}
-      {["sent", "delivered", "read"].includes(d.status) ? ` · ${relativeTime(d.at)}` : ""}
-    </span>
-  );
 }
 
-function ReplyPill({ guest }: { guest: DashboardGuest }) {
-  if (!guest.reply) return <Pill>Waiting</Pill>;
-  if (!guest.reply.attending) return <Pill>Not coming</Pill>;
-  return <Pill accent>Coming · {guest.reply.guest_count}</Pill>;
+// Which filter tab a guest falls under.
+function status(g: DashboardGuest): Filter {
+  return g.reply ? (g.reply.attending ? "coming" : "declined") : notYetInvited(g) ? "notsent" : "waiting";
 }
 
-const fieldClass =
-  "w-full rounded-xl border border-black/10 bg-white px-3.5 py-2.5 text-[14px] outline-none transition focus:border-[var(--blue-dark)]";
-const buttonClass =
-  "inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-full border border-black/15 bg-white px-3.5 py-2 text-[13px] font-semibold transition hover:border-black/30 active:scale-[0.97] disabled:opacity-40";
-const primaryClass =
-  "inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-semibold transition hover:opacity-90 active:scale-[0.97] disabled:opacity-40";
-
-// One guest's fields: used to add a guest and to edit one.
-function GuestForm({
-  initial,
-  submitLabel,
-  onSubmit,
-  onCancel,
-}: {
-  initial?: { name: string; phone: string; seats: number };
-  submitLabel: string;
-  onSubmit: (guest: { name: string; phone: string; seats: number }) => Promise<string | null>;
-  onCancel?: () => void;
-}) {
-  // Editing shows the stored number as it is (+ and country code); adding
-  // starts with the country picker so hosts can type local numbers.
-  const [country, setCountry] = useState(initial ? "" : DEFAULT_COUNTRY);
-  const [name, setName] = useState(initial?.name ?? "");
-  const [phone, setPhone] = useState(initial ? `+${initial.phone}` : "");
-  const [seats, setSeats] = useState(initial?.seats ?? 1);
-  const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    const full = withCountryCode(phone, dialCodeForCountry(country));
-    const checked = checkGuest({ name, phone: full, seats });
-    if ("error" in checked) return setError(checked.error);
-    setError("");
-    startTransition(async () => {
-      const err = await onSubmit(checked.guest);
-      if (err) return setError(err);
-      if (!initial) {
-        setName("");
-        setPhone("");
-        setSeats(1);
-      }
-    });
-  }
-
-  return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-      <div className="grid gap-3 sm:grid-cols-[1.3fr_1.6fr_auto]">
-        <label className="flex flex-col gap-1 text-[12px] font-semibold text-[var(--ink)]/60">
-          Name
-          <input
-            className={fieldClass}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={MAX_LENGTH.personName}
-            placeholder="Rami & family"
-            required
-          />
-        </label>
-        <div className="flex flex-col gap-1 text-[12px] font-semibold text-[var(--ink)]/60">
-          <span id="guest-phone-label">WhatsApp number</span>
-          <div className="flex gap-2">
-            {!initial && (
-              <select
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                className={`${fieldClass.replace("w-full", "w-28")} shrink-0 truncate`}
-                aria-label="Country code"
-              >
-                {COUNTRY_CODES.map((c) => (
-                  <option key={c.name} value={c.name}>
-                    {c.name} ({c.dial})
-                  </option>
-                ))}
-              </select>
-            )}
-            <input
-              className={fieldClass}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={MAX_LENGTH.phone}
-              inputMode="tel"
-              placeholder={initial ? "+961 70 123 456" : "70 123 456"}
-              aria-labelledby="guest-phone-label"
-              required
-            />
-          </div>
-        </div>
-        <label className="flex flex-col gap-1 text-[12px] font-semibold text-[var(--ink)]/60">
-          Seats
-          <select className={`sm:w-24 ${fieldClass}`} value={seats} onChange={(e) => setSeats(Number(e.target.value))}>
-            {Array.from({ length: MAX_SEATS_PER_GUEST }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {error && <p className="text-[13px] font-medium text-[#b3261e]">{error}</p>}
-      <div className="flex gap-2">
-        <button type="submit" disabled={pending} className={primaryClass} style={{ background: "var(--ink)", color: "var(--cream)" }}>
-          {pending ? "Saving…" : submitLabel}
-        </button>
-        {onCancel && (
-          <button type="button" onClick={onCancel} className={buttonClass}>
-            Cancel
-          </button>
-        )}
-      </div>
-    </form>
-  );
-}
-
-// Rows from a spreadsheet or picked contacts, checked before anything is
-// added: the host sees exactly which lines will be added and why others won't.
-function ImportPreview({
-  rows,
-  onConfirm,
-  onClose,
-}: {
-  rows: ImportRow[];
-  onConfirm: () => Promise<void>;
-  onClose: () => void;
-}) {
-  const [pending, startTransition] = useTransition();
-  const checked = rows.map((r) => checkGuest(r));
-  const ok = checked.filter((c) => "guest" in c).length;
-  return (
-    <div className="rounded-2xl border border-black/[0.08] bg-[var(--cream)]/50 p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="display text-[15px] font-bold">
-            {ok} of {rows.length} guest{rows.length === 1 ? "" : "s"} ready to add
-          </p>
-          <p className="mt-0.5 text-[12.5px] text-[var(--ink)]/55">
-            Check the numbers below. Lines with a problem are skipped; you can add them by hand afterwards.
-          </p>
-        </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="rounded-full p-2 hover:bg-black/5">
-          <X size={16} />
-        </button>
-      </div>
-      <ul className="mt-3 max-h-72 divide-y divide-black/[0.06] overflow-y-auto rounded-xl border border-black/[0.06] bg-white text-[13px]">
-        {rows.map((r, i) => {
-          const c = checked[i];
-          return (
-            <li key={i} className="flex items-center gap-3 px-3 py-2">
-              <span className="w-6 shrink-0 text-right tabular-nums text-[var(--ink)]/35">{i + 1}</span>
-              {"guest" in c ? (
-                <>
-                  <Check size={14} className="shrink-0 text-[var(--blue-dark)]" />
-                  <span className="min-w-0 flex-1 truncate font-semibold">{c.guest.name}</span>
-                  <span className="shrink-0 tabular-nums text-[var(--ink)]/60">{formatPhone(c.guest.phone)}</span>
-                  <span className="w-14 shrink-0 text-right text-[var(--ink)]/60">
-                    {c.guest.seats} seat{c.guest.seats === 1 ? "" : "s"}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <X size={14} className="shrink-0 text-[#b3261e]" />
-                  <span className="min-w-0 flex-1 truncate">
-                    <strong>{r.name || "(no name)"}</strong> <span className="text-[var(--ink)]/55">{r.phone}</span>
-                  </span>
-                  <span className="shrink-0 text-[12px] text-[#b3261e]">{c.error}</span>
-                </>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      <div className="mt-3 flex gap-2">
-        <button
-          type="button"
-          disabled={ok === 0 || pending}
-          onClick={() => startTransition(onConfirm)}
-          className={primaryClass}
-          style={{ background: "var(--ink)", color: "var(--cream)" }}
-        >
-          {pending ? "Adding…" : `Add ${ok} guest${ok === 1 ? "" : "s"}`}
-        </button>
-        <button type="button" onClick={onClose} className={buttonClass}>
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
+function activityLine(g: DashboardGuest) {
+  if (g.reply) return `${g.reply.changed ? "Changed" : "Replied"} ${relativeTime(g.reply.replied_at)}`;
+  if (g.first_opened_at) return `Opened ${relativeTime(g.last_opened_at ?? g.first_opened_at)}`;
+  if (g.delivery && g.delivery.status !== "failed" && g.delivery.status !== "cancelled") return `Sent ${relativeTime(g.delivery.at)}`;
+  return `Added ${relativeTime(g.created_at)}`;
 }
 
 export default function GuestList({
@@ -272,6 +102,8 @@ export default function GuestList({
   fileName,
   sending,
   event,
+  subtitle,
+  initialSheet,
 }: {
   token: string;
   guests: DashboardGuest[];
@@ -280,45 +112,54 @@ export default function GuestList({
   fileName: string;
   sending: SendingState;
   event: { hostNames: string; category: string | null; eventDate: string | null };
+  subtitle: ReactNode;
+  // From ?add=1 / ?send=… links on the Overview.
+  initialSheet: OpenSheet;
 }) {
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
-  const [adding, setAdding] = useState(guests.length === 0);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [preview, setPreview] = useState<ImportRow[] | null>(null);
-  const [importCountry, setImportCountry] = useState(DEFAULT_COUNTRY);
-  const [notice, setNotice] = useState<{ text: string; error?: boolean } | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<OpenSheet>(initialSheet);
+  const [editing, setEditing] = useState<DashboardGuest | null>(null);
+  const [openNote, setOpenNote] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<Sort>("added");
+  const { toast, show: say, dismiss } = useToast();
+  const { confirm, element: confirmElement } = useConfirm();
+  const sender = useSender(token, say, () => setSelected(new Set()), confirm);
+  const [, startTransition] = useTransition();
+  const router = useRouter();
   // "View" opens the guest's page on this same site (just the path), so it
   // works wherever the dashboard runs; copied links keep the public address.
   const viewBase = new URL(linkBase).pathname;
-  const [, startTransition] = useTransition();
-  const fileInput = useRef<HTMLInputElement>(null);
-  // The contact picker exists only in some browsers (Android Chrome): checked
-  // after hydration so the server and browser render the same first.
-  const hydrated = useHydrated();
-  const canPickContacts = hydrated && contactPicker() !== null;
 
-  const counts = {
-    all: guests.length,
-    waiting: guests.filter((g) => !g.reply).length,
-    coming: guests.filter((g) => g.reply?.attending).length,
-    declined: guests.filter((g) => g.reply && !g.reply.attending).length,
-  };
+  // The ?add / ?send link did its job once the panel is open: drop it so a
+  // reload doesn't reopen the panel.
+  useEffect(() => {
+    if (initialSheet) window.history.replaceState(null, "", window.location.pathname);
+  }, [initialSheet]);
+
+  const counts = useMemo(() => {
+    const c = { all: guests.length, notsent: 0, waiting: 0, coming: 0, declined: 0 };
+    for (const g of guests) c[status(g)]++;
+    return c;
+  }, [guests]);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const qDigits = q.replace(/\D/g, "");
-    return guests.filter((g) => {
-      const status = !g.reply ? "waiting" : g.reply.attending ? "coming" : "declined";
+    const shown = guests.filter((g) => {
       const matches = !q || g.name.toLowerCase().includes(q) || (qDigits !== "" && g.phone.includes(qDigits));
-      return (filter === "all" || filter === status) && matches;
+      return (filter === "all" || filter === status(g)) && matches;
     });
-  }, [guests, filter, query]);
+    // "added" keeps the server's order (oldest first).
+    if (sort === "name") return [...shown].sort((a, b) => a.name.localeCompare(b.name));
+    if (sort === "reply") {
+      const at = (g: DashboardGuest) => (g.reply ? new Date(g.reply.replied_at).getTime() : 0);
+      return [...shown].sort((a, b) => at(b) - at(a));
+    }
+    return shown;
+  }, [guests, filter, query, sort]);
 
-  const say = (text: string, error = false) => setNotice({ text, error });
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const sender = useSender(token, say, () => setSelected(new Set()));
   const toggle = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -340,62 +181,54 @@ export default function GuestList({
   async function copyLink(g: DashboardGuest) {
     try {
       await navigator.clipboard.writeText(linkBase + g.token);
-      setCopied(g.id);
-      setTimeout(() => setCopied((c) => (c === g.id ? null : c)), 1800);
+      say(`${g.name}'s personal link was copied.`);
     } catch {
-      say("Couldn't copy — your browser blocked it. Long-press the link instead.", true);
+      say("Couldn't copy: your browser blocked it.", true);
     }
   }
 
-  function remove(g: DashboardGuest) {
-    if (!window.confirm(`Remove ${g.name} from your guest list? Their personal link will stop working.`)) return;
+  async function remove(g: DashboardGuest) {
+    const ok = await confirm({
+      title: `Remove ${g.name}?`,
+      text: "Their personal link will stop working, and any message still waiting to go out is stopped.",
+      confirmLabel: "Remove guest",
+      danger: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       const r = await deleteGuest(token, g.id);
       say("error" in r ? r.error : `${g.name} was removed.`, "error" in r);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(g.id);
+        return next;
+      });
     });
   }
 
-  async function onFile(file: File | undefined) {
-    if (!file) return;
-    try {
-      const parsed = await readGuestFile(file, dialCodeForCountry(importCountry));
-      if (parsed.length === 0) return say("We couldn't find any guests in that file.", true);
-      setPreview(parsed);
-    } catch {
-      say("We couldn't read that file. Save it as .xlsx or .csv and try again.", true);
-    } finally {
-      if (fileInput.current) fileInput.current.value = "";
-    }
+  async function removeSelected() {
+    const ids = [...selected];
+    const ok = await confirm({
+      title: `Remove ${ids.length} guest${ids.length === 1 ? "" : "s"}?`,
+      text: "Their personal links will stop working, and any messages still waiting to go out are stopped.",
+      confirmLabel: `Remove ${ids.length}`,
+      danger: true,
+    });
+    if (!ok) return;
+    startTransition(async () => {
+      const r = await deleteGuests(token, ids);
+      if ("error" in r) return say(r.error, true);
+      say(`${r.removed} guest${r.removed === 1 ? " was" : "s were"} removed.`);
+      setSelected(new Set());
+    });
   }
 
-  async function fromContacts() {
-    try {
-      const picked = await pickContacts(dialCodeForCountry(importCountry));
-      if (picked.length) setPreview(picked);
-    } catch {
-      say("Couldn't open your contacts.", true);
-    }
-  }
-
-  async function confirmImport() {
-    if (!preview) return;
-    const valid = preview.map((r) => checkGuest(r)).flatMap((c) => ("guest" in c ? [c.guest] : []));
-    const r = await importGuests(token, valid);
-    if ("error" in r) return say(r.error, true);
-    setPreview(null);
-    const skippedText = r.skipped.length
-      ? ` ${r.skipped.length} skipped: ${r.skipped
-          .slice(0, 3)
-          .map((s) => `${valid[s.line - 1]?.name ?? `line ${s.line}`} (${s.reason.replace(/\.$/, "").toLowerCase()})`)
-          .join(", ")}${r.skipped.length > 3 ? "…" : ""}.`
-      : "";
-    say(`${r.added} guest${r.added === 1 ? "" : "s"} added.${skippedText}`, r.added === 0);
-  }
-
-  function exportCsv() {
-    const header = ["Name", "WhatsApp", "Seats", "Reply", "Coming", "Message", "Opened", "Personal link"];
-    const lines = guests.map((g) =>
-      [
+  // The whole list, or just the ticked guests (the selection bar).
+  function exportCsv(list: DashboardGuest[] = guests) {
+    downloadCsv(
+      fileName,
+      ["Name", "WhatsApp", "Seats", "Reply", "Coming", "Message", "Opened", "Personal link"],
+      list.map((g) => [
         sheetText(g.name),
         formatPhone(g.phone),
         g.seats,
@@ -404,251 +237,369 @@ export default function GuestList({
         sheetText(g.reply?.message ?? ""),
         g.first_opened_at ? new Date(g.first_opened_at).toISOString() : "",
         linkBase + g.token,
-      ]
-        .map(csvCell)
-        .join(",")
+      ])
     );
-    const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
+  }
+
+  const paused = sending.pending > 0 && sending.whatsapp.startsWith("paused");
+  const selectedGuests = guests.filter((g) => selected.has(g.id));
+  const selectedRemindable = selectedGuests.filter(canRemind).length;
+
+  // The one action that fits where this guest stands; the rest are in "⋯".
+  function rowAction(g: DashboardGuest) {
+    const d = g.delivery;
+    if (d && (d.status === "queued" || d.status === "sending")) return null;
+    if (notYetInvited(g)) {
+      const send = (
+        <Button size="sm" variant="secondary" disabled={sender.pending} onClick={() => sender.send([g.id])} icon={<PaperPlaneTilt size={14} />}>
+          {d?.status === "failed" ? "Retry" : "Send"}
+        </Button>
+      );
+      // Didn't arrive: the host can also send the link themselves.
+      if (d?.status !== "failed") return send;
+      return (
+        <span className="inline-flex items-center gap-1">
+          <Button size="sm" variant="ghost" onClick={() => copyLink(g)} icon={<Copy size={14} />}>
+            Copy link
+          </Button>
+          {send}
+        </span>
+      );
+    }
+    if (canRemind(g)) {
+      return (
+        <Button size="sm" variant="ghost" disabled={sender.pending} onClick={() => sender.remind([g.id])} icon={<BellRinging size={14} />}>
+          Remind
+        </Button>
+      );
+    }
+    return null;
+  }
+
+  function menuItems(g: DashboardGuest): MenuItem[] {
+    // "?host=1" so the host looking doesn't count as the guest opening it.
+    const items: MenuItem[] = [
+      { label: "View their invitation", icon: <ArrowSquareOut size={16} />, href: `${viewBase}${g.token}?host=1` },
+      { label: "Copy personal link", icon: <Copy size={16} />, onSelect: () => copyLink(g) },
+    ];
+    if (!notYetInvited(g) && g.delivery?.status !== "queued" && g.delivery?.status !== "sending") {
+      items.push({ label: "Send invitation again", icon: <PaperPlaneTilt size={16} />, onSelect: () => sender.send([g.id]) });
+    }
+    items.push(
+      { label: "Edit guest", icon: <PencilSimple size={16} />, onSelect: () => setEditing(g) },
+      { label: "Remove guest", icon: <Trash size={16} />, onSelect: () => remove(g), danger: true }
+    );
+    return items;
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* ---------- Adding guests ---------- */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setAdding((a) => !a)}
-          className={primaryClass}
-          style={{ background: "var(--ink)", color: "var(--cream)" }}
-          aria-expanded={adding}
-        >
-          <Plus size={15} />
-          Add a guest
-        </button>
-        <button type="button" onClick={() => fileInput.current?.click()} className={buttonClass}>
-          <FileArrowUp size={15} />
-          Import Excel / CSV
-        </button>
-        {canPickContacts && (
-          <button type="button" onClick={fromContacts} className={buttonClass}>
-            <AddressBook size={15} />
-            From contacts
-          </button>
-        )}
-        <input
-          ref={fileInput}
-          type="file"
-          accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-          className="hidden"
-          onChange={(e) => onFile(e.target.files?.[0])}
-        />
-        <label className="ml-auto flex items-center gap-2 text-[12px] text-[var(--ink)]/55">
-          Numbers without a country code are
-          <select
-            value={importCountry}
-            onChange={(e) => setImportCountry(e.target.value)}
-            className="rounded-full border border-black/10 bg-white px-2.5 py-1.5 text-[12px] outline-none"
-            aria-label="Country for imported numbers without a country code"
-          >
-            {COUNTRY_CODES.map((c) => (
-              <option key={c.name} value={c.name}>
-                {c.name} ({c.dial})
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+    <>
+      <PageHeader
+        title="Guests"
+        subtitle={subtitle}
+        actions={
+          <>
+            <Button onClick={() => setSheet("add")} icon={<Plus size={15} weight="bold" />}>
+              Add guests
+            </Button>
+            <Button variant="primary" onClick={() => setSheet("invite")} disabled={guests.length === 0} icon={<PaperPlaneTilt size={15} />}>
+              Send on WhatsApp
+            </Button>
+          </>
+        }
+      />
 
-      <p className="-mt-2 text-[12.5px] text-[var(--ink)]/50">
-        A spreadsheet needs a name, WhatsApp number and number of seats per guest (in that order, or with column titles).
-        Up to {MAX_GUESTS_PER_INVITE} guests and {MAX_SEATS_PER_GUEST} seats each.
-      </p>
-
-      {adding && (
-        <div className="rounded-2xl border border-black/[0.08] p-4">
-          <GuestForm
-            submitLabel="Add guest"
-            onSubmit={async (g) => {
-              const r = await addGuest(token, g);
-              if ("error" in r) return r.error;
-              say(`${g.name} was added.`);
-              return null;
-            }}
-          />
-        </div>
-      )}
-
-      {preview && <ImportPreview rows={preview} onConfirm={confirmImport} onClose={() => setPreview(null)} />}
-
-      {guests.length > 0 && (
-        <SendPanel sender={sender} guests={guests} selected={selected} sending={sending} event={event} linkBase={linkBase} />
-      )}
-
-      {notice && (
-        <p
+      {sending.pending > 0 && (
+        <div
           role="status"
-          className={`rounded-xl px-3.5 py-2.5 text-[13px] font-medium ${
-            notice.error ? "bg-[#b3261e]/[0.07] text-[#b3261e]" : "bg-[var(--blue)]/25 text-[var(--ink)]"
+          className={`mb-4 flex flex-wrap items-center gap-3 rounded-2xl px-4 py-3 text-[14px] ${
+            paused ? "bg-[var(--danger-soft)] text-[var(--danger)]" : "bg-[var(--coming-soft)] text-[var(--coming)]"
           }`}
         >
-          {notice.text}
-        </p>
+          {paused ? <WarningCircle size={18} weight="bold" /> : <span className="h-2 w-2 animate-pulse rounded-full bg-current" />}
+          <span className="mr-auto font-medium">
+            {paused
+              ? `Sending is paused on our side for a moment. ${sending.pending} message${sending.pending === 1 ? "" : "s"} will go out automatically once it's resolved. We've been alerted.`
+              : `Sending… ${sending.pending} message${sending.pending === 1 ? "" : "s"} left. They go out one by one.`}
+          </span>
+          <Button size="sm" onClick={sender.stop} disabled={sender.pending} icon={<StopCircle size={14} />}>
+            Stop sending
+          </Button>
+        </div>
       )}
 
-      {/* ---------- The list ---------- */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        {rows.length > 0 && (
-          <label className="flex min-h-[40px] items-center gap-2 text-[13px] font-medium text-[var(--ink)]/65">
-            <input type="checkbox" checked={allShownSelected} onChange={toggleAllShown} className="h-4 w-4" />
-            Select all{filter !== "all" || query ? " shown" : ""}
-          </label>
-        )}
-        <div className="flex w-full gap-1 overflow-x-auto rounded-full bg-black/[0.04] p-1 sm:w-auto">
-          {(
-            [
-              ["all", "All"],
-              ["waiting", "Waiting"],
-              ["coming", "Coming"],
-              ["declined", "Not coming"],
-            ] as const
-          ).map(([f, label]) => (
-            <button
-              key={f}
-              type="button"
-              onClick={() => setFilter(f)}
-              className={`flex-1 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] transition sm:flex-none ${
-                filter === f ? "bg-white font-semibold shadow-sm" : "font-medium text-[var(--ink)]/55 hover:text-[var(--ink)]"
-              }`}
-            >
-              {label} <span className="tabular-nums opacity-50">{counts[f]}</span>
-            </button>
-          ))}
-        </div>
-        <div className="flex w-full gap-2 sm:w-auto">
-          <label className="relative flex-1 sm:w-52 sm:flex-none">
-            <MagnifyingGlass size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 opacity-40" />
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search guests"
-              aria-label="Search guests"
-              className="w-full rounded-full border border-black/10 bg-white py-2 pl-9 pr-3.5 text-[13.5px] outline-none transition focus:border-[var(--blue-dark)]"
+      <section className="rounded-[20px] border border-[var(--line)] bg-white">
+        {/* ---------- Toolbar ---------- */}
+        {guests.length > 0 && (
+          <div className="flex flex-col gap-3 border-b border-[var(--line)] px-4 py-3.5 sm:px-5 md:flex-row md:items-center">
+            <Segmented<Filter>
+              label="Filter guests"
+              value={filter}
+              onChange={setFilter}
+              options={[
+                { value: "all", label: "All", count: counts.all },
+                { value: "notsent", label: "Not sent", count: counts.notsent },
+                { value: "waiting", label: "Waiting", count: counts.waiting },
+                { value: "coming", label: "Coming", count: counts.coming },
+                { value: "declined", label: "Not coming", count: counts.declined },
+              ]}
             />
-          </label>
-          <button type="button" onClick={exportCsv} disabled={guests.length === 0} className={buttonClass}>
-            <DownloadSimple size={15} />
-            Export
-          </button>
-        </div>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-black/15 px-6 py-12 text-center text-[13.5px] text-[var(--ink)]/55">
-          <UsersThree size={24} className="opacity-50" />
-          {guests.length === 0
-            ? "Add your guests to give each one a personal invitation link with their name and seats."
-            : "No guests match that."}
-        </div>
-      ) : (
-        <ul className="flex flex-col divide-y divide-black/[0.06]">
-          {rows.map((g) => (
-            <li key={g.id} className="py-3.5">
-              {editing === g.id ? (
-                <GuestForm
-                  initial={g}
-                  submitLabel="Save"
-                  onCancel={() => setEditing(null)}
-                  onSubmit={async (next) => {
-                    const r = await updateGuest(token, g.id, next);
-                    if ("error" in r) return r.error;
-                    setEditing(null);
-                    say(r.note ?? `${next.name} was updated.`);
-                    return null;
-                  }}
+            {/* Phones: search on its own row, sort and Export below it. */}
+            <div className="flex flex-wrap items-center gap-1.5 md:ml-auto md:flex-nowrap">
+              <label className="relative w-full md:w-56">
+                <MagnifyingGlass size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 opacity-40" />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Search name or number"
+                  aria-label="Search guests"
+                  className="w-full rounded-full border border-black/[0.12] bg-white py-2 pl-9 pr-3.5 text-[14px] outline-none transition focus:border-[var(--blue-dark)]"
                 />
-              ) : (
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                  <div className="flex min-w-0 flex-1 basis-56 items-center gap-3">
+              </label>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as Sort)}
+                aria-label="Sort guests"
+                className="rounded-full border border-black/[0.12] bg-white py-2 pl-3 pr-2 text-[13px] font-medium outline-none transition focus:border-[var(--blue-dark)]"
+              >
+                <option value="added">Order added</option>
+                <option value="name">Name A–Z</option>
+                <option value="reply">Latest reply</option>
+              </select>
+              <Button size="sm" onClick={() => exportCsv()} icon={<DownloadSimple size={14} />}>
+                Export
+              </Button>
+            </div>
+            {/* Phones have no column header row, so "select all" lives here. */}
+            {rows.length > 0 && (
+              <label className="flex items-center gap-2.5 text-[13px] font-medium text-[var(--ink)]/70 md:hidden">
+                <input type="checkbox" checked={allShownSelected} onChange={toggleAllShown} className="h-4 w-4 accent-[var(--ink)]" />
+                {filter !== "all" || query ? `Select all shown (${rows.length})` : `Select all (${rows.length})`}
+              </label>
+            )}
+          </div>
+        )}
+
+        {/* ---------- Column titles (desktop) ---------- */}
+        {rows.length > 0 && (
+          <div className="hidden grid-cols-[20px_minmax(0,1.8fr)_56px_minmax(0,1fr)_minmax(0,1fr)_132px] items-center gap-4 border-b border-[var(--line)] px-5 py-2.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-[var(--ink)]/65 md:grid">
+            <input
+              type="checkbox"
+              checked={allShownSelected}
+              onChange={toggleAllShown}
+              className="h-4 w-4 accent-[var(--ink)]"
+              aria-label={filter !== "all" || query ? "Select all shown" : "Select all"}
+            />
+            <span>Guest</span>
+            <span className="text-center">Seats</span>
+            <span>Invitation</span>
+            <span>Reply</span>
+            <span className="sr-only">Actions</span>
+          </div>
+        )}
+
+        {/* ---------- Rows ---------- */}
+        {guests.length === 0 ? (
+          <EmptyState
+            icon={<UsersThree size={22} />}
+            title="No guests yet"
+            action={
+              <Button variant="primary" onClick={() => setSheet("add")} icon={<Plus size={15} weight="bold" />}>
+                Add your first guest
+              </Button>
+            }
+          >
+            Add guests one by one or import a spreadsheet. Each gets a personal invitation with their name and seats.
+          </EmptyState>
+        ) : rows.length === 0 ? (
+          <EmptyState icon={<MagnifyingGlass size={20} />} title="No guests match">
+            Try another filter or search.
+          </EmptyState>
+        ) : (
+          <ul className="divide-y divide-[var(--line)]">
+            {rows.map((g) => {
+              const declined = Boolean(g.reply && !g.reply.attending);
+              const failed = g.delivery?.status === "failed";
+              const note = g.reply?.message;
+              return (
+                <li key={g.id} className={`px-4 py-3 transition sm:px-5 ${selected.has(g.id) ? "bg-[var(--blue)]/[0.12]" : "hover:bg-black/[0.025]"}`}>
+                  <div className="flex items-center gap-3 md:grid md:grid-cols-[20px_minmax(0,1.8fr)_56px_minmax(0,1fr)_minmax(0,1fr)_132px] md:gap-4">
                     <input
                       type="checkbox"
                       checked={selected.has(g.id)}
                       onChange={() => toggle(g.id)}
-                      className="h-4 w-4 shrink-0"
+                      className="h-4 w-4 shrink-0 accent-[var(--ink)]"
                       aria-label={`Select ${g.name}`}
                     />
-                    <Avatar name={g.name} muted={Boolean(g.reply && !g.reply.attending)} />
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold">{g.name}</p>
-                      <p className="text-[12.5px] tabular-nums text-[var(--ink)]/50">
-                        {formatPhone(g.phone)} · {g.seats} seat{g.seats === 1 ? "" : "s"}
-                      </p>
+
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <Avatar name={g.name} muted={declined} />
+                      <div className="min-w-0">
+                        <p className="truncate text-[14px] font-semibold">{g.name}</p>
+                        <p className="truncate text-[13px] tabular-nums text-[var(--ink)]/65">
+                          {formatPhone(g.phone)}
+                          <span className="md:hidden">
+                            {" "}
+                            · {g.seats} seat{g.seats === 1 ? "" : "s"}
+                          </span>
+                        </p>
+                        {/* Phones: the two statuses under the name. */}
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 md:hidden">
+                          <DeliveryBadge guest={g} />
+                          {status(g) !== "notsent" && <ReplyBadge reply={g.reply} />}
+                          {note && (
+                            <button type="button" onClick={() => setOpenNote(openNote === g.id ? null : g.id)} aria-label={`Read ${g.name}'s note`} className="text-[var(--blue-dark)]">
+                              <ChatCircleText size={16} weight="fill" />
+                            </button>
+                          )}
+                        </div>
+                        {failed && (
+                          <p className="mt-1 text-[12px] leading-snug text-[var(--danger)] md:hidden">{deliveryHint(g.delivery?.error ?? null)}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <span className="hidden text-center text-[14px] font-semibold tabular-nums md:block">{g.seats}</span>
+
+                    <div className="hidden min-w-0 flex-col items-start gap-1 md:flex">
+                      <DeliveryBadge guest={g} />
+                      {failed ? (
+                        <span className="text-[12px] leading-snug text-[var(--danger)]">{deliveryHint(g.delivery?.error ?? null)}</span>
+                      ) : (
+                        <span className="truncate text-[12px] text-[var(--ink)]/65">{activityLine(g)}</span>
+                      )}
+                    </div>
+
+                    <div className="hidden min-w-0 items-center gap-1.5 md:flex">
+                      {/* Nothing to wait for until their invitation is out. */}
+                      {status(g) === "notsent" ? <span className="text-[13px] text-[var(--ink)]/30">—</span> : <ReplyBadge reply={g.reply} />}
+                      {note && (
+                        <button
+                          type="button"
+                          onClick={() => setOpenNote(openNote === g.id ? null : g.id)}
+                          aria-expanded={openNote === g.id}
+                          aria-label={`Read ${g.name}'s note`}
+                          title="Read their note"
+                          className="rounded-full p-1 text-[var(--blue-dark)] transition hover:bg-[var(--blue)]/25"
+                        >
+                          <ChatCircleText size={17} weight="fill" />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex shrink-0 items-center justify-end gap-1">
+                      <span className="hidden sm:inline-flex">{rowAction(g)}</span>
+                      <Menu label={`Actions for ${g.name}`} items={menuItems(g)} />
                     </div>
                   </div>
-                  <div className="flex min-w-0 basis-48 flex-col items-start gap-1">
-                    <ReplyPill guest={g} />
-                    <DeliveryLine guest={g} />
-                    <span className="text-[12px] text-[var(--ink)]/45">
-                      {g.reply
-                        ? `${g.reply.changed ? "Changed" : "Replied"} ${relativeTime(g.reply.replied_at)}`
-                        : g.first_opened_at
-                          ? `Opened ${relativeTime(g.last_opened_at ?? g.first_opened_at)}`
-                          : "Not opened yet"}
-                    </span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    {g.delivery?.status !== "queued" && g.delivery?.status !== "sending" && (
-                      <button
-                        type="button"
-                        onClick={() => sender.send([g.id])}
-                        disabled={sender.pending}
-                        className={buttonClass}
-                        aria-label={`Send ${g.name} their invitation on WhatsApp`}
-                      >
-                        <PaperPlaneTilt size={15} />
-                        {!g.delivery || g.delivery.status === "cancelled"
-                          ? "Send"
-                          : g.delivery.status === "failed"
-                            ? "Retry"
-                            : "Resend"}
-                      </button>
-                    )}
-                    <button type="button" onClick={() => copyLink(g)} className={buttonClass} aria-label={`Copy ${g.name}'s link`}>
-                      {copied === g.id ? <Check size={15} /> : <Copy size={15} />}
-                      {copied === g.id ? "Copied" : "Link"}
-                    </button>
-                    {/* "?host=1" so the host looking doesn't count as the guest opening it. */}
-                    <a
-                      href={`${viewBase}${g.token}?host=1`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonClass}
-                      aria-label={`View ${g.name}'s invitation`}
-                    >
-                      <Eye size={15} />
-                    </a>
-                    <button type="button" onClick={() => setEditing(g.id)} className={buttonClass} aria-label={`Edit ${g.name}`}>
-                      <PencilSimple size={15} />
-                    </button>
-                    <button type="button" onClick={() => remove(g)} className={buttonClass} aria-label={`Remove ${g.name}`}>
-                      <Trash size={15} />
-                    </button>
-                  </div>
-                  {g.reply?.message && (
-                    <p className="basis-full pl-12 text-[13px] italic text-[var(--ink)]/60">&ldquo;{g.reply.message}&rdquo;</p>
+
+                  {/* Phones: the action button gets its own line. */}
+                  {rowAction(g) && <div className="mt-2.5 flex pl-[60px] sm:hidden">{rowAction(g)}</div>}
+
+                  {note && openNote === g.id && (
+                    <p className="dash-rise mt-3 rounded-2xl bg-[var(--cream)] px-4 py-3 text-[14px] leading-relaxed text-[var(--ink)]/80 md:ml-[68px]">
+                      &ldquo;{note}&rdquo;
+                    </p>
                   )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      {/* ---------- Selection bar ---------- */}
+      {selected.size > 0 && (
+        <div className="fixed inset-x-0 bottom-[calc(80px+env(safe-area-inset-bottom))] z-40 flex justify-center px-4 lg:bottom-6 lg:pl-[264px]">
+          <div className="dash-rise flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full bg-[var(--ink)] py-1.5 pl-4 pr-1.5 text-[var(--cream)] shadow-[0_16px_48px_rgba(28,24,19,0.3)]">
+            <span className="whitespace-nowrap pr-2 text-[14px] font-semibold tabular-nums">{selected.size} selected</span>
+            <button
+              type="button"
+              onClick={() => setSheet("selected")}
+              disabled={sender.pending}
+              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full bg-[var(--cream)] px-3.5 text-[13px] font-semibold text-[var(--ink)] transition hover:bg-white disabled:opacity-50"
+            >
+              <PaperPlaneTilt size={14} />
+              Send invitation
+            </button>
+            {selectedRemindable > 0 && (
+              <button
+                type="button"
+                onClick={() => sender.remind([...selected])}
+                disabled={sender.pending}
+                className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-semibold text-[var(--cream)] transition hover:bg-white/10 disabled:opacity-50"
+              >
+                <BellRinging size={14} />
+                Remind {selectedRemindable}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => exportCsv(selectedGuests)}
+              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-semibold text-[var(--cream)] transition hover:bg-white/10"
+            >
+              <DownloadSimple size={14} />
+              Export
+            </button>
+            <button
+              type="button"
+              onClick={removeSelected}
+              className="inline-flex min-h-[36px] items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-semibold text-[#F4B4AE] transition hover:bg-white/10"
+            >
+              <Trash size={14} />
+              Remove
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              aria-label="Clear selection"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-white/10"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
       )}
-    </div>
+
+      {/* ---------- Panels ---------- */}
+      {sheet === "add" && <AddGuestsSheet open onClose={() => setSheet(null)} token={token} say={say} />}
+      {sheet !== null && sheet !== "add" && (
+        <SendSheet
+          key={sheet}
+          open
+          onClose={() => setSheet(null)}
+          initialMode={sheet === "selected" && selected.size === 0 ? "invite" : sheet}
+          sender={sender}
+          guests={guests}
+          selected={selected}
+          event={event}
+          linkBase={linkBase}
+        />
+      )}
+      <ConsentSheet sender={sender} />
+      {confirmElement}
+      {editing && (
+        <Sheet open onClose={() => setEditing(null)} title="Edit guest" description="Changes apply to their personal invitation right away.">
+          <GuestForm
+            initial={editing}
+            submitLabel="Save changes"
+            onCancel={() => setEditing(null)}
+            onSubmit={async (next) => {
+              const r = await updateGuest(token, editing.id, next);
+              if ("error" in r) return r.error;
+              // The panel closes before the action's own refresh lands, so ask
+              // for the updated list explicitly.
+              router.refresh();
+              setEditing(null);
+              say(r.note ?? `${next.name} was updated.`);
+              return null;
+            }}
+          />
+        </Sheet>
+      )}
+
+      <ToastView toast={toast} onDismiss={dismiss} raised={selected.size > 0} />
+    </>
   );
 }

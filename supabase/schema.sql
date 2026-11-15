@@ -21,7 +21,7 @@ create table invites (
   primary_color text default '#7A5C3E',
   photo_urls text[] default '{}',
   music_url text,
-  whatsapp_number text,                -- host's number, for the "confirm on WhatsApp" button
+  whatsapp_number text,                -- no longer used (kept for old rows; guests now get an automatic reply)
   status text not null default 'draft', -- 'draft' | 'live' | 'archived'
   created_at timestamptz default now()
 );

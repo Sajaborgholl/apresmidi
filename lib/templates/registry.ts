@@ -36,6 +36,12 @@ export type TemplateFieldManifest = {
   venue_name: boolean;
   venue_map_url: boolean;
   photoCount: number; // 0 if the template doesn't use photos at all
+  // Optional words the host writes, only for designs with a place for them
+  // (they replace text the design used to make up):
+  dress_code?: boolean;
+  guest_message?: boolean;
+  // How many "What to expect" captions (Cream & Pink: 3).
+  highlights?: number;
 };
 
 // The single source of truth for "what templates exist." Anything that
@@ -85,9 +91,9 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     previewBackground: "#EFE6D6",
     fields: {
       host_names: true,
-      event_date: false,
-      venue_name: false,
-      venue_map_url: false,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
       photoCount: 1,
     },
   },
@@ -103,6 +109,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_name: true,
       venue_map_url: true,
       photoCount: 2,
+      dress_code: true,
     },
   },
   {
@@ -187,6 +194,8 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_name: true,
       venue_map_url: true,
       photoCount: 6,
+      dress_code: true,
+      highlights: 3,
     },
   },
   {
@@ -201,6 +210,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_name: true,
       venue_map_url: true,
       photoCount: 1,
+      dress_code: true,
     },
   },
 ];

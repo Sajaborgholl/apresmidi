@@ -1,33 +1,27 @@
 import Link from "next/link";
 import Reveal from "./Reveal";
 import type { NavCategory } from "@/lib/categories";
+import { BUSINESS_WHATSAPP_NUMBER } from "@/lib/contact";
 
 // The blue site footer, shared by the homepage and the /templates pages.
-// Known loose ends, unchanged from when it lived inline in app/page.tsx: the
-// subscribe box isn't wired to anything yet, and Instagram/WhatsApp are
-// placeholder links.
+// The old "Subscribe" box wasn't wired to anything (visitors thought they'd
+// signed up), so the space now helps hosts back into their dashboard.
 export default function SiteFooter({ categories }: { categories: NavCategory[] }) {
   return (
     <footer className="px-6 md:px-12 py-14 mt-8" style={{ background: "var(--blue)" }}>
       <Reveal>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <h3 className="display font-bold text-2xl md:text-3xl max-w-md">Get notified when we add new templates</h3>
-        {/* The input shrinks on phones: a fixed 256px box plus the button was
-            wider than a 375px screen and pushed Subscribe off the edge. */}
-        <div className="flex gap-3">
-          <input
-            type="email"
-            placeholder="you@email.com"
-            className="rounded-full px-5 py-3 w-full min-w-0 sm:w-64"
-            style={{ border: "1px solid rgba(0,0,0,0.15)", background: "#fff", color: "var(--ink)" }}
-          />
-          <button
-            className="rounded-full px-6 py-3 font-medium transition active:scale-[0.97]"
-            style={{ background: "var(--ink)", color: "var(--cream)" }}
-          >
-            Subscribe
-          </button>
+        <div>
+          <h3 className="display font-bold text-2xl md:text-3xl max-w-md">Already have an invitation?</h3>
+          <p className="mt-1.5 text-sm opacity-70">Lost your dashboard link? We&apos;ll email it to you again.</p>
         </div>
+        <Link
+          href="/dashboard/recover"
+          className="self-start rounded-full px-6 py-3 font-medium transition active:scale-[0.97] md:self-auto"
+          style={{ background: "var(--ink)", color: "var(--cream)" }}
+        >
+          Get my dashboard link
+        </Link>
       </div>
       </Reveal>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mt-10 pt-6 border-t" style={{ borderColor: "rgba(0,0,0,0.1)" }}>
@@ -41,8 +35,9 @@ export default function SiteFooter({ categories }: { categories: NavCategory[] }
           ))}
         </div>
         <div className="flex gap-4 text-sm">
-          <a href="#">Instagram</a>
-          <a href="#">WhatsApp</a>
+          <a href={`https://wa.me/${BUSINESS_WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer">
+            WhatsApp us
+          </a>
         </div>
       </div>
     </footer>

@@ -9,7 +9,11 @@ export type DashboardInvite = {
   event_date: string | null;
   venue_name: string | null;
   venue_map_url: string | null;
-  whatsapp_number: string | null;
+  dress_code: string | null;
+  guest_message: string | null;
+  highlights: string[] | null;
+  // The reply deadline, "YYYY-MM-DD" (null: none).
+  reply_by: string | null;
   photo_urls: string[] | null;
   paid_at: string | null;
   template: { slug: string; name: string; category: string } | null;
@@ -61,13 +65,28 @@ export type SendingState = {
   whatsapp: string;
 };
 
+// Guests who haven't been sent their invitation yet (nothing sent, or the
+// last attempt failed or was stopped).
+export function notYetInvited(g: DashboardGuest) {
+  return !g.delivery || g.delivery.status === "failed" || g.delivery.status === "cancelled";
+}
+
+// Guests a reminder can go to: their WhatsApp message arrived and they
+// haven't replied. (sendReminders also skips anyone reminded in the last day.)
+export function canRemind(g: DashboardGuest) {
+  return !g.reply && g.delivery !== null && ["sent", "delivered", "read"].includes(g.delivery.status);
+}
+
 export function summarizeGuests(guests: DashboardGuest[]) {
   const seatsInvited = guests.reduce((sum, g) => sum + g.seats, 0);
   const accepted = guests.filter((g) => g.reply?.attending);
   const declined = guests.filter((g) => g.reply && !g.reply.attending);
-  const waiting = guests.filter((g) => !g.reply);
+  // Same split as the Guests tab's filters: "waiting" only counts guests whose
+  // invitation is out; the ones never sent anything are "notSent".
+  const notSent = guests.filter((g) => !g.reply && notYetInvited(g));
+  const waiting = guests.filter((g) => !g.reply && !notYetInvited(g));
   const seatsConfirmed = accepted.reduce((sum, g) => sum + (g.reply?.guest_count ?? 0), 0);
-  return { seatsInvited, accepted, declined, waiting, seatsConfirmed, total: guests.length };
+  return { seatsInvited, accepted, declined, waiting, notSent, seatsConfirmed, total: guests.length };
 }
 
 export function summarizeRsvps(rsvps: DashboardRsvp[]) {

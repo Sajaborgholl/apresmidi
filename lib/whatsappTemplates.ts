@@ -19,7 +19,7 @@ import { parseWallClock } from "@/lib/calendar";
 
 export const TEMPLATE_VERSION = 1;
 
-export type TemplateKind = "invite" | "reminder" | "guest_reply";
+export type TemplateKind = "invite" | "reminder";
 
 export type TemplateDefinition = {
   kind: TemplateKind;
@@ -28,8 +28,7 @@ export type TemplateDefinition = {
   language: "en";
   body: string;
   footer?: string;
-  // A link button to the guest's invitation. Meta doesn't allow buttons that
-  // link to WhatsApp itself (wa.me), so the forwarded reply has none.
+  // A link button to the guest's invitation.
   button?: { text: string };
   // One sample value per variable, required by Meta's review.
   examples: Record<string, string>;
@@ -43,12 +42,6 @@ const EXAMPLES = {
   event: "wedding",
   date_text: "on 17 August 2027",
   seats_text: "3 seats are reserved for you",
-};
-const REPLY_EXAMPLES = {
-  guest_name: "Rami Haddad",
-  guest_phone: "96170123456",
-  event: "wedding",
-  message: "We'll be there, can't wait!",
 };
 
 // Worded as a notification ("here is your invitation"): Meta classed the
@@ -65,20 +58,11 @@ const REMINDER = `Hi {{guest_name}}, you haven't replied yet to your invitation 
 
 Tap below to RSVP.`;
 
-const REPLY = `New message from {{guest_name}} (+{{guest_phone}}), a guest at your {{event}}, in reply to your invitation:
-
-"{{message}}"
-
-Tap their number to reply to them directly.`;
-
 const FOOTER = "Sent with Après-midi";
 
 export const TEMPLATES: TemplateDefinition[] = [
   { kind: "invite", name: tname("invitation_v2"), language: "en", body: INVITE, footer: FOOTER, button: { text: "Open your invitation" }, examples: EXAMPLES },
   { kind: "reminder", name: tname("reminder_v2"), language: "en", body: REMINDER, footer: FOOTER, button: { text: "Reply to the invitation" }, examples: EXAMPLES },
-  // A guest's WhatsApp reply, passed on to the host. WhatsApp makes the
-  // guest's number tappable, which opens a chat with them.
-  { kind: "guest_reply", name: tname("guest_reply"), language: "en", body: REPLY, footer: FOOTER, examples: REPLY_EXAMPLES },
 ];
 
 export function templateFor(kind: TemplateKind): TemplateDefinition {
@@ -148,7 +132,7 @@ export type FilledTemplate = {
 function fill(t: TemplateDefinition, values: Record<string, string>, buttonSuffix = "", buttonUrl = ""): FilledTemplate {
   const params: Record<string, string> = {};
   for (const key of templateVariables(t.body)) {
-    params[key] = cleanParam(values[key] ?? "", key === "message" ? 600 : 200);
+    params[key] = cleanParam(values[key] ?? "");
   }
   const text = t.body.replace(/\{\{(\w+)\}\}/g, (_, k: string) => params[k] ?? "");
   return {
@@ -181,10 +165,6 @@ export function reminderTemplate(
 ): FilledTemplate {
   const suffix = `${link.slug}/g/${link.token}`;
   return fill(templateFor("reminder"), allValues(e, { guest_name: g.name }), suffix, `${link.siteUrl}/i/${suffix}`);
-}
-
-export function guestReplyTemplate(e: EventInfo, guest: { name: string; phone: string }, text: string): FilledTemplate {
-  return fill(templateFor("guest_reply"), allValues(e, { guest_name: guest.name, guest_phone: guest.phone, message: text }));
 }
 
 // ------------------------------------------------------- Meta review request

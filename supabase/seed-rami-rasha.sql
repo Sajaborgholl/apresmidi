@@ -19,7 +19,7 @@ select
   'rami-rasha',
   id,
   'Rami & Rasha',
-  '2026-08-25 20:00:00+03',
+  '2026-08-25 20:00:00+00',
   'Em Sherif Rooftop, Beirut',
   null,
   array['/rami-rasha-childhood.jpg'],

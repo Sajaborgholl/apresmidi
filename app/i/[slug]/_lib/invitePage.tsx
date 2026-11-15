@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getTemplateBySlug, TEMPLATE_REGISTRY } from "@/lib/templates/registry";
@@ -12,12 +13,11 @@ export async function loadPublicInvite(slug: string) {
   // Explicit safe column list — this row gets passed straight into a
   // "use client" template component, so it's serialized into the RSC payload
   // sent to the browser. dashboard_token/owner_email/paid_at must NEVER be
-  // selected here, and neither is whatsapp_number: the host's number is
-  // private (used only to forward guests' WhatsApp messages to them).
+  // selected here.
   const { data: invite } = await getSupabaseAdmin()
     .from("invites")
     .select(
-      "id, host_names, event_date, venue_name, venue_map_url, primary_color, photo_urls, music_url, slug, status, is_demo, templates(slug, name)"
+      "id, host_names, event_date, venue_name, venue_map_url, dress_code, guest_message, highlights, reply_by, primary_color, photo_urls, music_url, slug, status, is_demo, templates(slug, name)"
     )
     .eq("slug", slug)
     .single();
@@ -49,7 +49,10 @@ export async function loadPublicInvite(slug: string) {
     primary_color: invite.primary_color,
     photo_urls: invite.photo_urls,
     music_url: invite.music_url,
-    whatsapp_number: null,
+    dress_code: invite.dress_code ?? null,
+    guest_message: invite.guest_message ?? null,
+    highlights: invite.highlights ?? null,
+    reply_by: invite.reply_by ?? null,
     is_demo: invite.is_demo,
     slug: invite.slug,
   };
@@ -80,6 +83,27 @@ export function InvitePageBody({
           React hoists this into <head>. Real invites are left as they are. */}
       {invite.is_demo && <meta name="format-detection" content="telephone=no" />}
       <TemplateComponent invite={invite} embedded={embedded} guest={guest} />
+      {/* One small credit, the same on every design (the designs no longer
+          have their own footers). Not inside previews (dashboard phone,
+          homepage cards). A <p>, not <footer>: some designs style bare
+          footer tags. Inline styles so no design's CSS can reach it. */}
+      {!embedded && (
+        <p
+          style={{
+            margin: 0,
+            padding: "28px 16px 36px",
+            textAlign: "center",
+            font: "500 11px/1.4 Inter, system-ui, sans-serif",
+            letterSpacing: "0.04em",
+            color: "rgba(44,37,29,0.55)",
+          }}
+        >
+          Made with{" "}
+          <Link href="/" style={{ color: "inherit", fontWeight: 700, textDecoration: "none" }}>
+            Après-midi
+          </Link>
+        </p>
+      )}
     </div>
   );
 }

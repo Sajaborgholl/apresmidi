@@ -13,7 +13,7 @@ export const getDashboardInvite = cache(async (token: string): Promise<Dashboard
   const { data: invite } = await getSupabaseAdmin()
     .from("invites")
     .select(
-      "id, slug, host_names, event_date, venue_name, venue_map_url, whatsapp_number, photo_urls, paid_at, status, templates(slug, name, category)"
+      "id, slug, host_names, event_date, venue_name, venue_map_url, dress_code, guest_message, highlights, reply_by, photo_urls, paid_at, status, templates(slug, name, category)"
     )
     .eq("dashboard_token", token)
     .maybeSingle();
@@ -36,7 +36,10 @@ export const getDashboardInvite = cache(async (token: string): Promise<Dashboard
     event_date: invite.event_date,
     venue_name: invite.venue_name,
     venue_map_url: invite.venue_map_url,
-    whatsapp_number: invite.whatsapp_number,
+    dress_code: invite.dress_code ?? null,
+    guest_message: invite.guest_message ?? null,
+    highlights: invite.highlights ?? null,
+    reply_by: invite.reply_by ?? null,
     photo_urls: invite.photo_urls,
     paid_at: invite.paid_at,
     template,
@@ -61,16 +64,19 @@ export const getDashboardGuests = cache(async (inviteId: string): Promise<Dashbo
     // Newest first, so the first one seen per guest is their latest.
     supabaseAdmin
       .from("guest_messages")
-      .select("guest_id, kind, status, error, created_at, sent_at")
+      .select("guest_id, kind, status, error, created_at, sent_at, to_phone")
       .eq("invite_id", inviteId)
       .in("kind", ["invite", "reminder"])
       .neq("status", "cancelled")
       .order("created_at", { ascending: false }),
   ]);
   const byGuest = new Map((replies ?? []).map((r) => [r.guest_id as string, r]));
+  // Only messages to the guest's current number count: after the host
+  // changes a number, the guest shows as "Not sent" until it's sent there.
+  const phoneOf = new Map((guests ?? []).map((g) => [g.id as string, g.phone as string]));
   const latestMessage = new Map<string, NonNullable<typeof messages>[number]>();
   for (const m of messages ?? []) {
-    if (m.guest_id && !latestMessage.has(m.guest_id)) latestMessage.set(m.guest_id, m);
+    if (m.guest_id && !latestMessage.has(m.guest_id) && m.to_phone === phoneOf.get(m.guest_id)) latestMessage.set(m.guest_id, m);
   }
   return (guests ?? []).map((g) => {
     const r = byGuest.get(g.id);
@@ -117,8 +123,9 @@ export async function getSendingState(inviteId: string): Promise<SendingState> {
   };
 }
 
-// Replies sent through the general link before guest lists existed (no guest
-// attached). Kept so hosts don't lose them.
+// Replies with no guest attached: from guests the host has since removed, or
+// sent through the general link before guest lists existed. Kept so hosts
+// don't lose them.
 export const getEarlierRsvps = cache(async (inviteId: string): Promise<DashboardRsvp[]> => {
   const { data } = await getSupabaseAdmin()
     .from("rsvps")
