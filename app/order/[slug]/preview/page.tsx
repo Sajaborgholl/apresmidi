@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { getTemplateBySlug } from "@/lib/templates/registry";
 import { SAMPLE_GUEST } from "@/lib/guestRules";
 import type { Invite } from "@/lib/types";
+import { InvitePageBody } from "@/app/i/[slug]/_lib/InvitePageBody";
 
 // Loaded inside an <iframe> by CustomizePanel, on purpose — it's its own
 // separate document, so a template's embedded <style> (which targets bare
@@ -45,6 +46,12 @@ export default function CustomizePreviewPage() {
 
   if (!invite) {
     return <p style={{ padding: 24, fontFamily: "sans-serif", color: "#999" }}>Loading preview…</p>;
+  }
+
+  // Templates marked fullPreview look exactly like the live invitation page:
+  // same page wrapper, same opening, same motion.
+  if (entry.fullPreview) {
+    return <InvitePageBody invite={invite} template={entry} embedded={false} guest={SAMPLE_GUEST} />;
   }
 
   const TemplateComponent = entry.component;

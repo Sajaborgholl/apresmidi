@@ -1,4 +1,5 @@
 import type { getSupabaseAdmin } from "@/lib/supabase";
+import { mustQuery } from "@/lib/mustQuery";
 
 export type NavCategory = { slug: string; name: string };
 
@@ -9,10 +10,10 @@ export type NavCategory = { slug: string; name: string };
 // Temporarily hides "Baptism" (no templates ready for it yet). Remove the
 // filter to bring it back once there's at least one baptism template.
 export async function getVisibleCategories(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>) {
-  const { data } = await supabaseAdmin
-    .from("categories")
-    .select("slug, name, price, sort_order")
-    .order("sort_order", { ascending: true });
+  const data = mustQuery(
+    await supabaseAdmin.from("categories").select("slug, name, price, sort_order").order("sort_order", { ascending: true }),
+    "categories",
+  );
   return (data ?? []).filter((c) => c.slug !== "baptism") as {
     slug: string;
     name: string;

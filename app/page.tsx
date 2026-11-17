@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { mustQuery } from "@/lib/mustQuery";
 import HeroPreview from "./_components/HeroPreview";
 import ExpandPreviewButton from "./_components/ExpandPreviewButton";
 import ClickableCard from "./_components/ClickableCard";
@@ -17,7 +18,10 @@ import SiteHeader from "./_components/SiteHeader";
 import SiteFooter from "./_components/SiteFooter";
 import { CARD_COLORS, getVisibleCategories } from "@/lib/categories";
 
-export const dynamic = "force-dynamic";
+// Built once and stored; Vercel rebuilds it in the background at most every
+// 5 minutes, so a template added in Supabase shows up within 5 minutes.
+// Queries go through mustQuery so a database error keeps the last good copy.
+export const revalidate = 300;
 
 type CategoryRow = {
   slug: string;
@@ -41,9 +45,10 @@ export default async function Home() {
   // Hides Baptism for now (see lib/categories.ts); the template pages share it.
   const categories: CategoryRow[] = await getVisibleCategories(supabaseAdmin);
 
-  const { data: templateRows } = await supabaseAdmin
-    .from("templates")
-    .select("id, slug, name, category, thumbnail_url, video_url");
+  const templateRows = mustQuery(
+    await supabaseAdmin.from("templates").select("id, slug, name, category, thumbnail_url, video_url"),
+    "templates",
+  );
 
   // Group templates by category so each occasion row can show up to 3 real
   // templates. Categories with fewer than 3 (or zero) templates get
@@ -57,10 +62,10 @@ export default async function Home() {
   // example — reused here so occasion cards can embed a real HeroPreview
   // (like the hero section) instead of a flat thumbnail, wherever a demo
   // invite exists for that template.
-  const { data: demoInviteRows } = await supabaseAdmin
-    .from("invites")
-    .select("template_id, slug")
-    .eq("is_demo", true);
+  const demoInviteRows = mustQuery(
+    await supabaseAdmin.from("invites").select("template_id, slug").eq("is_demo", true),
+    "demo invites",
+  );
   const demoSlugByTemplateId: Record<string, string> = {};
   for (const d of demoInviteRows ?? []) {
     if (d.template_id) demoSlugByTemplateId[d.template_id] = d.slug;

@@ -8,6 +8,12 @@
       "port": 3733
     },
     {
+      "name": "invite-app-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start", "--", "-p", "3755"],
+      "port": 3755
+    },
+    {
       "name": "prototypes",
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "3741", "--bind", "127.0.0.1"],

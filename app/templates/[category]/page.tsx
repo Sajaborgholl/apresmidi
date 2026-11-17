@@ -3,19 +3,31 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getVisibleCategories } from "@/lib/categories";
+import { mustQuery } from "@/lib/mustQuery";
 import type { TemplateMeta } from "@/lib/types";
 import TemplateCard from "./_components/TemplateCard";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
 import Reveal from "@/app/_components/Reveal";
 
-export const dynamic = "force-dynamic";
+// Stored and rebuilt in the background at most every 5 minutes (same as the
+// homepage, app/page.tsx). Every occasion is built at deploy time; one added
+// later is built on its first visit and stored from then on.
+export const revalidate = 300;
 
 type Params = Promise<{ category: string }>;
 
+export async function generateStaticParams() {
+  const rows = mustQuery(await getSupabaseAdmin().from("categories").select("slug"), "category slugs");
+  return (rows ?? []).map((r) => ({ category: r.slug }));
+}
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { category } = await params;
-  const { data } = await getSupabaseAdmin().from("categories").select("name").eq("slug", category).maybeSingle();
+  const data = mustQuery(
+    await getSupabaseAdmin().from("categories").select("name").eq("slug", category).maybeSingle(),
+    "category name",
+  );
   if (!data) return {};
   return {
     title: `${data.name} invitations · Après-midi`,
@@ -27,15 +39,16 @@ export default async function CategoryPage({ params }: { params: Params }) {
   const { category } = await params;
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: categoryRow } = await supabaseAdmin
-    .from("categories")
-    .select("slug, name")
-    .eq("slug", category)
-    .single();
+  // maybeSingle, not single: "no such occasion" is a 404, while a real
+  // database error throws (mustQuery) so the last good page stays cached.
+  const categoryRow = mustQuery(
+    await supabaseAdmin.from("categories").select("slug, name").eq("slug", category).maybeSingle(),
+    "category",
+  );
 
   if (!categoryRow) notFound();
 
-  const [{ data: templateRows }, { data: demoRows }, navCategories] = await Promise.all([
+  const [templateResult, demoResult, navCategories] = await Promise.all([
     supabaseAdmin
       .from("templates")
       .select("id, slug, name, description, thumbnail_url")
@@ -44,6 +57,8 @@ export default async function CategoryPage({ params }: { params: Params }) {
     supabaseAdmin.from("invites").select("template_id, slug").eq("is_demo", true),
     getVisibleCategories(supabaseAdmin),
   ]);
+  const templateRows = mustQuery(templateResult, "templates");
+  const demoRows = mustQuery(demoResult, "demo invites");
   const demoSlugByTemplateId: Record<string, string> = {};
   for (const d of demoRows ?? []) {
     if (d.template_id) demoSlugByTemplateId[d.template_id] = d.slug;

@@ -81,7 +81,8 @@ function AngularFrame() {
 }
 
 // `embedded`: shown inside a preview (homepage/template cards, the dashboard's
-// phone, the customize page) rather than opened by a guest — no bow to untie.
+// phone) rather than opened by a guest — no bow to untie. The customize page
+// shows the full page, bow included (fullPreview in the registry).
 export default function WeddingBlushBow({
   invite,
   embedded = false,

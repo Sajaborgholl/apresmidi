@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { CARD_COLORS, getVisibleCategories } from "@/lib/categories";
+import { mustQuery } from "@/lib/mustQuery";
 import { STANDARD_PLAN } from "@/lib/plans";
 import SiteHeader from "@/app/_components/SiteHeader";
 import SiteFooter from "@/app/_components/SiteFooter";
@@ -11,18 +12,29 @@ import { FeatureList } from "@/app/_components/Pricing";
 import HeroPreview from "@/app/_components/HeroPreview";
 import PixelEvent from "@/app/_components/PixelEvent";
 
-export const dynamic = "force-dynamic";
+// Stored and rebuilt in the background at most every 5 minutes (same as the
+// homepage, app/page.tsx). Every template is built at deploy time; one added
+// later is built on its first visit and stored from then on.
+export const revalidate = 300;
 
 type Params = Promise<{ category: string; slug: string }>;
 
+export async function generateStaticParams() {
+  const rows = mustQuery(await getSupabaseAdmin().from("templates").select("slug, category"), "template slugs");
+  return (rows ?? []).map((r) => ({ category: r.category, slug: r.slug }));
+}
+
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { category, slug } = await params;
-  const { data } = await getSupabaseAdmin()
-    .from("templates")
-    .select("name, thumbnail_url")
-    .eq("slug", slug)
-    .eq("category", category)
-    .maybeSingle();
+  const data = mustQuery(
+    await getSupabaseAdmin()
+      .from("templates")
+      .select("name, thumbnail_url")
+      .eq("slug", slug)
+      .eq("category", category)
+      .maybeSingle(),
+    "template meta",
+  );
   if (!data) return {};
   const description = `${data.name}: a digital invitation with a live RSVP page and a private guest dashboard. ${STANDARD_PLAN.price}.`;
   return {
@@ -48,27 +60,31 @@ export default async function TemplateDetailPage({ params }: { params: Params })
   const { category, slug } = await params;
   const supabaseAdmin = getSupabaseAdmin();
 
-  const { data: categoryRow } = await supabaseAdmin
-    .from("categories")
-    .select("slug, name")
-    .eq("slug", category)
-    .single();
+  // maybeSingle, not single: a missing row is a 404, while a real database
+  // error throws (mustQuery) so the last good page stays cached.
+  const categoryRow = mustQuery(
+    await supabaseAdmin.from("categories").select("slug, name").eq("slug", category).maybeSingle(),
+    "category",
+  );
 
   if (!categoryRow) notFound();
 
-  const { data: template } = await supabaseAdmin
-    .from("templates")
-    .select("id, slug, name, thumbnail_url")
-    .eq("slug", slug)
-    .eq("category", category)
-    .single();
+  const template = mustQuery(
+    await supabaseAdmin
+      .from("templates")
+      .select("id, slug, name, thumbnail_url")
+      .eq("slug", slug)
+      .eq("category", category)
+      .maybeSingle(),
+    "template",
+  );
 
   if (!template) notFound();
 
   // A permanent public invite for this template flagged as a demo, so we can
   // link to a live, working example. Not every template has one yet, so this
   // is allowed to come back empty.
-  const [{ data: demoInvite }, navCategories] = await Promise.all([
+  const [demoResult, navCategories] = await Promise.all([
     supabaseAdmin
       .from("invites")
       .select("slug")
@@ -78,6 +94,7 @@ export default async function TemplateDetailPage({ params }: { params: Params })
       .maybeSingle(),
     getVisibleCategories(supabaseAdmin),
   ]);
+  const demoInvite = mustQuery(demoResult, "demo invite");
 
   return (
     <div className="overflow-x-clip" style={{ background: "var(--cream)", color: "var(--ink)", fontFamily: "Inter, sans-serif" }}>

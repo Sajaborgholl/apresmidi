@@ -5,6 +5,7 @@ import WeddingClassic from "@/app/i/[slug]/_designs/WeddingClassic";
 import WeddingScrapbook from "@/app/i/[slug]/_designs/WeddingScrapbook";
 import WeddingBlushBow from "@/app/i/[slug]/_designs/WeddingBlushBow";
 import WeddingRetroAirmail from "@/app/i/[slug]/_designs/WeddingRetroAirmail";
+import WeddingPastelGarden from "@/app/i/[slug]/_designs/WeddingPastelGarden";
 import BacheloretteCoastal from "@/app/i/[slug]/_designs/BacheloretteCoastal";
 import BacheloretteMartini from "@/app/i/[slug]/_designs/BacheloretteMartini";
 import BacheloretteDoodle from "@/app/i/[slug]/_designs/BacheloretteDoodle";
@@ -66,6 +67,10 @@ export type TemplateEntry = {
   // inside the homepage's scaled-up preview iframe), the leftover space
   // blends with the template instead of showing the site's own background.
   previewBackground: string;
+  // The customize page's preview shows this template exactly as guests see
+  // the live invitation (opening card, butterfly and all), instead of in
+  // `embedded` mode. For designs whose opening is part of what's being sold.
+  fullPreview?: boolean;
 };
 
 export const TEMPLATE_REGISTRY: TemplateEntry[] = [
@@ -103,6 +108,7 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
     category: "wedding",
     component: WeddingBlushBow,
     previewBackground: "#F6C9D3",
+    fullPreview: true,
     fields: {
       host_names: true,
       event_date: true,
@@ -124,6 +130,21 @@ export const TEMPLATE_REGISTRY: TemplateEntry[] = [
       venue_name: true,
       venue_map_url: true,
       photoCount: 2,
+    },
+  },
+  {
+    slug: "wedding-pastel-garden",
+    name: "Pastel Garden Wedding",
+    category: "wedding",
+    component: WeddingPastelGarden,
+    previewBackground: "#f1ece3",
+    fullPreview: true,
+    fields: {
+      host_names: true,
+      event_date: true,
+      venue_name: true,
+      venue_map_url: true,
+      photoCount: 0,
     },
   },
   {
