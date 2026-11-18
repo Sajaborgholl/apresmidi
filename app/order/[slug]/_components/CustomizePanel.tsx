@@ -32,9 +32,9 @@ const FORM_ID = "customize-form";
 const DESKTOP_MIN_WIDTH = 1280;
 const DESKTOP_MIN_HEIGHT = 600;
 const PHONE_SCREEN = { width: 390, height: 844 };
-// Keeps the scaled preview within the window even when a long form stretches
-// the column taller than the screen (the old box used 75vh for the same job).
-const MAX_PREVIEW_HEIGHT_OF_WINDOW = 0.8;
+// The preview column is the window's height under the top bar (the page
+// doesn't scroll from md up; only the form does), so the screen is fitted to
+// that and sits at the top of it — the same place for every template.
 
 type PreviewStage = { width: number; height: number; windowWidth: number; windowHeight: number; wide: boolean };
 
@@ -279,9 +279,8 @@ export default function CustomizePanel({
             width: Math.max(DESKTOP_MIN_WIDTH, stage.windowWidth),
             height: Math.max(DESKTOP_MIN_HEIGHT, stage.windowHeight),
           };
-    const room = Math.min(stage.height, stage.windowHeight * MAX_PREVIEW_HEIGHT_OF_WINDOW);
     // Never enlarge: a phone that fits at full size is shown at full size.
-    const scale = Math.min(stage.width / screen.width, room / screen.height, 1);
+    const scale = Math.min(stage.width / screen.width, stage.height / screen.height, 1);
     // Floored so the box can never come out a pixel taller than the room it
     // was fitted to, which would grow the column and re-trigger the observer.
     return { ...screen, scale, boxWidth: Math.floor(screen.width * scale), boxHeight: Math.floor(screen.height * scale) };
@@ -321,7 +320,9 @@ export default function CustomizePanel({
       // Full page, edge to edge: min-h-dvh keeps the white filling the screen
       // even when the form is short, and flex-col lets the main grid below
       // take the remaining height so the preview column reaches the bottom.
-      className="flex min-h-dvh flex-col bg-white"
+      // From md up the page is exactly the window and never scrolls: only the
+      // form panel does (when it's taller than the room it has).
+      className="flex min-h-dvh flex-col bg-white md:h-dvh md:overflow-hidden"
       style={{ fontFamily: "Inter, sans-serif", color: "var(--ink)" }}
     >
       <ReloadOnBfcacheRestore />
@@ -408,7 +409,9 @@ export default function CustomizePanel({
       </div>
 
       {/* ---------- Main layout ---------- */}
-      <div className="grid flex-1 md:grid-cols-[minmax(0,2.3fr)_minmax(340px,1fr)]">
+      {/* md and up: one row exactly as tall as the space under the chrome,
+          not as tall as the form, so the form scrolls inside it. */}
+      <div className="grid flex-1 md:min-h-0 md:grid-cols-[minmax(0,2.3fr)_minmax(340px,1fr)] md:grid-rows-[minmax(0,1fr)]">
         {/* Backdrop for the mobile preview sheet — desktop never shows it
             (the preview is always visible there, docked in its own
             column), so this only renders/matters below md. */}
@@ -428,7 +431,7 @@ export default function CustomizePanel({
           ref={stageRef}
           className={`order-preview-sheet fixed inset-x-0 bottom-0 z-50 flex h-[85vh] flex-col rounded-t-3xl bg-white shadow-[0_-20px_60px_rgba(0,0,0,0.25)] transition-transform duration-300 ease-out ${
             previewSheetOpen ? "is-open" : ""
-          } md:relative md:z-auto md:flex md:h-auto md:min-h-[600px] md:flex-row md:items-center md:justify-center md:rounded-none md:bg-[rgba(31,36,48,0.05)] md:p-8 md:shadow-none md:transition-none`}
+          } md:relative md:z-auto md:flex md:h-auto md:min-h-0 md:flex-row md:items-start md:justify-center md:rounded-none md:bg-[rgba(31,36,48,0.05)] md:p-8 md:pt-16 md:shadow-none md:transition-none`}
         >
           {/* Mobile-only sheet header (close button) — desktop shows the
               "Updating live" badge as a floating pill instead, below. */}
@@ -485,7 +488,7 @@ export default function CustomizePanel({
 
         {/* method="post": if a submission ever got past the hydration guard,
             a plain browser submit must not put the form's details in the URL. */}
-        <form id={FORM_ID} method="post" onSubmit={handleSubmit} className="p-7 pb-28 md:pb-7">
+        <form id={FORM_ID} method="post" onSubmit={handleSubmit} className="p-7 pb-28 md:min-h-0 md:overflow-y-auto md:pb-7">
           <h2 className="display text-lg font-bold">{edit ? "Edit your invite" : "Customize your invite"}</h2>
           <p className="mb-6 mt-1 text-[13px] text-[var(--ink)]/55">
             Everything updates on the left as you type.

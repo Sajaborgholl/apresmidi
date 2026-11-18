@@ -9,6 +9,7 @@
 
 update templates set thumbnail_url = '/thumbnails/wedding-blush-bow.webp'       where slug = 'wedding-blush-bow';
 update templates set thumbnail_url = '/thumbnails/wedding-classic.webp'         where slug = 'wedding-classic';
+update templates set thumbnail_url = '/thumbnails/wedding-pastel-garden.webp'   where slug = 'wedding-pastel-garden';
 update templates set thumbnail_url = '/thumbnails/birthday-disco.webp'          where slug = 'birthday-disco';
 update templates set thumbnail_url = '/thumbnails/birthday-cream-pink.webp'     where slug = 'birthday-cream-pink';
 update templates set thumbnail_url = '/thumbnails/birthday-retro-polaroid.webp' where slug = 'birthday-retro-polaroid';
