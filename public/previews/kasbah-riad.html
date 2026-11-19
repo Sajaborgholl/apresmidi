@@ -390,6 +390,13 @@ body { margin: 0; background: #f0e8dd; }
 .wr-btn-ph { visibility: hidden; }
 .wr-when .wr-btn { margin-top: 0; font-size: 9px; letter-spacing: .18em; padding: 9px 16px; }
 
+/* When / Where / Dress code cards: 20% smaller, contents scaled with them */
+.wr-card.wr-arch.wr-when { width: min(62.4vw, 256px); padding-left: 22px; padding-right: 22px; padding-bottom: 27px; }
+.wr-when > h2.wr-dlabel { font-size: 1.04rem; gap: 8px; }
+.wr-when > h2.wr-dlabel .wr-dicon { width: 24px; height: 24px; }
+.wr-when .wr-when-date { font-size: 1rem !important; }
+.wr-when .wr-btn { font-size: 8px; padding: 8px 13px; }
+
 @media (prefers-reduced-motion: reduce) {
   .riad-lantern, .riad-glow, .wr-gate-hint, .wr-scroll-hint::after, .wr-lantern-halo, .wr-lantern-glass { animation: none; }
   .wr-bg img { transition: none; }
