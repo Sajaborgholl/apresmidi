@@ -404,6 +404,16 @@ body { margin: 0; background: #f0e8dd; }
 .wr-panel-invite .wr-count-label { font-size: 7.5px; letter-spacing: .14em; }
 .wr-panel-invite .wr-count-dot { top: 10px; left: -4px; }
 
+/* Countdown card: same size as the When / Where / Dress code cards */
+.wr-panel-invite .wr-card.wr-arch { width: min(62.4vw, 256px); padding-left: 18px; padding-right: 18px; padding-bottom: 27px; }
+.wr-panel-invite .wr-lead { font-size: clamp(.74rem, 3.4vw, .88rem) !important; margin-bottom: 16px !important; }
+.wr-panel-invite .wr-card.wr-arch .wr-count { margin-top: 6px; }
+.wr-panel-invite .wr-card.wr-arch .wr-count-num { font-size: 1.4rem; }
+.wr-panel-invite .wr-card.wr-arch .wr-count-cell { min-width: 0; width: 25%; }
+.wr-panel-invite .wr-count { width: 100%; }
+.wr-panel-invite .wr-count-label { font-size: 6.5px; letter-spacing: .12em; margin-top: 6px; }
+.wr-panel-invite .wr-count-dot { top: 7px; left: -3px; font-size: 5px; }
+
 @media (prefers-reduced-motion: reduce) {
   .riad-lantern, .riad-glow, .wr-gate-hint, .wr-scroll-hint::after, .wr-lantern-halo, .wr-lantern-glass { animation: none; }
   .wr-bg img { transition: none; }
