@@ -11,10 +11,32 @@ import GuestForm, { DEFAULT_COUNTRY, fieldClass } from "./GuestForm";
 import { Button } from "./ui";
 import { Segmented, Sheet } from "./ui-client";
 
-type Tab = "one" | "import";
+type Tab = "one" | "contacts" | "import";
 
-// The "Add guests" panel: one guest by hand, or many from a spreadsheet or
-// the phone's contacts (checked in a preview before anything is added).
+// The "Numbers without a country code are from" choice, shown on both the
+// contacts and spreadsheet tabs.
+function ImportCountry({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[var(--ink)]/60">
+      Numbers without a country code are from
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={fieldClass}>
+        {COUNTRY_CODES.map((c) => (
+          <option key={c.name} value={c.name}>
+            {c.dial} {c.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+const dropZoneClass =
+  "flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-black/15 px-6 py-8 text-center transition hover:border-[var(--blue-dark)] hover:bg-[var(--cream)]/60";
+
+// The "Add guests" panel: one guest by hand, many from the phone's contacts
+// (the browser's picker on Android Chrome, or a .vcf file exported from the
+// Contacts app on iPhone and elsewhere), or many from a spreadsheet. Imports
+// are checked in a preview before anything is added.
 export default function AddGuestsSheet({
   open,
   onClose,
@@ -34,22 +56,39 @@ export default function AddGuestsSheet({
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const fileInput = useRef<HTMLInputElement>(null);
+  const contactsInput = useRef<HTMLInputElement>(null);
   // The contact picker exists only in some browsers (Android Chrome): checked
   // after hydration so the server and browser render the same first.
   const hydrated = useHydrated();
   const canPickContacts = hydrated && contactPicker() !== null;
 
-  async function onFile(file: File | undefined) {
+  async function onFile(input: HTMLInputElement | null, kind: "contacts" | "spreadsheet") {
+    const file = input?.files?.[0];
     if (!file) return;
     setFileError("");
     try {
       const parsed = await readGuestFile(file, dialCodeForCountry(importCountry));
-      if (parsed.length === 0) setFileError("We couldn't find any guests in that file.");
-      else setPreview(parsed);
+      if (parsed.length === 0) {
+        setFileError(
+          kind === "contacts"
+            ? "We couldn't find any contacts with a name or number in that file."
+            : "We couldn't find any guests in that file.",
+        );
+      } else if (parsed.length > MAX_GUESTS_PER_INVITE) {
+        setFileError(
+          `That file has ${parsed.length} ${kind === "contacts" ? "contacts" : "rows"}; a guest list holds up to ${MAX_GUESTS_PER_INVITE}. ${
+            kind === "contacts" ? "Export a list with just your guests." : "Split it and import each part."
+          }`,
+        );
+      } else setPreview(parsed);
     } catch {
-      setFileError("We couldn't read that file. Save it as .xlsx or .csv and try again.");
+      setFileError(
+        kind === "contacts"
+          ? "We couldn't read that contacts file. Export it again as a vCard (.vcf) and try again."
+          : "We couldn't read that file. Save it as .xlsx or .csv and try again.",
+      );
     } finally {
-      if (fileInput.current) fileInput.current.value = "";
+      if (input) input.value = "";
     }
   }
 
@@ -144,14 +183,26 @@ export default function AddGuestsSheet({
           <Segmented<Tab>
             label="How to add guests"
             value={tab}
-            onChange={setTab}
+            onChange={(t) => {
+              setTab(t);
+              setFileError("");
+            }}
             options={[
               { value: "one", label: "One guest" },
-              { value: "import", label: canPickContacts ? "Import or contacts" : "Import a spreadsheet" },
+              { value: "contacts", label: "From contacts" },
+              { value: "import", label: "Spreadsheet" },
             ]}
           />
 
           <div className="mt-5">
+            <input
+              ref={contactsInput}
+              type="file"
+              accept=".vcf,text/vcard,text/x-vcard,text/directory"
+              className="sr-only"
+              tabIndex={-1}
+              onChange={(e) => onFile(e.currentTarget, "contacts")}
+            />
             {tab === "one" ? (
               <>
                 {lastAdded && (
@@ -170,6 +221,56 @@ export default function AddGuestsSheet({
                   }}
                 />
               </>
+            ) : tab === "contacts" ? (
+              <div className="flex flex-col gap-4">
+                {canPickContacts ? (
+                  <>
+                    <Button variant="primary" onClick={fromContacts} icon={<AddressBook size={16} />}>
+                      Pick from my contacts
+                    </Button>
+                    <p className="-mt-1 text-center text-[13px] text-[var(--ink)]/65">
+                      You&apos;ll check every contact before anything is added.{" "}
+                      <button
+                        type="button"
+                        onClick={() => contactsInput.current?.click()}
+                        className="font-semibold text-[var(--ink)] underline underline-offset-2"
+                      >
+                        Or upload a contacts file (.vcf)
+                      </button>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => contactsInput.current?.click()} className={dropZoneClass}>
+                      <AddressBook size={26} className="text-[var(--ink)]/65" />
+                      <span className="text-[14px] font-semibold">Choose a contacts file (.vcf)</span>
+                      <span className="text-[13px] text-[var(--ink)]/65">You&apos;ll check every contact before anything is added.</span>
+                    </button>
+                    <div className="rounded-2xl bg-[var(--cream)] p-4 text-[13px] leading-relaxed text-[var(--ink)]/70">
+                      <p className="font-semibold text-[var(--ink)]">Getting the file</p>
+                      <ul className="mt-1.5 list-disc space-y-1 pl-5">
+                        <li>
+                          <span className="font-semibold text-[var(--ink)]">iPhone:</span> open Contacts, tap Lists, touch and hold a list, then
+                          tap Export. Save it to Files and choose it here.
+                        </li>
+                        <li>
+                          <span className="font-semibold text-[var(--ink)]">Android or computer:</span> export from Google Contacts or your
+                          Contacts app as a vCard (.vcf).
+                        </li>
+                      </ul>
+                      <p className="mt-1.5">Tip: make a list of just your guests first, rather than exporting everyone.</p>
+                    </div>
+                  </>
+                )}
+
+                <ImportCountry value={importCountry} onChange={setImportCountry} />
+
+                {fileError && (
+                  <p role="alert" className="rounded-xl bg-[var(--danger-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--danger)]">
+                    {fileError}
+                  </p>
+                )}
+              </div>
             ) : (
               <div className="flex flex-col gap-4">
                 <div className="rounded-2xl bg-[var(--cream)] p-4 text-[13px] leading-relaxed text-[var(--ink)]/70">
@@ -185,16 +286,7 @@ export default function AddGuestsSheet({
                   </p>
                 </div>
 
-                <label className="flex flex-col gap-1.5 text-[13px] font-semibold text-[var(--ink)]/60">
-                  Numbers without a country code are from
-                  <select value={importCountry} onChange={(e) => setImportCountry(e.target.value)} className={fieldClass}>
-                    {COUNTRY_CODES.map((c) => (
-                      <option key={c.name} value={c.name}>
-                        {c.dial} {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <ImportCountry value={importCountry} onChange={setImportCountry} />
 
                 <input
                   ref={fileInput}
@@ -202,23 +294,13 @@ export default function AddGuestsSheet({
                   accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   className="sr-only"
                   tabIndex={-1}
-                  onChange={(e) => onFile(e.target.files?.[0])}
+                  onChange={(e) => onFile(e.currentTarget, "spreadsheet")}
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInput.current?.click()}
-                  className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-black/15 px-6 py-8 text-center transition hover:border-[var(--blue-dark)] hover:bg-[var(--cream)]/60"
-                >
+                <button type="button" onClick={() => fileInput.current?.click()} className={dropZoneClass}>
                   <FileArrowUp size={26} className="text-[var(--ink)]/65" />
                   <span className="text-[14px] font-semibold">Choose a spreadsheet</span>
                   <span className="text-[13px] text-[var(--ink)]/65">You&apos;ll check every row before anything is added.</span>
                 </button>
-
-                {canPickContacts && (
-                  <Button onClick={fromContacts} icon={<AddressBook size={16} />}>
-                    Pick from my contacts
-                  </Button>
-                )}
 
                 {fileError && (
                   <p role="alert" className="rounded-xl bg-[var(--danger-soft)] px-3.5 py-2.5 text-[13px] font-medium text-[var(--danger)]">

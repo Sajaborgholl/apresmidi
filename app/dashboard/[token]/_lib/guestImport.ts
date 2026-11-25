@@ -86,7 +86,89 @@ export function rowsToGuests(cells: unknown[][], dial: string): ImportRow[] {
     .filter((r) => r.name || r.phone);
 }
 
+// Decodes vCard 2.1 QUOTED-PRINTABLE text ("=D8=B3=D8=A7…") as UTF-8, so
+// names exported from Android in Arabic (or any script) come through intact.
+function decodeQuotedPrintable(text: string): string {
+  const encoder = new TextEncoder();
+  const bytes: number[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const hex = text.slice(i + 1, i + 3);
+    if (text[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(hex)) {
+      bytes.push(parseInt(hex, 16));
+      i += 2;
+    } else {
+      const ch = String.fromCodePoint(text.codePointAt(i) ?? 0);
+      bytes.push(...encoder.encode(ch));
+      i += ch.length - 1;
+    }
+  }
+  return new TextDecoder().decode(new Uint8Array(bytes));
+}
+
+function unescapeVcf(value: string): string {
+  return value.replace(/\\([nN,;:\\])/g, (_, c: string) => (c === "n" || c === "N" ? " " : c));
+}
+
+// Reads a contacts file (.vcf / vCard 2.1, 3.0 or 4.0) as exported from an
+// iPhone's or Android phone's Contacts app, or from Google Contacts. Each
+// contact becomes one guest; when a contact has several numbers the mobile
+// one is used, then the preferred one, then the first.
+export function parseVcf(text: string, dial: string): ImportRow[] {
+  // A line starting with a space or tab continues the one before it. vCard
+  // 2.1 quoted-printable values instead end a line with "=" to continue.
+  const raw = text.replace(/\r\n?/g, "\n").replace(/\n[ \t]/g, "").split("\n");
+  const lines: string[] = [];
+  for (let i = 0; i < raw.length; i++) {
+    let line = raw[i];
+    const head = line.slice(0, Math.max(0, line.indexOf(":")));
+    if (/QUOTED-PRINTABLE/i.test(head)) {
+      while (line.endsWith("=") && i + 1 < raw.length) line = line.slice(0, -1) + raw[++i];
+    }
+    lines.push(line);
+  }
+
+  const rows: ImportRow[] = [];
+  let card: { fn: string; n: string; tels: { value: string; types: string }[] } | null = null;
+
+  for (const line of lines) {
+    const colon = line.indexOf(":");
+    if (colon === -1) continue;
+    const [rawName, ...params] = line.slice(0, colon).split(";");
+    const prop = rawName.replace(/^[^.]*\./, "").toUpperCase();
+    const paramText = params.join(";").toUpperCase();
+    let value = line.slice(colon + 1);
+    if (params.some((p) => /^(ENCODING=)?QUOTED-PRINTABLE$/i.test(p.trim()))) value = decodeQuotedPrintable(value);
+
+    if (prop === "BEGIN" && value.trim().toUpperCase() === "VCARD") {
+      card = { fn: "", n: "", tels: [] };
+    } else if (!card) {
+      continue;
+    } else if (prop === "FN") {
+      card.fn = unescapeVcf(value).trim();
+    } else if (prop === "N") {
+      const [family = "", given = ""] = value.split(/(?<!\\);/).map((p) => unescapeVcf(p).trim());
+      card.n = [given, family].filter(Boolean).join(" ");
+    } else if (prop === "TEL") {
+      const number = value.trim().replace(/^tel:/i, "");
+      if (number) card.tels.push({ value: number, types: paramText });
+    } else if (prop === "END" && value.trim().toUpperCase() === "VCARD") {
+      const tel =
+        card.tels.find((t) => /CELL|MOBILE|IPHONE/.test(t.types)) ??
+        card.tels.find((t) => /PREF/.test(t.types)) ??
+        card.tels[0];
+      const name = (card.fn || card.n).replace(/\s+/g, " ").trim();
+      const phone = withCountryCode(tel?.value ?? "", dial);
+      if (name || phone) rows.push({ name, phone, seats: "1" });
+      card = null;
+    }
+  }
+  return rows;
+}
+
 export async function readGuestFile(file: File, dial: string): Promise<ImportRow[]> {
+  if (/\.vcf$/i.test(file.name) || /vcard|directory/i.test(file.type)) {
+    return parseVcf(await file.text(), dial);
+  }
   if (/\.(xlsx)$/i.test(file.name)) {
     // Loaded only when a spreadsheet is picked; reads the first sheet.
     const { readSheet } = await import("read-excel-file/browser");
